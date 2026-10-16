@@ -5,6 +5,8 @@ import { type Page, expect } from "@playwright/test";
  * address. On Cloudflare this header is set by the edge and cannot be supplied by a browser.
  */
 export async function freshClient(page: Page) {
+  // Cloudflare's edge rejects a client-supplied CF-Connecting-IP, so only simulate it locally.
+  if (process.env.E2E_BASE_URL) return;
   const octet = () => Math.floor(Math.random() * 250) + 1;
   await page.setExtraHTTPHeaders({ "cf-connecting-ip": `10.${octet()}.${octet()}.${octet()}` });
 }

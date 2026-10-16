@@ -49,8 +49,24 @@ A live comparison (`npm run eval -- --live`) makes three bounded research runs w
 and records only aggregate counts in an ignored local file. **Status: not run**, pending a credential
 (EXT-QLOO-KEY).
 
+## Deployed Worker measurements
+
+Measured with `wrangler tail` on the deployed Worker (Workers Free, fixture mode), small samples:
+
+| Route | Requests | CPU time (ms) | Wall time (ms) |
+|-------|----------|---------------|----------------|
+| `POST /api/evaluate` | 5 | 2–5 | 3–6 |
+| `POST /api/research` (three references, widened search) | 3 | 3–9 | 34–95 |
+| `GET /api/health` | 3 | 0 | 0–1 |
+
+All are inside the Free plan's 10 ms CPU limit, but research has little headroom. Live Qloo payloads are larger
+than fixture payloads, so CPU time must be re-measured once live access is available. If it exceeds the limit, the
+plan is to split research into two requests rather than upgrade.
+
+The Playwright suite also passes against the public deployment (`E2E_BASE_URL=<url> npm run test:e2e`: 22 of 22),
+and `npm run verify:public` passes every check except live Qloo mode.
+
 ## Not yet measured
 
-- Live Qloo match rates, candidate counts, and latency.
-- Worker CPU time on the deployed Worker (requires deployment; Cloudflare's observability reports it).
+- Live Qloo match rates, candidate counts, latency, and CPU time.
 - Any business outcome. No customer research has been conducted.

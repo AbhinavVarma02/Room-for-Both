@@ -13,6 +13,7 @@
     {
       "binding": "DB",
       "database_name": "room-for-both",
+      "database_id": "b8196d69-7c57-4575-9b54-5ac6dd05ace9",
       "migrations_dir": "db/migrations"
     }
   ],

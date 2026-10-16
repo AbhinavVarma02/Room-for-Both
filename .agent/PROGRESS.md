@@ -58,3 +58,12 @@ Chronological, factual. Commands and observed outcomes only.
 - GitHub CLI install via winget was cancelled at the Windows elevation prompt; not required because pushes work.
 - Owner reports Qloo API access requested; approval pending (may take several business days). Live Qloo work stays blocked (EXT-QLOO-KEY).
 - First `npx wrangler login` timed out waiting for browser authorization (log: "Timed out waiting for authorization code").
+- Second `npx wrangler login` succeeded (account confirmed with `wrangler whoami`). Plan tier is not shown by the CLI; no billing or plan
+  setting was touched. `wrangler d1 list` empty → `wrangler d1 create room-for-both` (id b8196d69-7c57-4575-9b54-5ac6dd05ace9, not secret),
+  `wrangler d1 migrations apply room-for-both --remote` → 0001_initial.sql applied.
+- `npm run deploy` → https://room-for-both.room-for-both.workers.dev (version 8b056190-e32b-4009-9206-d3dad4368c10). New workers.dev TLS
+  certificate took about 2 minutes to issue. `CLIENT_KEY_SALT` set as a secret from a locally generated random value (never printed).
+- `npm run verify:public -- <url>` → 9/10 PASS; only "live Qloo mode" fails (expected: fixture mode, EXT-QLOO-KEY).
+- `E2E_BASE_URL=<url> npx playwright test` → first run 12 failures caused by the test helper sending a simulated CF-Connecting-IP header,
+  which Cloudflare's edge rejects; helper fixed to simulate only locally → 22/22 passed against the public deployment.
+- `wrangler tail` CPU: evaluate 2–5 ms, fixture research 3–9 ms, health 0 ms (Workers Free limit 10 ms). Live research must be re-measured.

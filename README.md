@@ -7,6 +7,9 @@ collaboration that works for both of them. It suggests culturally aligned partne
 taste intelligence. It then checks every pop-up, shelf placement, and co-hosted event against both sides'
 actual terms, and shows the smallest negotiable change that would turn a no into a maybe.
 
+**Live app:** https://room-for-both.room-for-both.workers.dev (currently in labelled fixture mode while Qloo API
+access is pending)
+
 ![Room for Both home page](docs/images/landing.png)
 
 ## Why

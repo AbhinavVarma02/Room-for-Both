@@ -44,7 +44,7 @@ test("a host answers through a private link and the scenario becomes two-sided",
   expect(link).toMatch(/\/respond#t=[A-Za-z0-9_-]{43}$/);
 
   const host = await context.newPage();
-  await host.setExtraHTTPHeaders({ "cf-connecting-ip": "10.9.9.9" });
+  if (!process.env.E2E_BASE_URL) await host.setExtraHTTPHeaders({ "cf-connecting-ip": "10.9.9.9" });
   await host.goto(link);
   await expect(host.getByRole("heading", { level: 1 })).toContainText("would like to explore a collaboration");
   await expect(host.getByText("Would a small shelf collaboration interest you?")).toBeVisible();

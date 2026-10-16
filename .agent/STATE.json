@@ -11,7 +11,7 @@
     "P5": "verified_complete",
     "P6": "verified_complete",
     "P7": "blocked_external",
-    "P8": "blocked_external",
+    "P8": "implemented_unverified",
     "P9": "implemented_unverified",
     "P10": "in_progress"
   },
@@ -66,31 +66,35 @@
     "P9-02",
     "P9-03",
     "P10-02",
-    "P8-02"
+    "P8-02",
+    "P8-03",
+    "P8-04",
+    "P8-06-fixture",
+    "P7-08-fixture",
+    "P1-07"
   ],
   "implemented_unverified_task_ids": [
-    "P1-07",
     "P4-05",
     "P9-04"
   ],
   "failed_checks": [],
   "blocker_ids": [
     "EXT-QLOO-KEY",
-    "EXT-QLOO-ACCESS",
-    "EXT-CF-AUTH"
+    "EXT-QLOO-ACCESS"
   ],
   "last_successful_verifications": [
-    "npm run check: exit 0 (57 unit, 43 integration, eval 40/40, build)",
-    "npx playwright test: 22 passed",
-    "npm run scan:secrets: clean"
+    "GitHub Actions run 38852228902: both jobs success",
+    "npm run verify:public: 9/10 (live mode pending)",
+    "Playwright against public URL: 22/22",
+    "npm run check: exit 0"
   ],
   "last_commit_sha": "3bcc8d9",
   "last_remote_sha": "91e8e99",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
-  "deployed_url": null,
+  "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": false,
   "verified_live_gemini": false,
-  "verified_public_anonymous_flow": false,
+  "verified_public_anonymous_flow": true,
   "verified_free_tier": false,
   "release_status": "ready_except_external_dependencies",
   "tooling": {
@@ -101,34 +105,31 @@
     "wrangler": "4.151.0 (devDependency); not authenticated"
   },
   "next_actions": [
-    "Owner: install and authenticate GitHub CLI, then agent creates public repo and pushes",
-    "Owner: npx wrangler login; agent creates D1, applies migrations, deploys",
-    "Owner: provide Qloo credential as Worker secret; agent runs smoke:live, verify:public, live eval",
-    "Agent: record deployed URL in README and STATE; measure Worker CPU"
+    "When Qloo credential arrives: owner runs npx wrangler secret put QLOO_API_KEY (and QLOO_BASE_URL if issued); agent runs smoke:live, verify:public, eval --live, re-measures CPU",
+    "Owner: confirm direct HTTPS API access is permitted for the credential (EXT-QLOO-ACCESS)",
+    "Optional: map for verified coordinates (P6-09)"
   ],
   "phase_notes": {
     "P1": "CI workflow written, not yet run on GitHub",
     "P2": "adapter verified against synthetic upstream; live smoke blocked (EXT-QLOO-KEY)",
     "P4": "offline pipeline verified; live run blocked",
     "P6": "optional map not shipped",
-    "P7": "offline gates green; live comparison and Worker CPU blocked",
-    "P8": "repo pushed; Cloudflare login in progress",
+    "P7": "Worker CPU measured (fixture); live comparison pending",
+    "P8": "deployed and verified anonymously in fixture mode; live Qloo gate pending",
     "P9": "public URL pending"
   },
   "blocked_task_ids": [
     "P2-05",
     "P4-06",
     "P7-05",
-    "P7-08",
-    "P8-03",
-    "P8-04",
     "P8-05",
-    "P8-06",
     "P10-03"
   ],
   "pending_task_ids": [
     "P6-09",
     "P10-01"
   ],
-  "qloo_access": "requested by owner; approval pending"
+  "qloo_access": "requested by owner; approval pending",
+  "deployed_version": "8b056190-e32b-4009-9206-d3dad4368c10",
+  "free_tier_note": "Account plan tier not visible via CLI; usage designed for Workers Free and D1 Free limits; no billing change made"
 }

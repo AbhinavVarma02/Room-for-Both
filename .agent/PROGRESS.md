@@ -30,3 +30,24 @@ Chronological, factual. Commands and observed outcomes only.
 - Worker: Hono app, NDJSON research stream, Qloo client (trusted-host check, timeout, bounded retry, call budget, circuit breaker), fixture
   transport, research planner, D1 limits, host links, Gemini adapter with output checks. Commit 37bbaa4.
 - `npx vitest run` → 7 files, 100 tests passed (57 unit, 43 integration). `eslint src tests` clean. `tsc` app/worker/test clean.
+
+## #3 Client, end-to-end tests, evaluation, docs (P1, P4, P6, P7, P9)
+- React client: landing, workspace stepper (guest intake, discovery with streamed steps, two-sided workspace with private host
+  link, Agreement Frontier with trade-off chart, Decision Reversal with what-if controls and trace, printable brief with JSON export),
+  methodology page, host response page, not-found page. Route-level code splitting: main chunk 259 KB (82 KB gzip).
+- Browser walkthrough of the fictional journey on the local dev server (built-in browser); mobile viewport 375 px has no horizontal scroll.
+- Fixes found during review: fixture-mode text no longer attributes fictional associations to Qloo; guest edits to host-link answers relabel
+  them as unconfirmed; what-if selection stays pinned; first-load focus order keeps the skip link first; host page reacts to hash changes;
+  brief page has a single h1.
+- `npx playwright test` → 22 passed (11 desktop Chrome, 11 Pixel 7) against `vite preview` (production build in workerd, local D1).
+- `npm run eval` → 40/40 cases, 58/58 checks; 0/3157 statements flagged as unsupported claims; 3019/3019 numbers grounded;
+  27/27 decisions invariant to the cultural layer; research calls max 6, mean 3.6; engine median 0.05–0.06 ms, p95 0.16 ms.
+  Mutation check: changing the budget rule from `<=` to `<` made 2 cases fail (E19, E23); reverted.
+- `npm run check` → exit 0 (typecheck, lint, 57 unit, 43 integration, eval, build). `npm run scan:secrets` → clean (130 files).
+- Licence audit of the production tree: MIT, ISC (lucide-react), 0BSD (tslib), Unlicense (wouter), OFL-1.1 (fonts). Unknown entries are
+  uninstalled optional peers of @hookform/resolvers; `@img/sharp-wasm32` is extraneous and not bundled. Vite now emits
+  `third-party-licenses.md` with the build; linked from the footer.
+- Docs: README, architecture, decision method, business case, API (incl. verified Qloo routes), security, privacy, limitations,
+  deployment, evaluation, demo guide. Screenshots captured from the running app (fixture mode, fictional example).
+- Commits: c34a1a6, 8307402, 5ceefe8, a31f071, 9cbbc0d, 283c005, 3bcc8d9.
+- Not done: optional map (P6-09) intentionally not shipped. External: GitHub repo, Cloudflare deploy, live Qloo verification.

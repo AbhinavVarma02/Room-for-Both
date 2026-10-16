@@ -1,19 +1,19 @@
 {
   "project": "Room for Both",
   "repo_slug": "room-for-both",
-  "current_phase": "P6",
+  "current_phase": "P8",
   "phase_status": {
     "P0": "verified_complete",
-    "P1": "in_progress",
-    "P2": "implemented_unverified",
-    "P3": "implemented_unverified",
-    "P4": "implemented_unverified",
-    "P5": "implemented_unverified",
-    "P6": "pending",
-    "P7": "pending",
-    "P8": "pending",
-    "P9": "pending",
-    "P10": "pending"
+    "P1": "implemented_unverified",
+    "P2": "blocked_external",
+    "P3": "verified_complete",
+    "P4": "blocked_external",
+    "P5": "verified_complete",
+    "P6": "verified_complete",
+    "P7": "blocked_external",
+    "P8": "blocked_external",
+    "P9": "implemented_unverified",
+    "P10": "in_progress"
   },
   "completed_task_ids": [
     "P0-01",
@@ -21,10 +21,13 @@
     "P0-03",
     "P0-04",
     "P1-01",
+    "P1-02",
     "P1-03",
     "P1-04",
     "P1-05",
     "P1-06",
+    "P1-08",
+    "P1-09",
     "P2-01",
     "P2-02",
     "P2-03",
@@ -38,18 +41,36 @@
     "P4-01",
     "P4-02",
     "P4-03",
+    "P4-04",
     "P5-01",
     "P5-02",
     "P5-03",
     "P5-04",
     "P5-05",
+    "P6-01",
+    "P6-02",
+    "P6-03",
+    "P6-04",
+    "P6-05",
+    "P6-06",
+    "P6-07",
+    "P6-08",
+    "P6-10",
     "P7-01",
-    "P7-03"
+    "P7-02",
+    "P7-03",
+    "P7-04",
+    "P7-06",
+    "P7-07",
+    "P9-01",
+    "P9-02",
+    "P9-03",
+    "P10-02"
   ],
   "implemented_unverified_task_ids": [
-    "P4-04",
+    "P1-07",
     "P4-05",
-    "P7-02"
+    "P9-04"
   ],
   "failed_checks": [],
   "blocker_ids": [
@@ -59,11 +80,11 @@
     "EXT-CF-AUTH"
   ],
   "last_successful_verifications": [
-    "npx vitest run: 100 passed",
-    "eslint src tests: clean",
-    "tsc -p tsconfig.{app,worker,test}.json: clean"
+    "npm run check: exit 0 (57 unit, 43 integration, eval 40/40, build)",
+    "npx playwright test: 22 passed",
+    "npm run scan:secrets: clean"
   ],
-  "last_commit_sha": "37bbaa4",
+  "last_commit_sha": "3bcc8d9",
   "last_remote_sha": null,
   "github_remote_url": null,
   "deployed_url": null,
@@ -71,7 +92,7 @@
   "verified_live_gemini": false,
   "verified_public_anonymous_flow": false,
   "verified_free_tier": false,
-  "release_status": "not_ready",
+  "release_status": "ready_except_external_dependencies",
   "tooling": {
     "node": "v24.14.0",
     "npm": "11.9.0",
@@ -80,9 +101,35 @@
     "wrangler": "4.151.0 (devDependency); not authenticated"
   },
   "next_actions": [
-    "Build React client screens (P6)",
-    "Playwright e2e",
-    "Evaluation suite (P7-04)",
-    "README and docs (P9)"
+    "Owner: install and authenticate GitHub CLI, then agent creates public repo and pushes",
+    "Owner: npx wrangler login; agent creates D1, applies migrations, deploys",
+    "Owner: provide Qloo credential as Worker secret; agent runs smoke:live, verify:public, live eval",
+    "Agent: record deployed URL in README and STATE; measure Worker CPU"
+  ],
+  "phase_notes": {
+    "P1": "CI workflow written, not yet run on GitHub",
+    "P2": "adapter verified against synthetic upstream; live smoke blocked (EXT-QLOO-KEY)",
+    "P4": "offline pipeline verified; live run blocked",
+    "P6": "optional map not shipped",
+    "P7": "offline gates green; live comparison and Worker CPU blocked",
+    "P8": "needs gh auth and wrangler login",
+    "P9": "public URL pending"
+  },
+  "blocked_task_ids": [
+    "P2-05",
+    "P4-06",
+    "P7-05",
+    "P7-08",
+    "P8-01",
+    "P8-02",
+    "P8-03",
+    "P8-04",
+    "P8-05",
+    "P8-06",
+    "P10-03"
+  ],
+  "pending_task_ids": [
+    "P6-09",
+    "P10-01"
   ]
 }

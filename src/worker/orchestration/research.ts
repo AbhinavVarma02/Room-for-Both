@@ -147,7 +147,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
       limitations.push(`“${s.input.label}” matched only approximately (closest: “${s.entity?.name}”), so it was not used as a signal. Confirm the intended reference to include it.`);
     }
     for (const s of seeds.filter((x) => x.status === "unresolved")) {
-      limitations.push(`“${s.input.label}” was not found in Qloo, so it was not used.`);
+      limitations.push(`“${s.input.label}” was not found${deps.mode === "live" ? " in Qloo" : ""}, so it was not used.`);
     }
     await record({
       id: "resolve_seeds",

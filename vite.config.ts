@@ -17,5 +17,7 @@ export default defineConfig({
     // We never ship source maps publicly; they would expose server modules bundled for the Worker.
     sourcemap: false,
     chunkSizeWarningLimit: 600,
+    // Ship the licences of every bundled dependency alongside the app.
+    license: { fileName: "third-party-licenses.md" },
   },
 });

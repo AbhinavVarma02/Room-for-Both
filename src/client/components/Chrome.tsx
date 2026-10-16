@@ -56,6 +56,9 @@ export function Footer() {
           <Link href="/methodology" className="link">
             Method, data use &amp; limits
           </Link>
+          <a className="link" href="/third-party-licenses.md">
+            Open-source licences
+          </a>
           {REPOSITORY_URL && (
             <a className="link" href={REPOSITORY_URL} rel="noreferrer">
               Source code

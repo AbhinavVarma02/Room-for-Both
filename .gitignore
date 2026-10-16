@@ -44,3 +44,6 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 *.swp
+
+# Local assistant and editor tooling
+.claude/

@@ -88,5 +88,6 @@ See `.agent/DECISIONS.md` for the full records. In short:
 | Qloo rate limit, auth error, or outage | Research stops with a plain-language error; "Continue without cultural evidence" keeps the decision tools usable |
 | Reference or category not matched exactly | Disclosed, not used as a signal; venue search skipped rather than guessed |
 | No venues in a neighbourhood | Search widens to the city once, then reports none |
+| Per-run call budget reached | Remaining steps are skipped; results found so far are kept and marked partial |
 | D1 unavailable | Live research fails closed (cannot bound spend); evaluation and fixture research still work |
 | Gemini absent or output rejected | Rule-based summary is always shown |

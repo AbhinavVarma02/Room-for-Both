@@ -44,7 +44,10 @@ const STEP_LABELS: Record<ResearchStepId, string> = {
   cultural_bridge: "Building a cultural bridge",
 };
 
-const FATAL: ReadonlySet<QlooError["code"]> = new Set(["NOT_CONFIGURED", "UNTRUSTED_BASE_URL", "AUTH", "RATE_LIMITED", "UPSTREAM_UNAVAILABLE", "BUDGET_EXHAUSTED"]);
+// Errors that end the run. Reaching the call budget is not among them: we keep what was found
+// and skip the remaining steps, because partial evidence with a stated limit beats none.
+const FATAL: ReadonlySet<QlooError["code"]> = new Set(["NOT_CONFIGURED", "UNTRUSTED_BASE_URL", "AUTH", "RATE_LIMITED", "UPSTREAM_UNAVAILABLE"]);
+const isBudget = (error: unknown) => error instanceof QlooError && error.code === "BUDGET_EXHAUSTED";
 
 // Tag IDs for venue categories are stable, so a short per-isolate cache saves quota without
 // storing any user data or bulk Qloo content.
@@ -107,6 +110,10 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     return { value, ms: Math.max(0, now() - t0), calls: deps.transport.callsUsed - c0 };
   };
 
+  let budgetReached = false;
+  const skipForBudget = (id: ResearchStepId, tool: string) =>
+    record({ id, tool, status: "skipped", calls: 0, summary: "Skipped: this run's call budget was reached.", durationMs: 0 });
+
   const planned: ResearchStepId[] = ["resolve_seeds", "resolve_category", "find_venues", "cultural_bridge"];
   await emit({ type: "plan", mode: deps.mode, steps: planned.map((id) => ({ id, label: STEP_LABELS[id] })) });
 
@@ -123,6 +130,12 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
       for (const input of seedInputs) {
         const type = SEED_KIND_TO_QLOO_TYPE[input.kind];
         const req = `Entity search for “${input.label}” (${SEED_KIND_LABELS[input.kind].toLowerCase()})`;
+        const notSearched = () =>
+          seeds.push({ input, status: "unresolved", entity: null, alternatives: [], provenance: { ...provenance("/search", req), note: "Not searched: the run's call budget was reached." } });
+        if (budgetReached) {
+          notSearched();
+          continue;
+        }
         try {
           const payload = await deps.transport.get("/search", { query: input.label, types: type, take: 5 });
           const candidates = normalizeEntities(payload, 5);
@@ -137,6 +150,11 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
             provenance: provenance("/search", req),
           });
         } catch (error) {
+          if (isBudget(error)) {
+            budgetReached = true;
+            notSearched();
+            continue;
+          }
           if (error instanceof QlooError && FATAL.has(error.code)) throw error;
           seeds.push({ input, status: "unresolved", entity: null, alternatives: [], provenance: { ...provenance("/search", req), note: "The lookup failed; this reference was skipped." } });
         }
@@ -175,6 +193,8 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
       provenance: { ...provenance("/v2/tags", `Tag search for “${categoryLabel}”`), retrievedAt: cached.at, note: "Reused from a recent identical lookup." },
     };
     await record({ id: "resolve_category", tool: "resolve_tag", status: "done", calls: 0, summary: `Matched “${categoryLabel}” (cached).`, durationMs: 0 });
+  } else if (budgetReached) {
+    await skipForBudget("resolve_category", "resolve_tag");
   } else {
     try {
       const r = await timed(() => deps.transport.get("/v2/tags", { "filter.query": categoryLabel, take: 10 }));
@@ -197,16 +217,30 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
         durationMs: r.ms,
       });
     } catch (error) {
-      if (error instanceof QlooError && FATAL.has(error.code)) throw error;
-      limitations.push("The venue category lookup failed, so venue discovery was skipped.");
-      await record({ id: "resolve_category", tool: "resolve_tag", status: "failed", calls: 1, summary: "Category lookup failed.", durationMs: 0 });
+      if (isBudget(error)) {
+        budgetReached = true;
+        await skipForBudget("resolve_category", "resolve_tag");
+      } else {
+        if (error instanceof QlooError && FATAL.has(error.code)) throw error;
+        limitations.push("The venue category lookup failed, so venue discovery was skipped.");
+        await record({ id: "resolve_category", tool: "resolve_tag", status: "failed", calls: 1, summary: "Category lookup failed.", durationMs: 0 });
+      }
     }
   }
 
   // 3. Rank venues in the market by affinity to the matched references.
   let candidates: PartnershipCandidate[] = [];
   if (!categoryTag) {
-    await record({ id: "find_venues", tool: "recommend_venues", status: "skipped", calls: 0, summary: "Skipped: no confirmed venue category.", durationMs: 0 });
+    await record({
+      id: "find_venues",
+      tool: "recommend_venues",
+      status: "skipped",
+      calls: 0,
+      summary: budgetReached ? "Skipped: this run's call budget was reached." : "Skipped: no confirmed venue category.",
+      durationMs: 0,
+    });
+  } else if (budgetReached) {
+    await skipForBudget("find_venues", "recommend_venues");
   } else {
     if (signalIds.length === 0) {
       limitations.push("No reference matched exactly, so venues are listed without a taste signal and their order may mostly reflect general popularity.");
@@ -247,6 +281,11 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
         });
         if (venues.length > 0) break;
       } catch (error) {
+        if (isBudget(error)) {
+          budgetReached = true;
+          await skipForBudget(stepId, "recommend_venues");
+          break;
+        }
         if (error instanceof QlooError && FATAL.has(error.code)) throw error;
         const unknownPlace = error instanceof QlooError && error.code === "BAD_REQUEST";
         await record({
@@ -268,6 +307,8 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
   const bridgeTags = new Set<string>();
   if (signalIds.length === 0) {
     await record({ id: "cultural_bridge", tool: "taste_tags", status: "skipped", calls: 0, summary: "Skipped: needs at least one exactly matched reference.", durationMs: 0 });
+  } else if (budgetReached) {
+    await skipForBudget("cultural_bridge", "taste_tags");
   } else {
     const cross = CROSS_DOMAIN[request.venueCategory];
     const tool = cross ? "cross_domain" : "taste_tags";
@@ -338,9 +379,18 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
         durationMs: r.ms,
       });
     } catch (error) {
-      if (error instanceof QlooError && FATAL.has(error.code)) throw error;
-      await record({ id: "cultural_bridge", tool, status: "failed", calls: 1, summary: "The cultural bridge lookup failed.", durationMs: 0 });
+      if (isBudget(error)) {
+        budgetReached = true;
+        await skipForBudget("cultural_bridge", tool);
+      } else {
+        if (error instanceof QlooError && FATAL.has(error.code)) throw error;
+        await record({ id: "cultural_bridge", tool, status: "failed", calls: 1, summary: "The cultural bridge lookup failed.", durationMs: 0 });
+      }
     }
+  }
+
+  if (budgetReached) {
+    limitations.push(`This run reached its limit of ${deps.callBudget} upstream calls, so later steps were skipped and the results are partial.`);
   }
 
   return {

@@ -1,8 +1,8 @@
 {
   "cases": 40,
   "casesPassed": 40,
-  "checks": 58,
-  "checksPassed": 58,
+  "checks": 60,
+  "checksPassed": 60,
   "unsupportedClaimRate": {
     "flagged": 0,
     "statements": 3157
@@ -30,7 +30,7 @@
   "engineLatencyMs": {
     "samples": 675,
     "median": 0.06090000000000373,
-    "p95": 0.1852999999999838
+    "p95": 0.15870000000001028
   },
   "live": null,
   "rows": [
@@ -301,9 +301,9 @@
     {
       "id": "R07",
       "category": "quota",
-      "description": "Per-run call budget exhausted",
-      "checks": 1,
-      "passed": 1,
+      "description": "Per-run call budget reached mid-run",
+      "checks": 3,
+      "passed": 3,
       "failures": []
     },
     {

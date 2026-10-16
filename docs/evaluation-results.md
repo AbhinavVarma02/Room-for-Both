@@ -6,12 +6,12 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Measure | Result |
 |---|---|
 | Cases passing every check | 40 / 40 |
-| Individual checks passing | 58 / 58 (100.0%) |
+| Individual checks passing | 60 / 60 (100.0%) |
 | Generated statements flagged as unsupported claims | 0 / 3157 (0.0%) |
 | Numbers in generated statements traceable to inputs or reported arithmetic | 3019 / 3019 (100.0%) |
 | Decisions identical with and without the cultural layer | 27 / 27 |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.19 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.16 |
 
 ## Cultural layer versus no-cultural-layer baseline
 
@@ -59,7 +59,7 @@ Live Qloo comparison: **not run** (requires an authorised Qloo key; see BLOCKERS
 | R04 | sparse coverage | Market with no venues | 2/2 | pass |
 | R05 | upstream faults | Venue lookup times out | 3/3 | pass |
 | R06 | upstream faults | Upstream rate limit | 1/1 | pass |
-| R07 | quota | Per-run call budget exhausted | 1/1 | pass |
+| R07 | quota | Per-run call budget reached mid-run | 3/3 | pass |
 | R08 | adversarial | Instruction-like text as a cultural reference | 1/1 | pass |
 | R09 | upstream faults | Malformed upstream payloads | 2/2 | pass |
 | L01 | llm output | Grounded draft | 1/1 | pass |

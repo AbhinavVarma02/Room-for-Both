@@ -139,11 +139,23 @@ describe("live mode against a synthetic upstream", () => {
     expect(run.seeds[0]?.status).toBe("exact");
   });
 
-  it("stops at the per-run call budget", async () => {
+  it("stops at the per-run call budget and keeps partial results", async () => {
     const res = await h.request("/api/research", jsonInit("POST", request), { ...live, QLOO_MAX_CALLS_PER_RUN: "2" });
-    const err = ndjson(res.text).find((e) => e.type === "error");
-    expect(err).toMatchObject({ code: "budget_exhausted" });
+    const run = result(res.text);
     expect(fake.calls.length).toBe(2);
+    expect(run.seeds.map((s) => s.status)).toEqual(["exact", "exact"]);
+    expect(run.steps.filter((s) => s.summary.includes("call budget")).map((s) => s.id)).toEqual(["resolve_category", "find_venues", "cultural_bridge"]);
+    expect(run.limitations.some((l) => l.includes("results are partial"))).toBe(true);
+  });
+
+  it("completes the worst case (three references and a widened search) within the default budget", async () => {
+    fake = createQlooFake({ emptyVenuesFor: ["Greenpoint"] });
+    const three = { ...request, seeds: [...request.seeds, { label: "Patagonia", kind: "brand" }] };
+    const run = result((await h.request("/api/research", jsonInit("POST", three), live)).text);
+    expect(run.callsUsed).toBe(7);
+    expect(run.callBudget).toBe(7);
+    expect(run.themes.length).toBeGreaterThan(0);
+    expect(run.limitations.some((l) => l.includes("results are partial"))).toBe(false);
   });
 
   it("refuses to run when the daily ceiling would be exceeded", async () => {

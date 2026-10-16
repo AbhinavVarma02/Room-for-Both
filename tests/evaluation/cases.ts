@@ -389,10 +389,14 @@ export const CASES: EvalCase[] = [
     kind: "research",
     id: "R07",
     category: "quota",
-    description: "Per-run call budget exhausted",
+    description: "Per-run call budget reached mid-run",
     request: baseRequest,
     budget: 2,
-    checks: [{ name: "run stops at the budget", pass: (r, err) => r === null && err === "BUDGET_EXHAUSTED" }],
+    checks: [
+      { name: "run returns partial results instead of failing", pass: (r, err) => r !== null && err === null && r.callsUsed === 2 },
+      { name: "partial results disclosed", pass: (r) => !!r && r.limitations.some((l) => l.includes("results are partial")) },
+      { name: "no venues fabricated", pass: (r) => r?.candidates.length === 0 },
+    ],
   },
   {
     kind: "research",

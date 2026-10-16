@@ -273,6 +273,8 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     const tool = cross ? "cross_domain" : "taste_tags";
     const type = cross?.type ?? "urn:tag";
     const seedList = signalSeeds.map((s) => `“${s.input.label}”`).join(", ");
+    // Fixture runs must never describe their invented associations as Qloo's.
+    const associates = deps.mode === "live" ? "Qloo associates" : "In this fictional fixture run, the demonstration data associates";
     try {
       const r = await timed(() => deps.transport.get("/v2/insights", { "filter.type": type, "signal.interests.entities": signalIds, take: 8 }));
       const prov = provenance("/v2/insights", cross ? `${cross.noun} with affinity to ${seedList}` : `Taste tags with affinity to ${seedList}`);
@@ -283,7 +285,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
             id: "cross-domain",
             title: cross.title,
             basis: "cross_domain",
-            rationale: `Qloo associates ${seedList} with these ${cross.noun}. A ${categoryLabel.toLowerCase()} collaboration could be framed around them. This is a creative starting point, not evidence that either business's customers will respond.`,
+            rationale: `${associates} ${seedList} with these ${cross.noun}. A ${categoryLabel.toLowerCase()} collaboration could be framed around them. This is a creative starting point, not evidence that either business's customers will respond.`,
             items: items.map((e) => ({ id: e.id, name: e.name, type: e.type, affinity: e.affinity, strength: strengthOf(e.affinity) })),
             provenance: prov,
             interpretation: "derived_rule",
@@ -301,7 +303,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
               id: "recurring-tags",
               title: "Recurring taste signals",
               basis: "taste_tags",
-              rationale: `Tags that appear on two or more of the ${cross.noun} above. Counted directly from Qloo's tags; no scores are implied.`,
+              rationale: `Tags that appear on two or more of the ${cross.noun} above. Counted directly from the returned tags; no scores are implied.`,
               items: recurring.map(([name]) => ({ id: `recurring:${normalizeName(name)}`, name, type: "tag", affinity: null, strength: "unscored" as const })),
               provenance: prov,
               interpretation: "derived_rule",
@@ -316,7 +318,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
             id: "taste-tags",
             title: "Shared taste signals",
             basis: "taste_tags",
-            rationale: `Qloo associates ${seedList} with these taste tags. They suggest a theme for the collaboration; they do not describe either business's actual customers.`,
+            rationale: `${associates} ${seedList} with these taste tags. They suggest a theme for the collaboration; they do not describe either business's actual customers.`,
             items: tags.map((t) => ({ id: t.id, name: t.name, type: t.type ?? "tag", affinity: t.affinity, strength: strengthOf(t.affinity) })),
             provenance: prov,
             interpretation: "derived_rule",

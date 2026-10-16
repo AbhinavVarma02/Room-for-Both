@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Room for Both: Find common ground. Build a better deal.">
+  <rect width="1200" height="630" fill="#fbf8f3"/>
+  <circle cx="470" cy="270" r="170" fill="#0f766e" fill-opacity="0.85"/>
+  <circle cx="650" cy="270" r="170" fill="#7e3a8c" fill-opacity="0.85"/>
+  <path d="M560 133a170 170 0 0 1 0 274a170 170 0 0 1 0-274z" fill="#2f4b8f"/>
+  <text x="600" y="530" text-anchor="middle" font-family="Georgia, serif" font-size="64" fill="#1d2327">Room for Both</text>
+  <text x="600" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#4a5560">Find common ground. Build a better deal.</text>
+</svg>

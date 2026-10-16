@@ -1,4 +1,5 @@
 import { Check, RotateCcw } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { Brief } from "../features/brief/Brief";
 import { Discovery } from "../features/discovery/Discovery";
@@ -42,6 +43,11 @@ export function Workspace() {
   const { state, dispatch } = useWorkspace();
   const step = (STEPS.find((s) => s.id === params.step)?.id ?? "guest") as StepId;
   const index = STEPS.findIndex((s) => s.id === step);
+
+  useEffect(() => {
+    // On narrow screens the step bar scrolls; keep the current step visible.
+    document.querySelector("[aria-current=step]")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [step]);
 
   const gate = !available(step, state);
   const firstMissing = STEPS.find((s) => !done(s.id, state) && s.id !== "discovery");

@@ -8,7 +8,7 @@ import { money } from "@shared/domain/format";
 import type { ProvenanceKind } from "@shared/schemas/common";
 import { ApiRequestError, draftNarrative, getConfig } from "../../app/api";
 import { useWorkspace } from "../../app/store";
-import { StepHeader, StepNav } from "../../app/Workspace";
+import { StepNav } from "../../app/Workspace";
 import { Button, Callout, PartyTag, ProvenanceChip, StatusBadge } from "../../components/ui/primitives";
 
 function H2({ children }: { children: React.ReactNode }) {
@@ -56,7 +56,11 @@ export function Brief() {
   return (
     <div>
       <div className="no-print">
-        <StepHeader step="brief">A draft for both businesses to review together. Print it, save it as a PDF from the print dialog, or download the data.</StepHeader>
+        {/* The brief's own title is this page's h1, so the step header here is a plain intro. */}
+        <p className="eyebrow">Step 6 of 6 · Decision brief</p>
+        <p className="mt-2 mb-6 max-w-3xl text-ink-soft">
+          A draft for both businesses to review together. Print it, save it as a PDF from the print dialog, or download the data.
+        </p>
         <div className="mb-8 flex flex-wrap gap-3">
           <Button onClick={() => window.print()}>
             <Printer className="size-4" aria-hidden /> Print or save as PDF

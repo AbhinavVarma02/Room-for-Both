@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch, useLocation } from "wouter";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { Header, Footer } from "../components/Chrome";
 import { Skeleton } from "../components/ui/primitives";
 import { Landing } from "../pages/Landing";
@@ -28,8 +28,14 @@ const queryClient = new QueryClient({
 
 function ScrollAndFocus() {
   const [location] = useLocation();
+  const firstRender = useRef(true);
   useEffect(() => {
-    // Move focus to the new page heading so screen-reader and keyboard users land in context.
+    // On the first load the browser's own focus order applies (skip link first). After in-app
+    // navigation, move focus to the new page heading so assistive tech users land in context.
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
     window.scrollTo({ top: 0 });
     const heading = document.querySelector<HTMLElement>("main h1");
     heading?.setAttribute("tabindex", "-1");

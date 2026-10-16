@@ -14,15 +14,15 @@ export function Logo({ className }: { className?: string }) {
 export function Header() {
   const [location] = useLocation();
   const nav = [
-    { href: "/workspace/guest", label: "Workspace", active: location.startsWith("/workspace") },
-    { href: "/methodology", label: "Method & limits", active: location === "/methodology" },
+    { href: "/workspace/guest", label: "Workspace", short: "Workspace", active: location.startsWith("/workspace") },
+    { href: "/methodology", label: "Method & limits", short: "Method", active: location === "/methodology" },
   ];
   return (
     <header className="no-print border-b border-line/80 bg-paper/90 backdrop-blur supports-[backdrop-filter]:bg-paper/75">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5 rounded-md">
           <Logo className="size-8" />
-          <span className="font-display text-lg font-semibold tracking-tight text-ink">Room for Both</span>
+          <span className="font-display text-lg font-semibold tracking-tight whitespace-nowrap text-ink">Room for Both</span>
         </Link>
         <nav aria-label="Main" className="flex items-center gap-1 text-sm">
           {nav.map((n) => (
@@ -32,7 +32,8 @@ export function Header() {
               aria-current={n.active ? "page" : undefined}
               className={cn("rounded-md px-3 py-2 font-medium text-ink-soft hover:bg-sunken hover:text-ink", n.active && "text-ink")}
             >
-              {n.label}
+              <span className="hidden sm:inline">{n.label}</span>
+              <span className="sm:hidden">{n.short}</span>
             </Link>
           ))}
         </nav>

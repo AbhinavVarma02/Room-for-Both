@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FORMAT_LABELS, PRODUCT_CATEGORY_LABELS, VENUE_CATEGORY_LABELS } from "@shared/constants/vocabulary";
 import type { HostProfile } from "@shared/schemas/profiles";
 import { ApiRequestError, getHostView, submitHostResponse } from "../../app/api";
@@ -17,7 +17,12 @@ function tokenFromHash(): string | null {
 }
 
 export function Respond() {
-  const token = useMemo(() => tokenFromHash(), []);
+  const [token, setToken] = useState(() => tokenFromHash());
+  useEffect(() => {
+    const onHash = () => setToken(tokenFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   const [saved, setSaved] = useState<{ editsRemaining: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const view = useQuery({

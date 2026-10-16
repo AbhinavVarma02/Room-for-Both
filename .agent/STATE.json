@@ -1,26 +1,69 @@
 {
   "project": "Room for Both",
   "repo_slug": "room-for-both",
-  "current_phase": "P1",
+  "current_phase": "P6",
   "phase_status": {
-    "P0": "in_progress",
-    "P1": "pending",
-    "P2": "pending",
-    "P3": "pending",
-    "P4": "pending",
-    "P5": "pending",
+    "P0": "verified_complete",
+    "P1": "in_progress",
+    "P2": "implemented_unverified",
+    "P3": "implemented_unverified",
+    "P4": "implemented_unverified",
+    "P5": "implemented_unverified",
     "P6": "pending",
     "P7": "pending",
     "P8": "pending",
     "P9": "pending",
     "P10": "pending"
   },
-  "completed_task_ids": ["P0-01", "P0-02", "P0-03"],
-  "implemented_unverified_task_ids": [],
+  "completed_task_ids": [
+    "P0-01",
+    "P0-02",
+    "P0-03",
+    "P0-04",
+    "P1-01",
+    "P1-03",
+    "P1-04",
+    "P1-05",
+    "P1-06",
+    "P2-01",
+    "P2-02",
+    "P2-03",
+    "P2-04",
+    "P3-01",
+    "P3-02",
+    "P3-03",
+    "P3-04",
+    "P3-05",
+    "P3-06",
+    "P4-01",
+    "P4-02",
+    "P4-03",
+    "P5-01",
+    "P5-02",
+    "P5-03",
+    "P5-04",
+    "P5-05",
+    "P7-01",
+    "P7-03"
+  ],
+  "implemented_unverified_task_ids": [
+    "P4-04",
+    "P4-05",
+    "P7-02"
+  ],
   "failed_checks": [],
-  "blocker_ids": ["EXT-QLOO-KEY", "EXT-GH-CLI", "EXT-CF-AUTH"],
-  "last_successful_verifications": [],
-  "last_commit_sha": null,
+  "blocker_ids": [
+    "EXT-QLOO-KEY",
+    "EXT-QLOO-ACCESS",
+    "EXT-GH-CLI",
+    "EXT-CF-AUTH"
+  ],
+  "last_successful_verifications": [
+    "npx vitest run: 100 passed",
+    "eslint src tests: clean",
+    "tsc -p tsconfig.{app,worker,test}.json: clean"
+  ],
+  "last_commit_sha": "37bbaa4",
   "last_remote_sha": null,
   "github_remote_url": null,
   "deployed_url": null,
@@ -34,11 +77,12 @@
     "npm": "11.9.0",
     "git": "2.53.0.windows.1",
     "gh": "not installed",
-    "wrangler": "installed as project devDependency (pending)"
+    "wrangler": "4.151.0 (devDependency); not authenticated"
   },
   "next_actions": [
-    "Commit P0 ledger",
-    "Scaffold package.json, Vite + React + Tailwind client, Hono Worker",
-    "Verify Qloo documentation before writing the adapter"
+    "Build React client screens (P6)",
+    "Playwright e2e",
+    "Evaluation suite (P7-04)",
+    "README and docs (P9)"
   ]
 }

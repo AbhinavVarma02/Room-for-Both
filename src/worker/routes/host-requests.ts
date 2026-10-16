@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { CreateHostRequest, HostSubmission } from "../../shared/schemas/api";
+import { CreateHostRequest, HostAnswerRequest } from "../../shared/schemas/api";
 import { type AppContext, type AppEnv, apiError, clientAddress, readJson } from "../http";
 import { HostRequestStore } from "../persistence/host-requests";
 import { limiterFor } from "../persistence/limits";
@@ -47,7 +47,7 @@ hostRequests.put("/host-requests/respond", async (c) => {
   const token = bearerToken(c.req.header("authorization"));
   if (!token) return apiError(c, 401, "missing_token", "A response link token is required.");
   if (!(await throttle(c, "host-link-write", 20))) return apiError(c, 429, "rate_limited", "Too many requests. Please wait a moment.");
-  const body = await readJson(c, HostSubmission);
+  const body = await readJson(c, HostAnswerRequest);
   if (!body.ok) return body.response;
   const store = new HostRequestStore(c.env.DB as D1Database);
   const now = Date.now();

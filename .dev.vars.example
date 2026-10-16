@@ -1,0 +1,15 @@
+# Copy to .dev.vars for local development. .dev.vars is git-ignored and must never be committed.
+# For a deployed Worker, set each secret with `npx wrangler secret put NAME` instead.
+
+# Qloo API credential issued to you. Leave empty to run in labelled fixture mode.
+QLOO_API_KEY=
+# Optional. Defaults to Qloo's documented production host. Must be an https URL on a qloo.com host.
+QLOO_BASE_URL=
+
+# Optional plain-language summaries via the Gemini Developer API. Both must be set to enable.
+# Choose a model your account can use at no cost; check Google's current pricing page first.
+GEMINI_API_KEY=
+GEMINI_MODEL=
+
+# Optional secret salt for the daily-rotating client hash used by rate limits.
+CLIENT_KEY_SALT=

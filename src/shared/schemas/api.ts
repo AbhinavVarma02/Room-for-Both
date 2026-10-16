@@ -45,8 +45,8 @@ export const CreateHostRequestResponse = z.object({
 export type CreateHostRequestResponse = z.infer<typeof CreateHostRequestResponse>;
 
 /** The host never chooses its own provenance label: the server sets `source`. */
-export const HostSubmission = z.strictObject({ host: HostProfile.omit({ source: true }) });
-export type HostSubmission = z.infer<typeof HostSubmission>;
+export const HostAnswerRequest = z.strictObject({ host: HostProfile.omit({ source: true }) });
+export type HostAnswerRequest = z.infer<typeof HostAnswerRequest>;
 
 export const HostRequestView = z.object({
   summary: SharedSummary,

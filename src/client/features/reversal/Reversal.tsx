@@ -298,7 +298,15 @@ export function Reversal() {
                       <span className="text-ink-soft">
                         {k.label}: <em>not provided</em>
                       </span>
-                      <Button size="sm" variant="ghost" onClick={() => update(write(whatIf, k, k.start))}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const next = write(whatIf, k, k.start);
+                          update(next);
+                          commit(k.party, k.field, null, k.start, next);
+                        }}
+                      >
                         Assume a value
                       </Button>
                     </div>

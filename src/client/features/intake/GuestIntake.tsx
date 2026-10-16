@@ -146,7 +146,19 @@ export function GuestIntake() {
                   <label className="sr-only" htmlFor={`seed-${i}`}>
                     Reference {i + 1}
                   </label>
-                  <input id={`seed-${i}`} className="input" maxLength={80} placeholder="e.g. a brand or book" {...register(`culturalSeeds.${i}.label`)} />
+                  <input
+                    id={`seed-${i}`}
+                    className="input"
+                    maxLength={80}
+                    placeholder="e.g. a brand or book"
+                    aria-invalid={errors.culturalSeeds?.[i]?.label ? true : undefined}
+                    {...register(`culturalSeeds.${i}.label`)}
+                  />
+                  {errors.culturalSeeds?.[i]?.label && (
+                    <p className="mt-1 text-xs font-medium text-bad" role="alert">
+                      Enter a name or remove this row.
+                    </p>
+                  )}
                 </div>
                 <label className="sr-only" htmlFor={`seed-kind-${i}`}>
                   Type of reference {i + 1}

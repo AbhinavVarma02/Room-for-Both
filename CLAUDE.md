@@ -14,6 +14,13 @@ Repository slug: `room-for-both`. Never rename the product.
 4. Retry a blocked task only after detecting the missing capability (credential, login,
    network), starting with the smallest safe smoke test.
 
+## Current state
+
+The application is deployed, tested, and frozen in labelled fixture mode. The remaining work is the live Qloo
+integration (credential, host and response validation, access confirmation, live research, evaluation, and CPU
+measurements) and the owner's Cloudflare Free plan confirmation. The exact steps are in `.agent/NEXT.md`; the
+dependency order is in `.agent/BLOCKERS.md`. Do not add features or change the architecture while frozen.
+
 ## Non-negotiable rules
 
 - **Truthful status.** Status vocabulary: `pending`, `in_progress`, `implemented_unverified`,

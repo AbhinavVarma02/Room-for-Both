@@ -4,6 +4,10 @@ Assignee: `agent` (automated engineering session), `human` (repository owner), `
 States: `pending`, `in_progress`, `implemented_unverified`, `blocked_external`, `verified_complete`, `failed`.
 Evidence references point to `.agent/PROGRESS.md` entries or commands that can be re-run.
 
+Release-critical open work: P2-05, P4-06, P7-05, P7-08 (live), P8-05, P8-06 (live), P10-03, all waiting on the Qloo
+credential. Optional and not release-critical: P4-05 (Gemini narrative, live check) and P6-09 (map view).
+Scope is frozen: no new features until the live Qloo steps in `.agent/NEXT.md` are done.
+
 ## P0 — Bootstrap and recovery
 
 | ID | Task | Needs | Assignee | State | Gate / verification | Evidence |
@@ -23,7 +27,7 @@ Evidence references point to `.agent/PROGRESS.md` entries or commands that can b
 | P1-04 | Shared Zod schemas | P1-01 | agent | verified_complete | schema tests | PROGRESS #2 |
 | P1-05 | ESLint | P1-01 | agent | verified_complete | `npm run lint` | PROGRESS #3 |
 | P1-06 | Vitest unit + integration | P1-01 | agent | verified_complete | `npm test`, `npm run test:integration` | PROGRESS #3 |
-| P1-07 | GitHub Actions CI | P1-05, P1-06 | agent | verified_complete | workflow green on GitHub | run 38852228902 |
+| P1-07 | GitHub Actions CI | P1-05, P1-06 | agent | verified_complete | workflow green on GitHub | runs 38852228902 … 38855382520 (latest, 27a2ad6) |
 | P1-08 | README and MIT LICENSE | P0-04 | agent | verified_complete | files present | 9cbbc0d |
 | P1-09 | Local dev server serves app + API | P1-02, P1-03 | agent | verified_complete | browser walkthrough | PROGRESS #3 |
 
@@ -93,34 +97,34 @@ Evidence references point to `.agent/PROGRESS.md` entries or commands that can b
 | P7-03 | Structured privacy-safe logs | P1-03 | agent | verified_complete | code review; redaction filter | PROGRESS #2 |
 | P7-04 | ≥30 evaluation cases + metrics | P5-03 | agent | verified_complete | `npm run eval` 40/40 | PROGRESS #3 |
 | P7-05 | Live Qloo vs baseline comparison | P7-04, EXT-QLOO-KEY | agent | blocked_external | `npm run eval -- --live` | offline mechanics comparison done |
-| P7-06 | Playwright desktop + mobile | P6-07 | agent | verified_complete | `npm run test:e2e` 22/22 | PROGRESS #3 |
+| P7-06 | Playwright desktop + mobile | P6-07 | agent | verified_complete | `npm run test:e2e` 22/22 | PROGRESS #3, #6 |
 | P7-07 | Full offline check green | all | agent | verified_complete | `npm run check` exit 0 | PROGRESS #3 |
-| P7-08 | Worker CPU time measured on deployment | P8-06 | agent | implemented_unverified | `wrangler tail` | fixture mode measured (≤9 ms); live pending |
+| P7-08 | Worker CPU time measured on deployment | P8-06 | agent | implemented_unverified | `wrangler tail` | fixture mode measured (evaluate 2–21 ms, research 3–18 ms; first request on a fresh isolate highest); live pending |
 
 ## P8 — GitHub and public deployment
 
 | ID | Task | Needs | Assignee | State | Gate / verification | Evidence |
 |----|------|-------|----------|-------|---------------------|----------|
 | P8-01 | GitHub access | — | human | verified_complete | push succeeded | owner-created repo; GCM credentials |
-| P8-02 | Push to public repo AbhinavVarma02/Room-for-Both | P8-01 | agent | verified_complete | `git ls-remote origin main` | 91e8e99 pushed |
+| P8-02 | Push to public repo AbhinavVarma02/Room-for-Both | P8-01 | agent | verified_complete | `git ls-remote origin main` | origin/main == 27a2ad6 (PROGRESS #6) |
 | P8-03 | Cloudflare login | — | human | verified_complete | `npx wrangler whoami` | PROGRESS #4 |
 | P8-04 | D1 create + remote migrations | P8-03 | agent | verified_complete | migrations apply --remote | PROGRESS #4 |
 | P8-05 | Worker secrets | P8-03, EXT-QLOO-KEY | human | blocked_external | `wrangler secret list` | CLIENT_KEY_SALT set; QLOO_API_KEY pending approval |
-| P8-06 | Deploy + anonymous external smoke | P8-04, P8-05 | agent | implemented_unverified | `npm run verify:public` | fixture mode 9/10, e2e 22/22 on public URL; live mode pending |
+| P8-06 | Deploy + anonymous external smoke | P8-04, P8-05 | agent | implemented_unverified | `npm run verify:public` | fixture mode 9/10 (PROGRESS #4, #6), e2e 22/22 on public URL; live mode pending |
 
 ## P9 — Documentation
 
 | ID | Task | Needs | Assignee | State | Gate / verification | Evidence |
 |----|------|-------|----------|-------|---------------------|----------|
-| P9-01 | README | P6-07 | agent | verified_complete | links checked | 9cbbc0d (public URL to add after deploy) |
+| P9-01 | README | P6-07 | agent | verified_complete | links checked | 9cbbc0d; public URL present (PROGRESS #6) |
 | P9-02 | `docs/` set | P7-04 | agent | verified_complete | files present | 9cbbc0d |
 | P9-03 | Licence audit, OG metadata | P9-01 | agent | verified_complete | bundled licence file; audit in PROGRESS #3 | 283c005 |
-| P9-04 | Private handoff packet in `.local/` | P9-02 | agent | implemented_unverified | file exists, ignored | URLs pending deploy |
+| P9-04 | Private handoff packet in `.local/` | P9-02 | agent | verified_complete | file exists, ignored | `git check-ignore` confirms; URLs filled (PROGRESS #6) |
 
 ## P10 — Release audit
 
 | ID | Task | Needs | Assignee | State | Gate / verification | Evidence |
 |----|------|-------|----------|-------|---------------------|----------|
-| P10-01 | Sweep blocked tasks | all | agent | in_progress | BLOCKERS updated | — |
+| P10-01 | Sweep blocked tasks | all | agent | verified_complete | BLOCKERS updated | PROGRESS #6 |
 | P10-02 | Clean install, full check, scans | all | agent | verified_complete | `npm run check`, e2e, `scan:secrets` | PROGRESS #3 |
 | P10-03 | Final audit and release state | P10-02 | agent | blocked_external | STATE.json | ready_except_external_dependencies |

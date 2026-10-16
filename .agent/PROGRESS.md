@@ -84,3 +84,26 @@ Chronological, factual. Commands and observed outcomes only.
   isolate then 4–5 ms; fixture research 4–18 ms; all outcomes ok. Node profiling: first research request ~29 ms, warm median 0.63 ms;
   first health request ~14–19 ms vs 0.4 ms warm; Hono LinearRouter made no difference (experiment reverted). Cause: first-use compilation
   in fresh isolates. Synthetic estimate of live payload parsing: +1.4 ms warm / +6.5 ms cold (labelled estimate). No restructuring yet.
+
+## #6 Final offline health check and scope freeze
+- Git: branch `main`, working tree clean, `origin` = https://github.com/AbhinavVarma02/Room-for-Both.git; after `git fetch`,
+  HEAD == origin/main == 27a2ad6. GitHub Actions (public API): runs 38852228902, 38852420976, 38854006067, 38855382520 all
+  success; latest 38855382520 is on 27a2ad6.
+- `npm run check` → exit 0: typecheck, lint, 57 unit, 44 integration, eval 40/40 cases and 60/60 checks (0/3157 unsupported
+  statements, 3019/3019 numbers grounded, 27/27 decisions invariant), build. `npm run scan:secrets` → clean, 131 tracked files.
+  Only `.dev.vars.example` and `.env.example` are tracked from the env family; both have empty values.
+- `npx playwright test` (local production build in workerd, local D1) → 22/22 (11 desktop, 11 mobile).
+- `npm run verify:public -- https://room-for-both.room-for-both.workers.dev` → 9/10 PASS; only "live Qloo mode" fails (fixture mode,
+  expected). Public landing page reviewed in the built-in browser; discovery shows "Fixture mode: fictional cultural data".
+- Cloudflare (read-only): active Worker version 2de0ba6b (secret change on top of upload 8b056190); `git diff 91e8e99..HEAD` touches
+  no `src/` or client files (only the D1 `database_id` line and a script entry), so the deployment matches HEAD and was not
+  redeployed. D1 `room-for-both` (b8196d69…) has tables `host_requests`, `rate_limits`, `usage_counters`, `d1_migrations`; remote migrations: none
+  pending. Worker secrets: `CLIENT_KEY_SALT` only. Bindings: D1, one cron, observability; no paid products. No account or plan
+  setting changed.
+- A first public journey run hit HTTP 429 `rate_limited` on `/api/research`: the per-client limit (12 runs/hour) already held 16
+  attempts in the 05:00 UTC window from the previous CPU measurements plus this check. Throttling works as designed; not a defect.
+- After the window reset: `E2E_BASE_URL=<public url> npx playwright test` → 22/22 (desktop and mobile) against the public deployment,
+  including the fixture-mode labels on discovery and the brief.
+- Trackers reconciled: stale SHAs, CI run, CPU range (2–21 ms, not ≤9 ms), and public-URL notes corrected; P1, P9, P10-01 closed;
+  release-critical vs optional work separated; scope freeze recorded in CLAUDE.md, NEXT.md, STATE.json.
+- Not done (external): live Qloo smoke, host and field validation, live research, evaluation, CPU; access confirmation; plan check.

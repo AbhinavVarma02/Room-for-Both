@@ -1,10 +1,10 @@
 {
   "project": "Room for Both",
   "repo_slug": "room-for-both",
-  "current_phase": "P8",
+  "current_phase": "P10",
   "phase_status": {
     "P0": "verified_complete",
-    "P1": "implemented_unverified",
+    "P1": "verified_complete",
     "P2": "blocked_external",
     "P3": "verified_complete",
     "P4": "blocked_external",
@@ -12,8 +12,8 @@
     "P6": "verified_complete",
     "P7": "blocked_external",
     "P8": "implemented_unverified",
-    "P9": "implemented_unverified",
-    "P10": "in_progress"
+    "P9": "verified_complete",
+    "P10": "blocked_external"
   },
   "completed_task_ids": [
     "P0-01",
@@ -71,11 +71,12 @@
     "P8-04",
     "P8-06-fixture",
     "P7-08-fixture",
-    "P1-07"
+    "P1-07",
+    "P10-01",
+    "P9-04"
   ],
   "implemented_unverified_task_ids": [
-    "P4-05",
-    "P9-04"
+    "P4-05"
   ],
   "failed_checks": [],
   "blocker_ids": [
@@ -85,13 +86,16 @@
     "EXT-CF-PLAN"
   ],
   "last_successful_verifications": [
-    "GitHub Actions run 38852228902: both jobs success",
-    "npm run verify:public: 9/10 (live mode pending)",
+    "GitHub Actions run 38855382520 on 27a2ad6: success",
+    "npm run check: exit 0 (57 unit, 44 integration, eval 40/40 cases 60/60 checks, build)",
+    "npm run scan:secrets: clean (131 tracked files)",
+    "npx playwright test (local workerd preview): 22/22",
     "Playwright against public URL: 22/22",
-    "npm run check: exit 0"
+    "npm run verify:public: 9/10 (only live Qloo mode fails, expected)",
+    "Remote D1: tables present, no pending migrations"
   ],
-  "last_commit_sha": "3bcc8d9",
-  "last_remote_sha": "91e8e99",
+  "last_commit_sha": "27a2ad6",
+  "last_remote_sha": "27a2ad6",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": false,
@@ -112,13 +116,13 @@
     "Owner confirms Free plan in dashboard (EXT-CF-PLAN)"
   ],
   "phase_notes": {
-    "P1": "CI workflow written, not yet run on GitHub",
     "P2": "adapter verified against synthetic upstream; live smoke blocked (EXT-QLOO-KEY)",
-    "P4": "offline pipeline verified; live run blocked",
+    "P4": "offline pipeline verified; live run blocked; optional Gemini narrative untested live",
     "P6": "optional map not shipped",
-    "P7": "Worker CPU measured (fixture); live comparison pending",
+    "P7": "Worker CPU measured in fixture mode; live comparison pending",
     "P8": "deployed and verified anonymously in fixture mode; live Qloo gate pending",
-    "P9": "public URL pending"
+    "P9": "docs and README include the public URL; private handoff packet in .local/",
+    "P10": "offline health check complete; release waits on external dependencies only"
   },
   "blocked_task_ids": [
     "P2-05",
@@ -128,11 +132,10 @@
     "P10-03"
   ],
   "pending_task_ids": [
-    "P6-09",
-    "P10-01"
+    "P6-09"
   ],
   "qloo_access": "requested by owner; approval pending",
-  "deployed_version": "8b056190-e32b-4009-9206-d3dad4368c10",
+  "deployed_version": "2de0ba6b-aad3-4496-9c2c-db128c0c428f",
   "free_tier_note": "Limits re-verified from Cloudflare docs; account plan not readable via wrangler token (subscriptions API 403); owner to confirm in dashboard",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
@@ -148,5 +151,14 @@
       "research_median": 0.63,
       "evaluate_median": 0.68
     }
+  },
+  "optional_task_ids": [
+    "P4-05 (Gemini narrative, live check)",
+    "P6-09 (map view)"
+  ],
+  "deployed_version_note": "Active version comes from the CLIENT_KEY_SALT secret change on top of upload 8b056190; Worker source (src/, wrangler bindings) is unchanged since, so no redeploy is needed",
+  "freeze": {
+    "status": "frozen",
+    "scope": "Architecture and feature scope frozen. Only the live Qloo integration steps in .agent/NEXT.md and defect fixes are in scope."
   }
 }

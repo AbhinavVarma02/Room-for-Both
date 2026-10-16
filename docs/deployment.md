@@ -28,7 +28,15 @@ npm run dev
 ```
 
 Leave `QLOO_API_KEY` empty to use the labelled fixture mode. To test live research, add your key to
-`.dev.vars` (never commit it) and run `npm run smoke:live`, which makes one bounded run and prints counts only.
+`.dev.vars` (never commit it) and run `npm run smoke:live`. It works in three stages:
+
+1. **Host probe.** One minimal authenticated call per candidate host: `QLOO_BASE_URL`, any hosts in
+   `QLOO_CANDIDATE_BASE_URLS`, then Qloo's documented production host. It reports which host accepts the key. Do
+   not assume a credential works on every host; use the host named in your credential instructions.
+2. **Response structure.** Reports which fields real payloads carry, against the fields the normaliser reads.
+3. **Bounded run.** One complete research run (at most 7 calls). It prints counts only, never values or keys.
+
+Set `QLOO_BASE_URL` to the accepted host locally and as a Worker secret (step 5).
 
 ## 3. Sign in to Cloudflare
 
@@ -84,6 +92,17 @@ npm run verify:public -- https://room-for-both.<your-subdomain>.workers.dev
 
 The script checks the home page and security headers, client routes, health, a deterministic evaluation, a
 complete research stream, that live mode is active, and that cross-origin writes are refused.
+
+To measure CPU time per route on the deployed Worker (Workers Free allows 10 ms per request):
+
+```bash
+npm run measure:cpu -- https://room-for-both.<your-subdomain>.workers.dev
+```
+
+## Confirm the plan
+
+Wrangler's sign-in cannot read billing details. Confirm the account is on the Free plan in the Cloudflare dashboard
+under **Workers & Pages → Plans** (or **Manage account → Billing → Subscriptions**). Never upgrade to remove a limit; reduce the work per request instead.
 
 ## Tuning limits
 

@@ -23,6 +23,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply room-for-both --remote",
     "deploy": "npm run build && wrangler deploy",
     "smoke:live": "tsx scripts/smoke-live.ts",
+    "measure:cpu": "tsx scripts/measure-cpu.ts",
     "verify:public": "tsx scripts/verify-public.ts",
     "scan:secrets": "tsx scripts/scan-repo.ts"
   },

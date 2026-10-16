@@ -1,18 +1,30 @@
 # Next actions
 
-Restart: open the repository root, follow "Start of every session" in `CLAUDE.md`. All offline gates are green;
-remaining work is external. Check each capability before retrying (smallest safe probe first).
+Restart: open the repository root and follow "Start of every session" in `CLAUDE.md`.
 
-1. **GitHub (P8-01, P8-02).** Probe: `gh auth status`. If authenticated: `gh repo view room-for-both` (must not exist,
-   or must be the owner's empty repo), then `gh repo create room-for-both --public --source . --remote origin --push`.
-   Verify with `git ls-remote origin main`, record URL and SHA in STATE.json, set `VITE_REPOSITORY_URL` in `.env`.
-   Check the CI run with `gh run list --limit 1`.
-2. **Cloudflare (P8-03, P8-04).** Probe: `npx wrangler whoami` (confirm a Free-plan account; never upgrade). Then
-   `npx wrangler d1 create room-for-both`, put the `database_id` in `wrangler.jsonc`, `npm run db:migrate:remote`.
-3. **Secrets (P8-05).** The owner runs `npx wrangler secret put QLOO_API_KEY` and `npx wrangler secret put CLIENT_KEY_SALT`
-   interactively. Never ask for the values in chat.
-4. **Deploy and verify (P8-06).** `npm run deploy`, then `npm run verify:public -- <workers.dev URL>`. Record the URL.
-5. **Live checks (P2-05, P4-06, P7-05, P7-08).** With a key in `.dev.vars`: `npm run smoke:live`, `npm run eval -- --live`.
-   Read Worker CPU time from Cloudflare observability. Update `docs/evaluation.md` with measured live results.
-6. **Docs (P9-01, P9-04).** Add the verified public URL to README; complete `.local/external-entry-packet.md`.
-7. Optional: P6-09 map for verified coordinates (MapLibre + OpenFreeMap; CSP must allow the tile host).
+Already done (do not repeat): public repository `AbhinavVarma02/Room-for-Both` is `origin`, CI is green, Cloudflare
+login works, D1 `room-for-both` exists with migrations applied, and the Worker is deployed at
+https://room-for-both.room-for-both.workers.dev in labelled fixture mode with the `CLIENT_KEY_SALT` secret set.
+
+## When the Qloo credential arrives (EXT-QLOO-KEY)
+
+1. Owner puts `QLOO_API_KEY=` in the local `.dev.vars`. That file already lists candidate hosts in
+   `QLOO_CANDIDATE_BASE_URLS`; add the host named in the credential instructions if it differs.
+2. `npm run smoke:live`: the host probe spends one call per candidate, at most 3. Then it checks response
+   structures and runs one bounded research run (at most 7 calls). Fix any normaliser mismatch it reports.
+3. Owner sets Worker secrets interactively: `npx wrangler secret put QLOO_API_KEY` and
+   `npx wrangler secret put QLOO_BASE_URL` (the accepted host).
+4. `npm run deploy`, then `npm run verify:public -- https://room-for-both.room-for-both.workers.dev`. Every check
+   should pass, including live mode.
+5. `npm run eval -- --live`: three bounded runs; aggregate results go to an ignored file. Copy the measured numbers
+   into `docs/evaluation.md`.
+6. `npm run measure:cpu -- <url>`: re-measure CPU with real payloads. If warm research regularly exceeds 10 ms,
+   split research into two requests (resolve, then discover/bridge). Never upgrade.
+7. Re-run `E2E_BASE_URL=<url> npm run test:e2e`. The fixture banner assertions will change to live; update them.
+8. Update README (remove the "fixture mode" note), STATE.json, RELEASE_CHECKLIST, and `.local/external-entry-packet.md`.
+
+## Independent of the credential
+
+- EXT-QLOO-ACCESS: owner confirms with Qloo that direct server-side HTTPS calls are permitted for the credential.
+- EXT-CF-PLAN: owner confirms the Free plan in the dashboard (Workers & Pages → Plans). Wrangler cannot read billing.
+- Optional, not planned: map view (P6-09).

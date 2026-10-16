@@ -4,7 +4,11 @@
 # Qloo API credential issued to you. Leave empty to run in labelled fixture mode.
 QLOO_API_KEY=
 # Optional. Defaults to Qloo's documented production host. Must be an https URL on a qloo.com host.
+# Use the host named in your credential instructions. If unsure, leave it empty and list candidates below:
+# `npm run smoke:live` probes each with one call and reports which one accepts the key.
 QLOO_BASE_URL=
+# Comma-separated candidate hosts for the smoke-test probe (local only).
+QLOO_CANDIDATE_BASE_URLS=
 
 # Optional plain-language summaries via the Gemini Developer API. Both must be set to enable.
 # Choose a model your account can use at no cost; check Google's current pricing page first.

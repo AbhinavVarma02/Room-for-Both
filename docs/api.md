@@ -43,7 +43,8 @@ or, on a fatal upstream error, `{"type":"error","code":"rate_limited","message":
 Verified against Qloo's public documentation (docs.qloo.com and its public docs repository) and the request
 conventions of Qloo's published client package. Authentication is the `X-Api-Key` header; list parameters
 are comma-separated; the default host is Qloo's documented production URL, overridable with
-`QLOO_BASE_URL` (restricted to `https` on `qloo.com` hosts).
+`QLOO_BASE_URL` (restricted to `https` on `qloo.com` hosts). An issued credential may only work on a specific
+Qloo host, so `npm run smoke:live` probes candidate hosts with one call each before relying on any of them.
 
 | Step | Route | Parameters we send | Fields we read |
 |------|-------|--------------------|----------------|

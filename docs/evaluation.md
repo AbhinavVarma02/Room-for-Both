@@ -51,17 +51,26 @@ and records only aggregate counts in an ignored local file. **Status: not run**,
 
 ## Deployed Worker measurements
 
-Measured with `wrangler tail` on the deployed Worker (Workers Free, fixture mode), small samples:
+Measured with `wrangler tail` on the deployed Worker (Workers Free, fixture mode) across three sampling sessions
+(`npm run measure:cpu -- <url>` reproduces this):
 
-| Route | Requests | CPU time (ms) | Wall time (ms) |
-|-------|----------|---------------|----------------|
-| `POST /api/evaluate` | 5 | 2–5 | 3–6 |
-| `POST /api/research` (three references, widened search) | 3 | 3–9 | 34–95 |
-| `GET /api/health` | 3 | 0 | 0–1 |
+| Route | Requests | CPU time per request (ms) | Wall time (ms) |
+|-------|----------|---------------------------|----------------|
+| `POST /api/evaluate` | 15 | 2–21 (in the session that logged order: 21 for the first request, then 4–5) | 2–22 |
+| `POST /api/research` (three references, widened search) | 9 | 3–18 | 34–102 |
+| `GET /api/health` | 9 | 0–2 | 0–2 |
 
-All are inside the Free plan's 10 ms CPU limit, but research has little headroom. Live Qloo payloads are larger
-than fixture payloads, so CPU time must be re-measured once live access is available. If it exceeds the limit, the
-plan is to split research into two requests rather than upgrade.
+Every request completed with outcome `ok`; none was terminated. The spikes come from the first request a fresh
+isolate serves: the JavaScript engine compiles each code path on first use. Profiling the same routes in Node shows
+the first research request at about 29 ms and warm requests at 0.6 ms median (1.2 ms p95). Swapping Hono's router for
+its linear router made no measurable difference, so the cost is not in our routing. Cloudflare documents that
+isolates tolerate infrequent overruns of the 10 ms Free limit and terminate Workers that exceed it repeatedly. Warm
+requests stay well under the limit, so we have not restructured the research flow.
+
+Live Qloo payloads are larger than fixture payloads. A synthetic estimate sized after Qloo's documented examples
+(about 450 KB across one run) adds roughly 1.4 ms warm and 6.5 ms cold for parsing and normalisation. This is an
+estimate from synthetic data, not a measurement; CPU must be re-measured with real payloads. If live research
+regularly exceeds the limit, the plan is to split it into two requests rather than upgrade.
 
 The Playwright suite also passes against the public deployment (`E2E_BASE_URL=<url> npm run test:e2e`: 22 of 22),
 and `npm run verify:public` passes every check except live Qloo mode.

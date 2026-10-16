@@ -80,7 +80,9 @@
   "failed_checks": [],
   "blocker_ids": [
     "EXT-QLOO-KEY",
-    "EXT-QLOO-ACCESS"
+    "EXT-QLOO-ACCESS",
+    "EXT-QLOO-HOST",
+    "EXT-CF-PLAN"
   ],
   "last_successful_verifications": [
     "GitHub Actions run 38852228902: both jobs success",
@@ -101,13 +103,13 @@
     "node": "v24.14.0",
     "npm": "11.9.0",
     "git": "2.53.0.windows.1",
-    "gh": "not installed",
-    "wrangler": "4.151.0 (devDependency); not authenticated"
+    "gh": "not installed (not required)",
+    "wrangler": "4.151.0, authenticated"
   },
   "next_actions": [
-    "When Qloo credential arrives: owner runs npx wrangler secret put QLOO_API_KEY (and QLOO_BASE_URL if issued); agent runs smoke:live, verify:public, eval --live, re-measures CPU",
-    "Owner: confirm direct HTTPS API access is permitted for the credential (EXT-QLOO-ACCESS)",
-    "Optional: map for verified coordinates (P6-09)"
+    "Await Qloo credential (EXT-QLOO-KEY), then follow .agent/NEXT.md",
+    "Owner confirms direct HTTPS access with Qloo (EXT-QLOO-ACCESS)",
+    "Owner confirms Free plan in dashboard (EXT-CF-PLAN)"
   ],
   "phase_notes": {
     "P1": "CI workflow written, not yet run on GitHub",
@@ -131,5 +133,20 @@
   ],
   "qloo_access": "requested by owner; approval pending",
   "deployed_version": "8b056190-e32b-4009-9206-d3dad4368c10",
-  "free_tier_note": "Account plan tier not visible via CLI; usage designed for Workers Free and D1 Free limits; no billing change made"
+  "free_tier_note": "Limits re-verified from Cloudflare docs; account plan not readable via wrangler token (subscriptions API 403); owner to confirm in dashboard",
+  "resolved_blocker_ids": [
+    "EXT-GH-CLI",
+    "EXT-CF-AUTH"
+  ],
+  "qloo_host_audit": "Official docs and harness 0.1.26 name api.qloo.com (production) and staging.api.qloo.com; three candidate qloo.com hosts resolve and return 401 without a key; host chosen by authenticated probe in smoke:live",
+  "cpu_measurements": {
+    "evaluate_ms": "2-21 (first request on fresh isolate highest; warm 4-5)",
+    "research_fixture_ms": "3-18",
+    "health_ms": "0-2",
+    "all_outcomes": "ok",
+    "node_warm_ms": {
+      "research_median": 0.63,
+      "evaluate_median": 0.68
+    }
+  }
 }

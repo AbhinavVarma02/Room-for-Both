@@ -15,6 +15,7 @@ import { checkDraft } from "../../src/worker/integrations/gemini/client";
 import { QlooClient, QlooError, type QlooPath, type QlooTransport, type QueryValue } from "../../src/worker/integrations/qloo/client";
 import { FixtureTransport } from "../../src/worker/integrations/qloo/fixture-transport";
 import { runResearch } from "../../src/worker/orchestration/research";
+import { localVar } from "../../scripts/lib";
 import { CASES, NARRATIVE_FACTS, type ResearchCase } from "./cases";
 
 class FaultTransport implements QlooTransport {
@@ -100,7 +101,7 @@ function quantile(xs: number[], q: number): number {
 }
 
 async function runLive() {
-  const apiKey = process.env.QLOO_API_KEY;
+  const apiKey = localVar("QLOO_API_KEY");
   if (!apiKey) {
     console.log("Live evaluation skipped: QLOO_API_KEY is not set (blocker EXT-QLOO-KEY).");
     return null;
@@ -112,7 +113,7 @@ async function runLive() {
   ];
   const results = [];
   for (const request of requests) {
-    const transport = new QlooClient({ apiKey, baseUrl: process.env.QLOO_BASE_URL, callBudget: 7 });
+    const transport = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 7 });
     const t0 = performance.now();
     try {
       const run = await runResearch(request, { transport, mode: "live", callBudget: 7, runId: "eval" });

@@ -67,3 +67,20 @@ Chronological, factual. Commands and observed outcomes only.
 - `E2E_BASE_URL=<url> npx playwright test` → first run 12 failures caused by the test helper sending a simulated CF-Connecting-IP header,
   which Cloudflare's edge rejects; helper fixed to simulate only locally → 22/22 passed against the public deployment.
 - `wrangler tail` CPU: evaluate 2–5 ms, fixture research 3–9 ms, health 0 ms (Workers Free limit 10 ms). Live research must be re-measured.
+
+## #5 Reconciliation, Qloo host audit, CPU investigation
+- Reconciled ledger: origin/main == ebeeef7; CI runs 38852228902, 38852420976, 38854006067 all success; /api/health 200 on the deployment.
+  Removed obsolete repo-creation, Cloudflare-login, and D1-creation steps from NEXT.md; rewrote BLOCKERS.md (open vs resolved).
+- Qloo host audit: latest starter kit (commit 0db91b8) names no API host; docs repository (d4a0eb9) references only api.qloo.com and
+  staging.api.qloo.com; the official harness 0.1.26 treats only https://api.qloo.com as official (others need explicit trust).
+  No public source documents another host. DNS + unauthenticated GET /search on three candidate hosts: all resolve, all return 401.
+  Decision: no host is assumed. `smoke:live` now probes candidates (QLOO_BASE_URL, QLOO_CANDIDATE_BASE_URLS, documented production)
+  with one call each, validates real response field presence, then runs one bounded research run. Local ignored `.dev.vars` lists
+  the candidates; the tracked example uses generic wording only. Direct-HTTPS authorisation remains unclear → EXT-QLOO-ACCESS open.
+- No credential present (.dev.vars key empty, no env var, Worker secrets: CLIENT_KEY_SALT only). Live tests not run; scripts report BLOCKED.
+- Cloudflare: limits re-verified from docs (unchanged). `/accounts/{id}/workers/account-settings` readable (default usage model
+  standard); `/accounts/{id}/subscriptions` 403 with Wrangler's token → plan not confirmable from CLI (EXT-CF-PLAN).
+- CPU: new `npm run measure:cpu` (wrangler tail). Two more sessions on the deployment: evaluate up to 21 ms on the first request of a fresh
+  isolate then 4–5 ms; fixture research 4–18 ms; all outcomes ok. Node profiling: first research request ~29 ms, warm median 0.63 ms;
+  first health request ~14–19 ms vs 0.4 ms warm; Hono LinearRouter made no difference (experiment reverted). Cause: first-use compilation
+  in fresh isolates. Synthetic estimate of live payload parsing: +1.4 ms warm / +6.5 ms cold (labelled estimate). No restructuring yet.

@@ -2,10 +2,19 @@
 
 No secret values or login details are ever written here.
 
+## Open
+
 | ID | Affects | Why blocked | Needs | Safe continuation | Unblocking action | Status |
 |----|---------|-------------|-------|-------------------|-------------------|--------|
-| EXT-QLOO-KEY | P2-05, P4-06, P7-05, P8-05, P8-06, release | Repository owner has requested Qloo API access; approval is pending and may take several business days. No key or API host is available yet | Repository owner with an authorised Qloo developer key | Adapter built against official docs; synthetic fixtures and visibly labelled fixture mode for all offline tests | Put `QLOO_API_KEY` and `QLOO_BASE_URL` in `.dev.vars` (local) and run `npx wrangler secret put QLOO_API_KEY` / `QLOO_BASE_URL` (deployed); then `npm run smoke:live` | open |
-| EXT-QLOO-ACCESS | P4-06, P8-06, release | Qloo's developer starter kit names its CLI/MCP harness as the supported access surfaces for issued credentials and notes serverless functions are not a supported route for its MCP server. Room for Both calls the documented HTTPS API (the same endpoints the harness calls) directly from a Worker | Repository owner, to confirm with Qloo that direct server-side HTTPS access is permitted for their credential | All code uses documented routes and is credential-agnostic; fixture mode keeps the product usable | Confirm with Qloo support; if not permitted, route research through an approved surface and record it in DECISIONS.md | open |
-| EXT-GH-CLI | P1-07, P8-02 | Resolved: the owner created the public repository AbhinavVarma02/Room-for-Both; `main` pushed via Git Credential Manager. GitHub CLI installed via winget for CI inspection | — | — | `gh auth login` only needed for CLI conveniences | resolved |
-| EXT-CF-AUTH | P8 | Resolved: `wrangler login` completed; D1 created, Worker deployed to workers.dev | — | — | — | resolved |
-| EXT-GEMINI-KEY | P4-05 live check (optional) | No Gemini developer key; optional feature | Repository owner, only if a no-cost model is available on their account | Deterministic explanations are the default supported mode | Put `GEMINI_API_KEY` and `GEMINI_MODEL` in `.dev.vars` / Worker secrets | optional |
+| EXT-QLOO-KEY | P2-05, P4-06, P7-05, P7-08 (live), P8-05, release | The owner has requested Qloo API access; approval is pending and may take several business days. No key is available | Repository owner | The deployed app runs in labelled fixture mode; adapter verified against a synthetic upstream; live smoke test, host probe, live evaluation and CPU script are ready and report BLOCKED without a key | Follow `.agent/NEXT.md` "When the Qloo credential arrives" | open |
+| EXT-QLOO-ACCESS | release | Qloo's starter kit lists its CLI/MCP harness as the supported access surfaces for issued credentials and says serverless functions are not a supported route for its MCP server. It does not say whether direct HTTPS calls to the documented API from a server are permitted | Repository owner, to confirm with Qloo | All requests use documented routes, server-side only, within a per-run budget and daily ceiling | Ask Qloo support (or the credential issuer) to confirm direct server-side HTTPS access for the credential; record the answer in DECISIONS.md | open |
+| EXT-QLOO-HOST | live verification | Qloo's public docs and official client name `api.qloo.com` (production) and `staging.api.qloo.com`. Issued credentials may be scoped to another `qloo.com` host. All candidate hosts exist and reject unauthenticated calls, so only a real key can show which one accepts it | Credential | The client accepts any `https` host on `qloo.com`; `npm run smoke:live` probes candidates with one call each | Resolved by the host probe once the key exists; set `QLOO_BASE_URL` to the accepted host | open (depends on EXT-QLOO-KEY) |
+| EXT-CF-PLAN | infrastructure gate | The account's billing plan cannot be read with Wrangler's sign-in (subscriptions API returns 403 without billing scope) | Repository owner | Usage is designed for Workers Free and D1 Free limits; no billing setting has been touched | Check Workers & Pages → Plans (or Manage account → Billing → Subscriptions) in the dashboard and confirm "Free" | open |
+| EXT-GEMINI-KEY | P4-05 live check | Optional feature; no key | Repository owner, only if a no-cost model is available | Deterministic summaries are the default | Set `GEMINI_API_KEY` and `GEMINI_MODEL` as Worker secrets | optional |
+
+## Resolved
+
+| ID | Resolution |
+|----|------------|
+| EXT-GH-CLI | The owner created the public repository; pushes work through Git Credential Manager. The GitHub CLI install was cancelled at the elevation prompt and is not required. |
+| EXT-CF-AUTH | `wrangler login` completed; D1 created and migrated; Worker deployed. |

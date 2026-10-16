@@ -11,7 +11,7 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Numbers in generated statements traceable to inputs or reported arithmetic | 3019 / 3019 (100.0%) |
 | Decisions identical with and without the cultural layer | 27 / 27 |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.16 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.05 / 0.15 |
 
 ## Cultural layer versus no-cultural-layer baseline
 

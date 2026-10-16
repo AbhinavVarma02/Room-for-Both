@@ -51,3 +51,10 @@ Chronological, factual. Commands and observed outcomes only.
   deployment, evaluation, demo guide. Screenshots captured from the running app (fixture mode, fictional example).
 - Commits: c34a1a6, 8307402, 5ceefe8, a31f071, 9cbbc0d, 283c005, 3bcc8d9.
 - Not done: optional map (P6-09) intentionally not shipped. External: GitHub repo, Cloudflare deploy, live Qloo verification.
+
+## #4 GitHub and Cloudflare (P8)
+- Owner created the public repository AbhinavVarma02/Room-for-Both (empty). Added as `origin`; `git push -u origin main` succeeded via
+  Git Credential Manager (91e8e99). GitHub Actions run 38852228902: both jobs succeeded (check; Playwright desktop + mobile).
+- GitHub CLI install via winget was cancelled at the Windows elevation prompt; not required because pushes work.
+- Owner reports Qloo API access requested; approval pending (may take several business days). Live Qloo work stays blocked (EXT-QLOO-KEY).
+- First `npx wrangler login` timed out waiting for browser authorization (log: "Timed out waiting for authorization code").

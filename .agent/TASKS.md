@@ -101,8 +101,8 @@ Evidence references point to `.agent/PROGRESS.md` entries or commands that can b
 
 | ID | Task | Needs | Assignee | State | Gate / verification | Evidence |
 |----|------|-------|----------|-------|---------------------|----------|
-| P8-01 | GitHub CLI installed and authenticated | — | human | blocked_external | `gh auth status` | EXT-GH-CLI |
-| P8-02 | Create public `room-for-both` repo and push | P8-01 | agent | blocked_external | `git ls-remote` | — |
+| P8-01 | GitHub access | — | human | verified_complete | push succeeded | owner-created repo; GCM credentials |
+| P8-02 | Push to public repo AbhinavVarma02/Room-for-Both | P8-01 | agent | verified_complete | `git ls-remote origin main` | 91e8e99 pushed |
 | P8-03 | Cloudflare login on a Free account | — | human | blocked_external | `npx wrangler whoami` | EXT-CF-AUTH |
 | P8-04 | D1 create + remote migrations | P8-03 | agent | blocked_external | `wrangler d1 migrations list --remote` | — |
 | P8-05 | Worker secrets | P8-03, EXT-QLOO-KEY | human | blocked_external | `wrangler secret list` | — |

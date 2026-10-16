@@ -65,7 +65,8 @@
     "P9-01",
     "P9-02",
     "P9-03",
-    "P10-02"
+    "P10-02",
+    "P8-02"
   ],
   "implemented_unverified_task_ids": [
     "P1-07",
@@ -76,7 +77,6 @@
   "blocker_ids": [
     "EXT-QLOO-KEY",
     "EXT-QLOO-ACCESS",
-    "EXT-GH-CLI",
     "EXT-CF-AUTH"
   ],
   "last_successful_verifications": [
@@ -85,8 +85,8 @@
     "npm run scan:secrets: clean"
   ],
   "last_commit_sha": "3bcc8d9",
-  "last_remote_sha": null,
-  "github_remote_url": null,
+  "last_remote_sha": "91e8e99",
+  "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": null,
   "verified_live_qloo": false,
   "verified_live_gemini": false,
@@ -112,7 +112,7 @@
     "P4": "offline pipeline verified; live run blocked",
     "P6": "optional map not shipped",
     "P7": "offline gates green; live comparison and Worker CPU blocked",
-    "P8": "needs gh auth and wrangler login",
+    "P8": "repo pushed; Cloudflare login in progress",
     "P9": "public URL pending"
   },
   "blocked_task_ids": [
@@ -120,8 +120,6 @@
     "P4-06",
     "P7-05",
     "P7-08",
-    "P8-01",
-    "P8-02",
     "P8-03",
     "P8-04",
     "P8-05",
@@ -131,5 +129,6 @@
   "pending_task_ids": [
     "P6-09",
     "P10-01"
-  ]
+  ],
+  "qloo_access": "requested by owner; approval pending"
 }

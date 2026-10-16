@@ -1,0 +1,44 @@
+{
+  "project": "Room for Both",
+  "repo_slug": "room-for-both",
+  "current_phase": "P1",
+  "phase_status": {
+    "P0": "in_progress",
+    "P1": "pending",
+    "P2": "pending",
+    "P3": "pending",
+    "P4": "pending",
+    "P5": "pending",
+    "P6": "pending",
+    "P7": "pending",
+    "P8": "pending",
+    "P9": "pending",
+    "P10": "pending"
+  },
+  "completed_task_ids": ["P0-01", "P0-02", "P0-03"],
+  "implemented_unverified_task_ids": [],
+  "failed_checks": [],
+  "blocker_ids": ["EXT-QLOO-KEY", "EXT-GH-CLI", "EXT-CF-AUTH"],
+  "last_successful_verifications": [],
+  "last_commit_sha": null,
+  "last_remote_sha": null,
+  "github_remote_url": null,
+  "deployed_url": null,
+  "verified_live_qloo": false,
+  "verified_live_gemini": false,
+  "verified_public_anonymous_flow": false,
+  "verified_free_tier": false,
+  "release_status": "not_ready",
+  "tooling": {
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "git": "2.53.0.windows.1",
+    "gh": "not installed",
+    "wrangler": "installed as project devDependency (pending)"
+  },
+  "next_actions": [
+    "Commit P0 ledger",
+    "Scaffold package.json, Vite + React + Tailwind client, Hono Worker",
+    "Verify Qloo documentation before writing the adapter"
+  ]
+}

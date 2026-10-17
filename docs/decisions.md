@@ -1,5 +1,9 @@
 # Architecture decisions
 
+The significant design choices behind Room for Both, in the order they were made. A later record can supersede an
+earlier one and says so. [Architecture](architecture.md#design-choices) summarises the ones that shape the system
+today.
+
 Format: We chose … because …; alternative …; trade-off ….
 
 ## ADR-001 Single package, single Worker
@@ -33,8 +37,8 @@ plugin (workerd) cover runtime parity.
 ## ADR-006 Qloo access through documented HTTPS routes only
 We chose a small typed client for `/search`, `/v2/tags` and `/v2/insights`, verified against Qloo's public
 docs and its published client's request conventions, because Workers cannot spawn the CLI harness;
-alternative: a separate always-on server running the harness; trade-off: needs owner confirmation that direct
-API access is permitted for the issued credential (EXT-QLOO-ACCESS).
+alternative: a separate always-on server running the harness; trade-off: whether direct API access was permitted for the
+issued credential was still an open question (answered in ADR-010).
 
 ## ADR-007 Uncertain matches are disclosed, never used as signals
 We chose to pass only exact entity and tag matches into later Qloo requests because an approximate match can
@@ -93,8 +97,8 @@ that guarantees no charge and the model is listed as free; alternative: a newer 
 free-tier quota (15 per minute, 500 per day) and Google may use submitted content, so consent stays per request
 and the app ceiling (300 a day) sits under the quota.
 
-## ADR-016 Record owner confirmations without widening the credential's terms
-We chose to treat the owner's review of the credential email as confirming only that it adds no restriction,
+## ADR-016 Read the credential's terms narrowly
+We chose to treat a review of the email that issued the credential as confirming only that it adds no restriction,
 and to keep Qloo's developer guide and Terms of Use as the authority for scope and period, because an email's
 silence neither grants permission nor sets a date; alternative: read the absence of terms as open-ended use;
 trade-off: the deactivation moment stays unknown, so the app keeps reacting to rejection and moves to the

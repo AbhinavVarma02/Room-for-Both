@@ -101,7 +101,7 @@ Referer headers) and is forwarded only as a bearer header. The server sets the a
 
 ## Design choices
 
-See `.agent/DECISIONS.md` for the full records. In short:
+See [architecture decisions](decisions.md) for the full records. In short:
 
 | Decision | Why | Evidence |
 |----------|-----|----------|

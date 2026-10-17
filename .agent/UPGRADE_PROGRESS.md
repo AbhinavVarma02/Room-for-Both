@@ -159,6 +159,6 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   terminations; CPU p50 4.5, p90 12.7, p99 34.6 ms. RISK-CPU stays an open watch item.
 - Usage today (UTC, app counters): Qloo 172 of the 300 ceiling, Gemini 9. Upgrade total, approximate: about 130 Qloo
   calls (94 counted by the app since the start of the day plus 36 from local scripts) and about 10 Gemini calls.
-- Private (not committed): `.local/judges-audit-after-upgrade.md` re-evaluation; submission text, About steps, quota
+- Private (not committed): independent re-evaluation; submission text, About steps, quota
   draft, interview script.
 - Nothing was submitted to any external form. The GitHub About section is still empty (manual step).

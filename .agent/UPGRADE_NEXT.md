@@ -2,26 +2,21 @@
 
 ## Next session: do this first
 
-1. Read `CLAUDE.md`, then this file, `UPGRADE_STATE.json`, `UPGRADE_TASKS.md`, `UPGRADE_BLOCKERS.md`, and the tail of
-   `UPGRADE_PROGRESS.md`.
-2. `git status`, `git branch --show-current` (expect `upgrade/selected-venue-journey`), `git log --oneline -10`,
-   `git fetch origin`. The actual Git HEAD is authoritative; the ledger may lag by one commit.
-3. Production must stay on the rollback reference in `UPGRADE_STATE.json` (`rollback.production_version`) until the
-   upgrade passes every gate in `UPGRADE_TASKS.md` U8. Check with `curl -s <url>/api/health`.
-4. Continue the first task in `UPGRADE_TASKS.md` whose state is `in_progress`, else the first `pending` task whose
-   dependencies are `verified_complete`.
+The upgrade is complete, verified, and deployed (UPGRADE_PROGRESS #11). There is no unfinished engineering task.
 
-## Current position
+1. Read `CLAUDE.md`, then `.agent/NEXT.md` for the routine check; this upgrade ledger is history.
+2. `git status`; `git log --oneline -5` on `main`; GitHub Actions for the latest SHA; `curl -s <url>/api/health`
+   (expect research `live`, planner `modelAvailable: true`).
+3. If something is wrong in production: `npx wrangler rollback 1c4b8f19-a82a-402d-abf8-1cacd6bd13e3` restores the
+   pre-upgrade version (secrets and D1 unaffected), then `npm run verify:public -- <url>`.
 
-U1–U3 core is committed (selected-venue journey, category-only comparison, venue-side bridge). Next: U4 (bounded
-planner), then U5 (guided demonstration), U6 (CPU). See `UPGRADE_TASKS.md`.
+## Owner actions (not engineering)
 
-## Rules that apply to every step
+- Submit the external entry form yourself; the draft is `.local/devpost-description.md`.
+- Fill the repository's About section; steps in `.local/github-about.md`.
+- Optional: send `.local/qloo-quota-request.md` through the documented support channel.
 
-- Live Qloo calls are scarce (5/s, 10,000/month, app ceiling 300/day). Offline tests use the synthetic upstream.
-  Record every live call count in `UPGRADE_PROGRESS.md`.
-- Local runs without live quota: `npm run dev:fixture` (Vite `--mode fixture` loads the git-ignored
-  `.dev.vars.fixture`, which holds empty credential entries). Plain `npm run dev` and the default Playwright web
-  server read `.dev.vars` and run live.
-- Never deploy to production before U8 passes. Candidate checks use `wrangler versions upload` (no traffic) where
-  preview URLs are available.
+## Watch items
+
+RISK-CPU, RISK-QLOO-QUOTA, RISK-CREDENTIAL-END in `.agent/BLOCKERS.md`. Measure a version's CPU with
+`npm run cpu:analytics -- --minutes 1440` or `npm run measure:cpu:windows` (see `docs/deployment.md`).

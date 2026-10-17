@@ -89,6 +89,7 @@
   "failed_checks": [],
   "blocker_ids": [],
   "last_successful_verifications": [
+    "Upgrade release 2c5d1b4f: verify:public 10/10, public pages 5/5, public live guided journey 1/1; CI 39037549524 success",
     "GitHub Actions 38999856845 (b0cde9f, owner confirmations): success",
     "Owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL recorded (PROGRESS #8)",
     "npm run check on PROGRESS #8 changes: exit 0 (69 unit, 49 integration, eval 60/60 checks, build); scan:secrets clean",
@@ -106,8 +107,8 @@
     "GitHub Actions 38995913094 (5bf47ef) and 38997070624 (0e17b50): success",
     "Cloudflare analytics: 183 requests, 0 errors, 0 CPU terminations"
   ],
-  "last_commit_sha": "b0cde9f",
-  "last_remote_sha": "b0cde9f",
+  "last_commit_sha": "see git log (main)",
+  "last_remote_sha": "see git log (origin/main)",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": true,
@@ -140,7 +141,7 @@
     "P6-09"
   ],
   "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; issuing email reviewed by the owner: access information only, no extra terms (EXT-QLOO-EMAIL resolved); programme-only use; guide and Terms of Use remain the authority",
-  "deployed_version": "1c4b8f19-a82a-402d-abf8-1cacd6bd13e3",
+  "deployed_version": "2c5d1b4f-e2a3-4ceb-a772-36a290746d40",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
     "EXT-CF-AUTH",
@@ -164,10 +165,10 @@
   "optional_task_ids": [
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Deployed from 1a8d36a (src and wrangler config identical in the ledger-only commit that records this). Rollback target with live secrets: a69d147b (0e17b50); fixture-era: 2de0ba6b.",
+  "deployed_version_note": "Upgrade release from main a97defa (code from e964395). Rollback target: 1c4b8f19 (pre-upgrade, source 1a8d36a). See .agent/UPGRADE_STATE.json.",
   "freeze": {
     "status": "frozen",
-    "scope": "Live integration complete. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."
+    "scope": "Upgrade complete and deployed. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."
   },
   "watch_item_ids": [
     "RISK-CPU",
@@ -178,7 +179,8 @@
     "per_second": 5,
     "per_month": 10000,
     "app_daily_ceiling": 300,
-    "calls_per_run": 7
+    "calls_per_run": 7,
+    "calls_per_guided_run": "up to 9 (7 research, 1 category-only comparison, 1 venue side)"
   },
   "gemini": {
     "model": "gemini-3.5-flash-lite",
@@ -201,5 +203,10 @@
   "owner_confirmations": {
     "EXT-CF-PLAN": "Owner visually verified in the Cloudflare dashboard: Workers Free, Active, no payment method on file",
     "EXT-QLOO-EMAIL": "Owner reviewed the credential email: access information only, no additional usage terms or restrictions; no permission or expiry inferred from its silence"
+  },
+  "upgrade": {
+    "status": "verified_complete",
+    "ledger": ".agent/UPGRADE_PROGRESS.md",
+    "ci": "39037549524 success on a97defa"
   }
 }

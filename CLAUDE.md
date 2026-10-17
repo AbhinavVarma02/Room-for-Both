@@ -22,13 +22,12 @@ host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Owner co
 the credential email) are recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never
 assumed. Open: the RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`.
 
-## Upgrade in progress (resume here first)
+## Targeted upgrade (complete)
 
-The owner lifted the scope freeze for one targeted upgrade only: the selected-venue journey, a category-only
-comparison, a two-sided cultural bridge, a bounded model-assisted research planner with the deterministic planner
-as fallback, a guided demonstration, and research CPU work. Everything else stays frozen. Resume from
-`.agent/UPGRADE_NEXT.md`, then `UPGRADE_STATE.json`, `UPGRADE_TASKS.md`, `UPGRADE_BLOCKERS.md`, and the tail of
-`UPGRADE_PROGRESS.md`. Production stays on the rollback version in `UPGRADE_STATE.json` until every U8 gate passes.
+A one-time, owner-authorised upgrade added the selected-venue journey, category-only and language-model
+comparisons, a two-sided cultural bridge, a bounded model-assisted planner with the rules as fallback, and a guided
+demonstration. It is verified and deployed (`.agent/UPGRADE_PROGRESS.md` #11; history in `.agent/UPGRADE_*`). Scope
+is frozen again: only monitoring, defect fixes, and the credential transition in `.agent/NEXT.md`.
 
 ## Non-negotiable rules
 

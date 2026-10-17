@@ -157,8 +157,8 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   journey 1/1. `/api/health`: research live, narrative enabled, model planner available (2 decisions).
 - Analytics for version 2c5d1b4f over 90 minutes (preview and production): 66 requests, 0 errors, no CPU
   terminations; CPU p50 4.5, p90 12.7, p99 34.6 ms. RISK-CPU stays an open watch item.
-- Usage today (UTC, app counters): Qloo 172 of the 300 ceiling, Gemini 9. Upgrade total, approximate: Qloo 104
-  calls, Gemini 7.
+- Usage today (UTC, app counters): Qloo 172 of the 300 ceiling, Gemini 9. Upgrade total, approximate: about 130 Qloo
+  calls (94 counted by the app since the start of the day plus 36 from local scripts) and about 10 Gemini calls.
 - Private (not committed): `.local/judges-audit-after-upgrade.md` re-evaluation; submission text, About steps, quota
   draft, interview script.
 - Nothing was submitted to any external form. The GitHub About section is still empty (manual step).

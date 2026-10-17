@@ -34,7 +34,7 @@
     "d31f587c": "buffered-events CPU experiment, never deployed, code not committed",
     "3a22350e": "second candidate"
   },
-  "live_calls_spent": { "qloo_approx": 104, "gemini_approx": 7 },
+  "live_calls_spent": { "qloo_approx": 130, "gemini_approx": 10 },
   "deployed": true,
   "open_watch_items": ["RISK-CPU", "RISK-QLOO-QUOTA", "RISK-CREDENTIAL-END"],
   "owner_actions": [

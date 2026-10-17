@@ -91,6 +91,7 @@
     "EXT-QLOO-EMAIL"
   ],
   "last_successful_verifications": [
+    "verify:public on deployed 1c4b8f19: 10/10 live; public pages e2e 10/10",
     "npm run smoke:live: host accepted on first probe; bounded run passes",
     "npm run smoke:gemini: 2/2 (gemini-3.5-flash-lite, free tier)",
     "npm run eval -- --live: 5/5 scenarios, 39/39 evidence qloo_observed, 0/114 dropped, 0 unsupported",
@@ -102,8 +103,8 @@
     "GitHub Actions 38995913094 (5bf47ef) and 38997070624 (0e17b50): success",
     "Cloudflare analytics: 183 requests, 0 errors, 0 CPU terminations"
   ],
-  "last_commit_sha": "27a2ad6",
-  "last_remote_sha": "27a2ad6",
+  "last_commit_sha": "1a8d36a",
+  "last_remote_sha": "1a8d36a",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": true,
@@ -139,7 +140,7 @@
     "P6-09"
   ],
   "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; email check open (EXT-QLOO-EMAIL)",
-  "deployed_version": "2de0ba6b-aad3-4496-9c2c-db128c0c428f",
+  "deployed_version": "1c4b8f19-a82a-402d-abf8-1cacd6bd13e3",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
     "EXT-CF-AUTH",
@@ -161,7 +162,7 @@
   "optional_task_ids": [
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Set after the final deploy of this session",
+  "deployed_version_note": "Deployed from 1a8d36a (src and wrangler config identical in the ledger-only commit that records this). Rollback target with live secrets: a69d147b (0e17b50); fixture-era: 2de0ba6b.",
   "freeze": {
     "status": "frozen",
     "scope": "Live integration complete. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."

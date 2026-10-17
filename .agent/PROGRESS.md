@@ -147,3 +147,6 @@ Chronological, factual. Commands and observed outcomes only.
 - Docs: new docs/data-licensing.md; README, api, deployment (secrets, rotation, rollback), security, privacy,
   limitations, evaluation, architecture, demo guide, Methodology page updated.
 - Production usage on the day: Qloo calls counted by the app's own ceiling; see `usage_counters` in D1.
+- Final: docs and ledger commit 1a8d36a pushed and deployed as 1c4b8f19; `verify:public` 10/10 (live); public
+  pages e2e 10/10. Captured raw payloads used for local CPU profiling were deleted; private live screenshots for
+  the entry packet remain in `.local/screenshots/` (ignored).

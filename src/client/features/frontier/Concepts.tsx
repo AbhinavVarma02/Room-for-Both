@@ -12,9 +12,11 @@ import { Disclosure, ProvenanceChip, StatusBadge, cn } from "../../components/ui
  */
 export function ProposalConcepts({ concepts, promising }: { concepts: ProposalConcept[]; promising: ProposalConcept | null }) {
   const first = promising ?? concepts[0];
-  const [active, setActive] = useState<string | undefined>(first?.basis);
+  // Only a visitor's own choice is remembered; until then the tab follows the recommendation, which can
+  // change when venue-side evidence arrives after the first render.
+  const [chosen, setChosen] = useState<string | null>(null);
   if (concepts.length === 0 || !first) return null;
-  const value = concepts.some((c) => c.basis === active) ? active : first.basis;
+  const value = chosen && concepts.some((c) => c.basis === chosen) ? chosen : first.basis;
   return (
     <section className="mt-12" aria-labelledby="concepts-title">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -32,7 +34,7 @@ export function ProposalConcepts({ concepts, promising }: { concepts: ProposalCo
       </div>
       {!promising && <p className="mt-2 text-sm text-ink-soft">No idea has a workable format on current terms yet; the change above is the place to start.</p>}
 
-      <Tabs.Root value={value} onValueChange={setActive} className="mt-4">
+      <Tabs.Root value={value} onValueChange={setChosen} className="mt-4">
         {concepts.length > 1 && (
           <Tabs.List aria-label="Collaboration ideas" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
             {concepts.map((c) => (

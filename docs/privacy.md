@@ -17,6 +17,9 @@ clears it.
 | Create a host link | Only the summary you choose to share: business name, product categories, proposed formats, the venue's public name, optional theme and message | Yes, until expiry (7 days) or withdrawal |
 | Host answers | The host's terms | Yes, until expiry or withdrawal |
 | Optional language-model summary | Computed facts: names, option labels, statuses, amounts, question texts | No |
+| Optional model planner | Cultural references, product categories, venue type, and (only after an empty search) the area names | No. Counts only |
+| Optional language-model baseline | Cultural references, product categories, venue type, and area | No. Counts only |
+| Category-only comparison, venue-side lookup | The run's venue category tag, area, and the chosen venue's public Qloo ID and name | No. Counts only |
 
 Your budget, own costs, notes, and priorities are never shared with a host and never sent to Qloo.
 
@@ -27,9 +30,10 @@ Your budget, own costs, notes, and priorities are never shared with a host and n
   nothing else: no business names, terms, budgets, notes, or contact details. Qloo describes its data as
   aggregate and free of personal information. Qloo results are shown to you and kept in your browser; the
   server does not retain them (see [data sources and licensing](data-licensing.md)).
-- **Google Gemini API** (only if the operator enables it and you consent each time) receives the computed
-  facts listed above. Google's free tier states that submitted content may be used to improve Google's
-  products, which is why consent is required.
+- **Google Gemini API** (only if the operator enables it and you consent each time) receives only what the table
+  above lists for the feature you chose; never business names for the planner or baseline, and never budgets,
+  costs, notes, contact details, or host-link data. Google's free tier states that submitted content may be used
+  to improve Google's products, which is why consent is required each time.
 - **Cloudflare** hosts the app and database.
 
 ## Server records

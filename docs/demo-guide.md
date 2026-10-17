@@ -1,20 +1,29 @@
 # Demo guide (about 90 seconds)
 
-Everything in the example is fictional and labelled as such: a small-batch skincare brand (the guest) and an
-independent bookstore (the host). Say so at the start.
+The guest business is fictional and labelled as such: a small-batch skincare brand whose customers like three
+real public references. In live mode the venues are real places returned by Qloo; their terms are never known to
+the app, so the guided example explores them with fictional placeholder terms labelled *hypothetical* on every
+screen. Say both things at the start.
+
+The story to tell: **here is the cultural reason to approach this venue, here is why the obvious arrangement
+fails, and here is one change worth discussing.**
 
 | Time | Screen | What to show and say |
 |------|--------|----------------------|
-| 0:00 | Home | "Two small businesses want to collaborate. Room for Both finds the deal that works for both, or shows exactly why not." Click **Try the fictional example**. |
-| 0:10 | Guest profile | Point out the $2,000 budget, weekend-only availability, and that the cultural references are real public names. **Save and continue.** |
-| 0:20 | Cultural discovery | Pick **Bookstore**, **Run cultural research**. Steps appear as they finish. Show a venue's affinity and which reference influenced it, and the co-curated reading-list theme. Point at the provenance chips: in live mode they read "Observed in Qloo", with the request and time; in fixture mode the banner says the data is fictional. Note the widened search step and the "what this research does not show" list. |
-| 0:40 | Two-sided workspace | The side-by-side table: the host only does weeknights, charges $600 an hour for events, and has 30 sq ft for a pop-up. "Nothing about the host is guessed. Hosts can answer privately through a link." |
-| 0:50 | Agreement Frontier | 0 feasible, 2 conditional, 7 no-go. Open a shelf card: it is waiting on one answer, exclusivity. Open a no-go card: the exact reason. "No scores, just checks." |
-| 1:05 | Decision Reversal | Select **Co-hosted event · 2 hours**: blocked by no shared day. Show the smallest change. Then click **Sat** under Host days: the trace records the event moving from no-go to conditional, with the reason. |
-| 1:20 | Decision brief | The proposed starting point, both sides' value hypotheses, the first three questions, cultural evidence with sources, and inputs grouped by provenance. **Print or save as PDF.** |
+| 0:00 | Home | "A small brand and an independent venue want to work together, but each has its own terms." Click **See it in 90 seconds**. |
+| 0:05 | Cultural discovery | Research starts by itself; the steps stream in, including the widened search. Point at a venue's affinity and "most influenced by" line, and the reading list. |
+| 0:20 | What the taste signal changed | The same search with no references: which venues the taste signal added or moved, and what only signals provide (affinity, explanation, theme). If it changed nothing, say so: that happens. Optionally tick consent and ask the language model alone; its names are only compared with Qloo's lists. |
+| 0:35 | Two-sided workspace | Click **Choose …** in the guide. The venue's own Qloo profile appears beside the guest's: shared titles or shared taste tags show where the two sides meet. Point at the warning: the terms are hypothetical, and the venue has agreed to nothing. |
+| 0:50 | Agreement Frontier | The headline: why the 2-hour co-hosted event fails (no shared day) and the closest verified change. The three panels: cultural opportunity, operational feasibility, commercial success. |
+| 1:05 | Decision Reversal | Click **Apply this change** in the highlighted box. The before-and-after card shows the event moving from no-go to conditional, and why. |
+| 1:15 | Decision brief | The hypothetical-terms warning, the venue and the evidence that led to it, the activation idea with "why this theme" and "still unverified", and the first three questions. **Print or save as PDF**, or download the JSON. |
 
-If live access is unavailable during a demo, the discovery screen says so and offers the fictional
-demonstration; use it and say that the cultural results shown are fictional.
+The full workflow is one click away: **Try the fictional example** opens every form, and the Research planner
+option on the discovery screen lets a language model choose two research steps, with consent, while the trace
+shows what it proposed and whether it ran.
 
-Key line to close on: "It never forecasts revenue or invents a venue's terms. It tells both sides where the deal
-can land and what would change the answer."
+If live access is unavailable, the discovery screen says so and offers the fictional demonstration; use it and
+say that the cultural results shown are fictional.
+
+Close on: "It never forecasts revenue or invents a venue's terms. Qloo tells both sides why this partnership is
+worth a conversation; the rules tell them where the deal can land and what would change the answer."

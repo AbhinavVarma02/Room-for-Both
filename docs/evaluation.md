@@ -41,9 +41,46 @@ threshold edit case and the verified-reversal case failed). The change was rever
 ## Cultural layer versus a no-cultural-layer baseline
 
 Both arms use the same scenarios and the same engine. The baseline builds the brief without research; the
-cultural arm attaches one research run. Offline, that run uses fixture data, so the comparison only shows that
-the pipeline attaches labelled evidence and never moves a decision. It says nothing about the quality of
-Qloo's data.
+cultural arm attaches one research run, a chosen venue with its venue-side evidence and category-only comparison,
+and the activation idea. Offline, that run uses fixture data, so the comparison only shows that the pipeline
+attaches labelled evidence and never moves a decision (27 of 27 identical), and that no activation or disclaimer
+sentence matches the unsupported-claim patterns. It says nothing about the quality of Qloo's data.
+
+## What the taste signal changes: live comparison
+
+`npm run eval -- --live` also repeats each scenario's venue search with no taste signal (one call, 10 venues) and
+looks up the first venue's own side of the bridge (one call). Latest run (17 October 2026, 30 calls in total;
+aggregates only):
+
+| Scenario | Outcome | In both top lists | Only with the taste signal (absent from category-only top 10) | Taste #1 in the category-only list | Venue-side items | Titles on both sides | Shared taste tags |
+|----------|---------|-------------------|-----------------------------|-------------------|-----------|-----------|-----------|
+| L1 bookstore, Greenpoint then Brooklyn | Different venues | 4 of 5 | 1 | #3 | 8 | 0 | 4 |
+| L2 cafe, Portland | Different venues | 1 of 5 | 4 | not in top 10 | 8 | 0 | 1 |
+| L3 bookstore, Brooklyn, brand-only reference | Different venues | 4 of 5 | 1 | #2 | 8 | n/a (tag bridge) | 0 |
+| L4 record store, Chicago | Different venues | 5 of 5 (reordered) | 0 | #1 | 8 | 0 | 8 |
+| L5 plant shop, Austin, no references | Not run: already category-only | — | — | — | — | — | — |
+
+Read plainly: in all four scenarios with a matched reference the taste signal changed the list a brand would work
+from, from one swapped venue (L1, L3) to four (L2); in L4 it only reordered the same five venues, and both methods
+put the same venue first. Only the signalled search provides affinity, a per-reference explanation, and a theme.
+The venue's own side never returned the same titles as the guest's side; the two met through shared taste tags,
+and the activation idea says that rather than claiming an overlap. None of this shows a better business outcome.
+
+### Language model alone
+
+The optional baseline asks Gemini the visitor's question with no Qloo data. In one live check on the product
+example it named two venues: one matched a taste-ranked Qloo result by name, the other was absent from the Qloo
+lists on the page and is plausibly a real local shop. The app shows such answers as model interpretations,
+compares names only, and does not score them. One answer is not a benchmark, so no win rate is claimed.
+
+### Model planner
+
+`npm run smoke:planner` makes two planning calls with no Qloo calls. Latest run: both answers parsed and passed
+validation in about 1.3 s each; a reference label carrying an injected instruction did not change the executed
+action, which stayed on the allow-list. Integration tests cover malformed and unsupported answers, injected links,
+contradictory actions, timeouts, quota errors, missing consent, an exhausted allowance, and the per-run decision
+limit; each falls back to the rule's decision. On the candidate Worker, research with the model planner used
+18.9 ms CPU at the median against 20.6 ms for rules only.
 
 ## Live Qloo evaluation
 
@@ -98,6 +135,25 @@ fictional research):
 Cloudflare's analytics for the Worker (17 October 2026, all traffic since deployment, including the runs above):
 183 requests, all successful, 0 errors, 0 terminated for CPU; CPU p50 4.1 ms, p90 13.6 ms, p99 57.7 ms.
 
+**Upgrade candidate (17 October 2026).** The upgraded code was uploaded as a separate Worker version and
+measured on its preview URL without moving production traffic. `wrangler tail` does not see preview traffic, so
+`npm run measure:cpu:windows` runs each route alone in its own clock minute and reads CPU quantiles per minute
+and version from Cloudflare's analytics (n = 3–5 per route, so treat these as indicative):
+
+| Route | Fictional demonstration p50 / max (ms) | Live p50 / max (ms) |
+|-------|---------------------|-----------|
+| `GET /api/health` | 1.8 / 8.1 | 0.8 / 3.7 |
+| `POST /api/evaluate` | 3.0 / 13.1 | 2.9 / 3.0 |
+| `POST /api/research` | 10.8 / 19.4 | 20.6 / 44.7 |
+| `POST /api/research` with the model planner | — | 18.9 / 31.1 |
+| `POST /api/research/baseline` | 2.2 / 3.0 | 10.3 / 31.6 |
+| `POST /api/research/venue-bridge` | 3.0 / 5.7 | 6.1 / 9.2 |
+
+Every request succeeded. Over the same day Cloudflare's analytics showed only successful invocations and 0
+errors for every version, including requests above 60 ms CPU. Buffering the research events into one write
+instead of streaming them (a discarded experiment) changed the demonstration's median from 8.2 to 6.2 ms, within
+run-to-run noise, so streaming stayed.
+
 Interpretation. A live run receives about 260 KB of JSON across seven calls. Replaying one recorded run locally in
 Node costs about 1 ms warm (0.6 ms of it JSON parsing) and about 4 ms on a cold process after the optimisation, so
 most of the deployed figure is first-use compilation in fresh isolates plus response handling, which a
@@ -115,8 +171,21 @@ Against https://room-for-both.room-for-both.workers.dev with live Qloo and summa
 passed 24 of 24 (desktop and mobile), including the live journey, the fictional fallback after a simulated
 credential rejection, and, run separately, the optional summary with a real draft.
 
+## Accessibility and layout
+
+Playwright runs axe (WCAG 2.0 and 2.1, levels A and AA) on eight pages after a guided run, and checks that no
+page scrolls horizontally at 320, 360, 375, and 414 px. The first axe run found six colour-contrast failures
+(faint text at 4.2–4.4:1); the faint text colour was darkened to at least 4.8:1 on every background, and the
+suite now reports no serious or critical issues. Checked by hand: keyboard order through the landing page and the
+guest step, and a visible focus ring on buttons and links. Research steps, planner decisions, and what-if results
+are announced through live regions. Automated checks cannot cover everything, and no screen-reader user has tested
+the app.
+
 ## Not yet measured
 
 - Live behaviour beyond five scenarios and a few cities; coverage in other markets is unknown.
 - Long-run CPU under sustained public traffic.
 - Any business outcome. No customer research has been conducted.
+- Whether venues found with the taste signal make better partners than those found without it.
+- The model planner's decision quality beyond validity: it is checked for being allowed and consistent, not for
+  being wise.

@@ -37,16 +37,29 @@ Room for Both is decision support. Its answers are only as good as the inputs an
   fictional and labelled as such.
 - Live access currently relies on a time-limited Qloo credential; after it ends, live discovery stops until
   separately authorised access is obtained ([data sources and licensing](data-licensing.md)).
+- The category-only comparison shows how the taste signal changes one search. It does not show that the
+  taste-ranked list is better for business; in live tests the taste-ranked first venue was sometimes also first
+  without signals.
+- The venue side and the guest side are separate Qloo requests. In live tests they shared taste tags but rarely
+  identical titles; scores from the two sides are never combined.
+- Hypothetical host terms are the fictional example's terms attached to a real venue for exploration. They say
+  nothing about that venue, which has agreed to nothing.
+- The model planner only picks among a few research actions. For bookstores, record stores, and cafes it usually
+  agrees with the rules; its choice matters most for categories without a default domain. Its decisions are not
+  deterministic, which is why the rules stay the default.
+- The language-model baseline is one answer from one model with no live data; it is a comparison, not a benchmark.
 
 ## Operations
 
 - Built for the Cloudflare Workers Free plan: 100,000 requests a day, 10 ms CPU per request, 50 subrequests,
   and D1 Free's daily read and write allowances. Heavy public use would hit these limits; the app degrades by
   refusing new research runs rather than upgrading.
-- A live research run uses 16–25 ms of CPU on the deployed Worker, above the nominal 10 ms. Cloudflare allows
-  isolates to run over occasionally, and no request has been terminated so far (see
-  [evaluation](evaluation.md#worker-cpu-on-the-free-plan)), but sustained public traffic could trigger
-  termination. The planned remedy is to split research into two bounded requests, never a paid plan.
+- A live research run uses about 15–25 ms of CPU at the median on the deployed Worker, above the nominal 10 ms,
+  and cold isolates reach 30–45 ms. Requests with no upstream calls at all (health, the fictional demonstration)
+  also reach 8–29 ms on a cold isolate, so splitting research into more requests would not bring the tail under
+  10 ms and was not adopted. No request has been terminated so far (see
+  [evaluation](evaluation.md#worker-cpu-on-the-free-plan)); sustained public traffic could still trigger
+  termination, and the response would be to reduce work per request, never a paid plan.
 - The live Qloo allowance is 10,000 calls a month. At up to 7 calls per run and a 300-call daily ceiling,
   about 40 live runs a day are possible; after that, visitors are offered the fictional demonstration.
 - Rate limits are per Cloudflare location and fixed windows; they are approximate, not exact accounting.

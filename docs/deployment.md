@@ -129,9 +129,24 @@ under **Workers & Pages → Plans** (or **Manage account → Billing → Subscri
 ## Tuning limits
 
 `wrangler.jsonc` `vars` control the bounds: `QLOO_MAX_CALLS_PER_RUN` (default 7), `QLOO_DAILY_CALL_CEILING`
-(300), `RESEARCH_RUNS_PER_HOUR_PER_CLIENT` (12), and `QLOO_TIMEOUT_MS` (8,000). Set the daily ceiling to your
+(300), `RESEARCH_RUNS_PER_HOUR_PER_CLIENT` (12), and `QLOO_TIMEOUT_MS` (8,000). Model use is bounded by
+`GEMINI_DAILY_CALL_CEILING` (300, shared by summaries, planner decisions, and the baseline),
+`PLANNER_MAX_DECISIONS` (2; 0 switches the model planner off), and `PLANNER_TIMEOUT_MS` (4,000). Set the daily ceiling to your
 credential's monthly allowance divided by the days in the period you need to cover; Qloo reports the
 allowance in the `x-month-ratelimit-limit` response header.
+
+## Try a candidate before it takes traffic
+
+```bash
+npm run build
+npx wrangler versions upload --preview-alias candidate
+```
+
+This uploads a new version without moving production traffic and prints its preview URL. It uses the same
+secrets and D1 database as production, so live checks spend real quota. Measure it with
+`npm run measure:cpu:windows -- <preview url> <version id prefix>` (add `--live` for upstream calls), and point
+Playwright at it with `E2E_BASE_URL=<preview url> npx playwright test`. Deploy it with
+`npx wrangler versions deploy <version-id>@100%` only after it passes.
 
 ## Rollback
 

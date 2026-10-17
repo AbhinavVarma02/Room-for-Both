@@ -17,7 +17,10 @@ Every response carries `X-Request-Id`, `Cache-Control: no-store`, `X-Content-Typ
 | `GET` | `/api/health` | Liveness, engine version, research mode (`live`/`fixture`), whether summaries are enabled and storage is bound. No configuration values. |
 | `GET` | `/api/config` | Public runtime settings for the client: research mode, call budget, whether narrative drafts and host links are enabled. |
 | `POST` | `/api/evaluate` | `{ scenario }` → `{ evaluation }`. Pure, deterministic; the same function the browser runs. |
-| `POST` | `/api/research` | Bounded cultural research. Streams `application/x-ndjson` events (below). `"demo": true` runs the labelled fictional demonstration without calling Qloo. Rate limited per client (12 runs per hour) and capped by a daily upstream ceiling. |
+| `POST` | `/api/research` | Bounded cultural research. Streams `application/x-ndjson` events (below). `"demo": true` runs the labelled fictional demonstration without calling Qloo. `"planner": "model"` with `"plannerConsent": true` lets the model propose decisions (validated; rules are the fallback). Rate limited per client (12 runs per hour) and capped by a daily upstream ceiling. |
+| `POST` | `/api/research/baseline` | Category-only discovery: `{ categoryTagId, categoryName, location, venueCategory, demo? }` from a previous run → `{ mode, candidates, depth, provenance, callsUsed, limitations }`. One upstream call, no taste signal, 10 venues. |
+| `POST` | `/api/research/venue-bridge` | Venue side of the bridge: `{ venueId, venueName, venueCategory, domain?, demo? }` → `{ mode, domain, items, provenance, callsUsed, limitations }`. One upstream call with the venue's own entity as the signal. `400 no_venue_domain` for categories without a cross-domain type. |
+| `POST` | `/api/research/llm-baseline` | Optional. `{ seeds, city, neighborhood?, venueCategory, guestCategories, consent: true }` → `{ model, venues[{ name, reason }], discarded, provenance: "llm_interpretation", limitations }`. One model call, no Qloo data; 6 per client per hour. `501` unless configured. |
 | `POST` | `/api/host-requests` | `{ summary }` → `201 { requestId, hostToken, ownerToken, expiresAt, editsAllowed }`. Limited to 10 per client per hour. |
 | `GET` | `/api/host-requests/respond` | Host view of a request. `Authorization: Bearer <hostToken>`. |
 | `PUT` | `/api/host-requests/respond` | Host answers `{ host }` (no `source` field; the server sets it). At most 3 saves per link. |
@@ -32,6 +35,7 @@ Unknown, expired, revoked, and wrong-token host-link lookups all return the same
 ```text
 {"type":"plan","mode":"live","steps":[{"id":"resolve_seeds","label":"…"}, …]}
 {"type":"step","step":{"id":"resolve_seeds","tool":"resolve_entity","status":"done","calls":2,"summary":"2 of 2 references matched exactly.","durationMs":412}}
+{"type":"decision","decision":{"point":"bridge","planner":"model","proposed":"Build the bridge from podcasts","accepted":true,"reason":"Accepted: …","executed":"Build the bridge from podcasts","rationale":"…","fallback":false,"ms":1210}}
 …
 {"type":"result","run":{ … ResearchRun … }}
 ```
@@ -56,6 +60,8 @@ named in its instructions, so `npm run smoke:live` confirms the host with one ca
 | Rank venues | `GET /v2/insights` | `filter.type=urn:entity:place`, `filter.tags`, `filter.location.query`, `signal.interests.entities`, `feature.explainability=true`, `take` | `results.entities[]`: `entity_id`, `name`, `subtype`, `popularity`, `properties.address`, `properties.is_closed`, `location.lat`/`lon`, `tags[]` (`id`, `name`, `type`), `query.affinity`, `query.explainability["signal.interests.entities"][]` (`entity_id`, `score`); top-level `query.localities.filter[].name` |
 | Cultural bridge | `GET /v2/insights` | `filter.type` (`urn:entity:book`, `urn:entity:artist`, or `urn:entity:podcast`), `signal.interests.entities`, `take=8` | `results.entities[]` as above, with `tags[]` and `query.affinity` |
 | Bridge fallback, or categories without a cross-domain pairing | `GET /v2/insights` | `filter.type=urn:tag`, `signal.interests.entities`, `filter.parents.types` (the references' own entity types), `take=8` | `results.tags[]`: `tag_id`, `name`, `subtype`, `query.affinity` |
+| Category-only comparison | `GET /v2/insights` | `filter.type=urn:entity:place`, `filter.tags`, `filter.location.query` (the run's), `take=10`, no signal | As for ranking venues; no affinity or explanation without a signal |
+| Venue side of the bridge | `GET /v2/insights` | `filter.type` (the bridge's domain), `signal.interests.entities` (the venue's own entity ID), `take=8` | `results.entities[]` with `tags[]` and `query.affinity`. A capability test confirmed a place entity is accepted as a signal for book insights; venue-signalled taste tags all scored 1.00, so they are not used |
 
 What authenticated responses showed, and how the app handles it:
 

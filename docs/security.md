@@ -32,6 +32,13 @@
 - The system instruction tells the model the facts are data, not instructions.
 - Drafts are rejected if they introduce any number not in the facts, any link or markup, or claims such as
   "approved" or "guaranteed". The rule-based summary is always shown regardless.
+- Planner: the model sees the decision, the allowed actions, and the run's facts as JSON data, and can only
+  answer with one action object. The Worker accepts it only if it is on the allow-list for that decision point,
+  consistent with the run (for example, it cannot stop a run that has matched references, or ask about a
+  reference that matched exactly), and its one-line rationale has no link, markup, or outcome claim. A model
+  never names a URL, endpoint, parameter, or tool, never sees budgets or terms, and never decides feasibility.
+- Language-model baseline: suggestions with links, markup, or outcome claims are discarded; the rest are shown
+  as a model interpretation and compared by name only with the Qloo lists already on the page.
 
 ## Host response links
 
@@ -52,8 +59,13 @@
   after repeated upstream failures. If the counter store is unavailable, live research fails closed.
 - The fictional demonstration makes no upstream calls but still counts towards the per-client hourly limit.
 - Host link creation: 10 per client per hour; reads and writes are throttled separately.
-- Narrative drafts: 20 per client per hour and 300 per day, below the model's free-tier quota (15 per minute,
-  500 per day for the deployed project). There is no unrestricted anonymous model access.
+- Model calls: summaries (20 per client per hour), planner decisions (at most 2 per research run, so at most 24
+  per client per hour), and the language-model baseline (6 per client per hour) share one daily allowance
+  (`GEMINI_DAILY_CALL_CEILING`, default 300) below the model's free-tier quota (15 per minute, 500 per day for the
+  deployed project). There is no unrestricted anonymous model access.
+- Follow-ups (category-only comparison, venue side): one upstream call each plus at most one retry, twice the
+  research limit per client per hour, the same daily ceiling, and identifiers restricted to plain ID characters
+  and to the run's mode.
 - Client identity for limits is a daily-rotating hash of the connecting address; raw addresses are never stored.
 - Cross-origin writes are refused. No cookies are used.
 

@@ -43,6 +43,7 @@ credential and Qloo's Terms of Use:
 | Venue-category tag IDs (for example the tag for "Book store") | Worker memory | Up to 6 hours per isolate |
 | A research run's results | The visitor's own browser storage, and any brief the visitor downloads | Until the visitor clears it |
 | A selected venue's public name, if the visitor creates a host link | D1, inside the private host-link record | Until the link expires and the daily cleanup removes it |
+| A chosen venue with its evidence, the category-only comparison, and the venue-side results | The visitor's own browser storage, and any brief the visitor downloads | Until the visitor clears it |
 
 No other Qloo-derived data is retained. Upstream responses are parsed, reduced to the displayed fields, and
 discarded at the end of each request.
@@ -97,3 +98,7 @@ mode travels with it into the brief and the JSON export.
   open questions, and theme titles. No contact details, notes, or host-link data.
 - Output is checked before display: it must be valid structured JSON, add no number absent from the facts,
   contain no links or markup, and make no approval, guarantee, or growth claims. Rejected drafts are discarded.
+- The model planner and the language-model baseline are separate, consented uses of the same key. They send
+  cultural references, product categories, venue type, and area, never names, budgets, or terms. Planner answers
+  are validated against an allow-list before anything runs; baseline answers are shown as model interpretations
+  only. All model calls share the app's daily allowance.

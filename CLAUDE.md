@@ -18,8 +18,9 @@ Repository slug: `room-for-both`. Never rename the product.
 
 The application is deployed with live Qloo cultural discovery and the optional Gemini summary, both verified
 locally and on the public URL (`.agent/PROGRESS.md` #7). Live access uses a time-limited Qloo credential on the
-host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Open items are owner confirmations
-(Cloudflare Free plan, the credential email) and the RISK-CPU watch item in `.agent/BLOCKERS.md`. Scope is frozen:
+host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Owner confirmations (Cloudflare Free plan,
+the credential email) are recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never
+assumed. Open: the RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`. Scope is frozen:
 no new features or architecture changes; only monitoring, defect fixes, and the credential transition.
 
 ## Non-negotiable rules

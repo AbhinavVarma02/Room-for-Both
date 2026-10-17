@@ -92,3 +92,10 @@ We chose `gemini-3.5-flash-lite` with a Google AI Studio key from a project whos
 that guarantees no charge and the model is listed as free; alternative: a newer or larger model; trade-off:
 free-tier quota (15 per minute, 500 per day) and Google may use submitted content, so consent stays per request
 and the app ceiling (300 a day) sits under the quota.
+
+## ADR-016 Record owner confirmations without widening the credential's terms
+We chose to treat the owner's review of the credential email as confirming only that it adds no restriction,
+and to keep Qloo's developer guide and Terms of Use as the authority for scope and period, because an email's
+silence neither grants permission nor sets a date; alternative: read the absence of terms as open-ended use;
+trade-off: the deactivation moment stays unknown, so the app keeps reacting to rejection and moves to the
+fictional demonstration after the programme instead of planning around a date.

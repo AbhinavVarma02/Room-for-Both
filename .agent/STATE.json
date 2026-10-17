@@ -13,7 +13,7 @@
     "P7": "implemented_unverified",
     "P8": "verified_complete",
     "P9": "verified_complete",
-    "P10": "blocked_external"
+    "P10": "verified_complete"
   },
   "completed_task_ids": [
     "P0-01",
@@ -31,6 +31,7 @@
     "P1-09",
     "P10-01",
     "P10-02",
+    "P10-03",
     "P2-01",
     "P2-02",
     "P2-03",
@@ -86,11 +87,12 @@
     "P7-08"
   ],
   "failed_checks": [],
-  "blocker_ids": [
-    "EXT-CF-PLAN",
-    "EXT-QLOO-EMAIL"
-  ],
+  "blocker_ids": [],
   "last_successful_verifications": [
+    "Owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL recorded (PROGRESS #8)",
+    "npm run check on PROGRESS #8 changes: exit 0 (69 unit, 49 integration, eval 60/60 checks, build); scan:secrets clean",
+    "Public /api/health: research live, narrative enabled",
+    "GitHub Actions 38997674176 (448b269): success",
     "verify:public on deployed 1c4b8f19: 10/10 live; public pages e2e 10/10",
     "npm run smoke:live: host accepted on first probe; bounded run passes",
     "npm run smoke:gemini: 2/2 (gemini-3.5-flash-lite, free tier)",
@@ -103,15 +105,15 @@
     "GitHub Actions 38995913094 (5bf47ef) and 38997070624 (0e17b50): success",
     "Cloudflare analytics: 183 requests, 0 errors, 0 CPU terminations"
   ],
-  "last_commit_sha": "1a8d36a",
-  "last_remote_sha": "1a8d36a",
+  "last_commit_sha": "448b269",
+  "last_remote_sha": "448b269",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": true,
   "verified_live_gemini": true,
   "verified_public_anonymous_flow": true,
-  "verified_free_tier": false,
-  "release_status": "live_release_verified_pending_owner_confirmations",
+  "verified_free_tier": true,
+  "release_status": "live_release_verified_watch_items_open",
   "tooling": {
     "node": "v24.14.0",
     "npm": "11.9.0",
@@ -120,9 +122,8 @@
     "wrangler": "4.151.0, authenticated"
   },
   "next_actions": [
-    "Await Qloo credential (EXT-QLOO-KEY), then follow .agent/NEXT.md",
-    "Owner confirms direct HTTPS access with Qloo (EXT-QLOO-ACCESS)",
-    "Owner confirms Free plan in dashboard (EXT-CF-PLAN)"
+    "Routine check per .agent/NEXT.md; watch RISK-CPU (exceededCpu / Error 1102) and RISK-QLOO-QUOTA",
+    "On Qloo auth errors or at the end of the programme's review period, follow NEXT.md 'When the Qloo credential ends' (RISK-CREDENTIAL-END)"
   ],
   "phase_notes": {
     "P2": "live contract validated; normaliser and planner aligned with authenticated responses",
@@ -131,15 +132,13 @@
     "P7": "live evaluation done; CPU above nominal Free limit on live research with 0 terminations (RISK-CPU)",
     "P8": "deployed with live secrets; verify:public 10/10; public e2e 24/24",
     "P9": "docs updated incl. data-licensing.md; private packet updated",
-    "P10": "waits on owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL"
+    "P10": "owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL recorded (PROGRESS #8); release audit closed; RISK-CPU open as a watch item"
   },
-  "blocked_task_ids": [
-    "P10-03"
-  ],
+  "blocked_task_ids": [],
   "pending_task_ids": [
     "P6-09"
   ],
-  "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; email check open (EXT-QLOO-EMAIL)",
+  "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; issuing email reviewed by the owner: access information only, no extra terms (EXT-QLOO-EMAIL resolved); programme-only use; guide and Terms of Use remain the authority",
   "deployed_version": "1c4b8f19-a82a-402d-abf8-1cacd6bd13e3",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
@@ -147,7 +146,9 @@
     "EXT-QLOO-KEY",
     "EXT-QLOO-HOST",
     "EXT-QLOO-ACCESS",
-    "EXT-GEMINI-KEY"
+    "EXT-GEMINI-KEY",
+    "EXT-CF-PLAN",
+    "EXT-QLOO-EMAIL"
   ],
   "qloo_host_audit": "Valid host is the one named in Qloo's developer guide for the credential (kept in QLOO_BASE_URL, not in Git); key is rejected on production and staging hosts per the guide",
   "cpu_measurements": {
@@ -190,5 +191,14 @@
       "per_day": 300
     }
   },
-  "free_tier_note": "Workers/D1 usage designed for Free; plan not readable via wrangler token (EXT-CF-PLAN). Gemini project billing disabled (verified read-only)."
+  "free_tier_note": "Cloudflare Workers Free confirmed by the owner in the dashboard (not readable via the wrangler token); Workers/D1 usage designed for Free; Gemini project billing disabled (verified read-only).",
+  "qloo_credential_expiry": {
+    "documented": "Guide: active through the end of the programme's review period, deactivated afterwards",
+    "actual_deactivation": "unknown; the issuing email states no date; none inferred",
+    "after_end": "remove secrets; public app runs as the fictional demonstration for portfolio use; no recorded Qloo results reused"
+  },
+  "owner_confirmations": {
+    "EXT-CF-PLAN": "Owner visually verified in the Cloudflare dashboard: Workers Free, Active, no payment method on file",
+    "EXT-QLOO-EMAIL": "Owner reviewed the credential email: access information only, no additional usage terms or restrictions; no permission or expiry inferred from its silence"
+  }
 }

@@ -5,8 +5,8 @@ States: `pending`, `in_progress`, `implemented_unverified`, `blocked_external`, 
 Evidence references point to `.agent/PROGRESS.md` entries or commands that can be re-run.
 
 Live Qloo and Gemini integration is verified and deployed (PROGRESS #7). Open: P7-08 (Worker CPU above the nominal
-Free limit on live research, no terminations observed: monitor) and P10-03 (waits on the owner's Free-plan
-confirmation, EXT-CF-PLAN, and a check of the credential email, EXT-QLOO-EMAIL). Optional: P6-09 (map view).
+Free limit on live research, no terminations observed: monitor). The owner confirmations EXT-CF-PLAN and
+EXT-QLOO-EMAIL are resolved and P10-03 is closed (PROGRESS #8). Optional: P6-09 (map view).
 Scope is frozen again: only monitoring, defect fixes, and the post-credential transition in `.agent/NEXT.md`.
 
 ## P0 — Bootstrap and recovery
@@ -131,4 +131,4 @@ Scope is frozen again: only monitoring, defect fixes, and the post-credential tr
 |----|------|-------|----------|-------|---------------------|----------|
 | P10-01 | Sweep blocked tasks | all | agent | verified_complete | BLOCKERS updated | PROGRESS #6 |
 | P10-02 | Clean install, full check, scans | all | agent | verified_complete | `npm run check`, e2e, `scan:secrets` | PROGRESS #3 |
-| P10-03 | Final audit and release state | P10-02 | agent | blocked_external | STATE.json | live release verified; waits on EXT-CF-PLAN and EXT-QLOO-EMAIL (owner checks) |
+| P10-03 | Final audit and release state | P10-02 | agent | verified_complete | STATE.json; `npm run check`; CI | owner confirmations recorded; health live; checks and CI pass (PROGRESS #8). RISK-CPU stays open as a watch item (P7-08) |

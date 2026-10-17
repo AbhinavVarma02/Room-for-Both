@@ -24,8 +24,8 @@ in `STATE.json`.
 
 ## Owner actions
 
-- EXT-CF-PLAN: confirm the Free plan in the Cloudflare dashboard.
-- EXT-QLOO-EMAIL: confirm the credential email adds no restriction beyond Qloo's developer guide.
+None open. EXT-CF-PLAN and EXT-QLOO-EMAIL were confirmed by the owner (PROGRESS #8). The credential's actual
+deactivation moment is still unknown (RISK-CREDENTIAL-END): watch for `auth` errors and do not assume a date.
 
 ## If the credential's terms differ from the developer guide
 
@@ -44,7 +44,9 @@ Signal: research streams return `auth` errors (visitors see "Live Qloo access is
    fixture mode (the journeys read the server mode).
 4. Update README's "Live app" line and `docs/data-licensing.md` to say live discovery has ended, and record it
    in PROGRESS.md and STATE.json. Never reuse recorded Qloo results to imitate live access.
-5. If the owner later obtains separately authorised access, set the new secrets and repeat the routine check.
+5. The public app stays available as a labelled fictional demonstration for portfolio use. The credential is
+   limited to the programme it was issued for, so neither it nor any recorded result is used after the programme.
+6. If the owner later obtains separately authorised access, set the new secrets and repeat the routine check.
 
 ## If CPU terminations appear (RISK-CPU)
 

@@ -150,3 +150,18 @@ Chronological, factual. Commands and observed outcomes only.
 - Final: docs and ledger commit 1a8d36a pushed and deployed as 1c4b8f19; `verify:public` 10/10 (live); public
   pages e2e 10/10. Captured raw payloads used for local CPU profiling were deleted; private live screenshots for
   the entry packet remain in `.local/screenshots/` (ignored).
+
+## #8 Owner confirmations recorded; release audit closed
+- Start: HEAD == origin/main == 448b269, clean tree; CI 38997674176 (448b269) success. Public `/api/health`:
+  `research.mode` `live`, `narrative.enabled` `true`, storage bound (no Qloo calls spent).
+- EXT-CF-PLAN resolved: the owner visually verified Cloudflare billing in the dashboard — Workers Free, Active, no
+  payment method on file. Owner-observed, not agent-observed (the Wrangler token still cannot read subscriptions).
+- EXT-QLOO-EMAIL resolved: the owner reviewed the email that delivered the Qloo credential; it holds access
+  information only, with no additional usage terms or restrictions. No permission and no expiry date is inferred
+  from its silence; Qloo's developer guide for the credential and Qloo's Terms of Use stay the authority.
+- Still uncertain (not an owner action): the credential's actual deactivation moment. The guide says keys stay
+  active through the end of the programme's review period; the email gives no date. Kept as RISK-CREDENTIAL-END.
+- Preserved: the credential is for the programme only; afterwards the public app runs as the labelled fictional
+  demonstration for portfolio use (NEXT.md "When the Qloo credential ends"). RISK-CPU stays open as a watch item.
+- Documentation and ledger only; no code, configuration, or deployment change. `npm run check` exit 0 (69 unit,
+  49 integration, eval 60/60 checks, build); `npm run scan:secrets` clean (135 tracked files). P10-03 and P10 closed.

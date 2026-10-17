@@ -22,8 +22,10 @@ credential and Qloo's Terms of Use:
   header, which is exactly what the Worker does. (Qloo's separate note that serverless functions are not a
   supported route applies to its MCP server, which this app does not use.)
 - **Period.** The guide states that these credentials stay active through the end of the programme's review
-  period and are deactivated afterwards. Nothing in this repository assumes a date: the app reacts to the
-  credential being rejected (see [operating modes](#operating-modes)).
+  period and are deactivated afterwards, and the credential covers that programme only. The email that issued
+  the credential adds no terms beyond the guide and states no date, so the exact deactivation moment is not known.
+  Nothing in this repository assumes a date: the app reacts to the credential being rejected (see
+  [operating modes](#operating-modes)).
 - **Limits.** Observed in authenticated response headers: 5 requests per second and 10,000 requests per month.
   The app paces its calls (at most 4 per second per Worker isolate), allows 7 calls per research run, and stops
   live research for the day after 300 upstream calls, which keeps a month of use inside the monthly allowance.
@@ -55,8 +57,9 @@ When Qloo deactivates the credential, every live request is rejected. The app th
 3. keeps the rest of the product (two-sided inputs, Agreement Frontier, Decision Reversal, brief) fully usable.
 
 The operator should then remove the credential so the app opens directly in fixture mode
-(`npx wrangler secret delete QLOO_API_KEY`). Cached or recorded Qloo results must not be used to imitate live
-access after authorisation ends, and this repository contains none to reuse.
+(`npx wrangler secret delete QLOO_API_KEY`). The public app then remains available as the fictional
+demonstration only. Cached or recorded Qloo results must not be used to imitate live access after authorisation
+ends, and this repository contains none to reuse.
 
 ### Continuing with separately authorised access
 

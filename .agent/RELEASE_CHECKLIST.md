@@ -33,14 +33,14 @@ Each row: `verified`, `at_risk`, `blocked`, or `not_yet_tested`, with evidence. 
 | Gate | Status | Evidence |
 |------|--------|----------|
 | Time-limited credential documented | verified | docs/data-licensing.md, README |
-| Direct server-side API use authorised | verified (by documentation) | Qloo's developer guide for the credential documents direct HTTPS with `X-Api-Key` (ADR-010); owner to confirm the email adds nothing (EXT-QLOO-EMAIL) |
-| Authorised-use period known | verified (by documentation), owner check open | Guide: keys stay active through the end of the programme's review period, then are deactivated; EXT-QLOO-EMAIL |
+| Direct server-side API use authorised | verified | Qloo's developer guide for the credential documents direct HTTPS with `X-Api-Key` (ADR-010); the owner confirmed the issuing email adds no terms or restrictions (EXT-QLOO-EMAIL resolved, PROGRESS #8). The guide and Qloo's Terms of Use remain the authority |
+| Authorised-use period documented | verified (by documentation) | Guide: keys stay active through the end of the programme's review period, then are deactivated; the credential covers the programme only. The issuing email states no date, so the actual deactivation moment is unknown and not inferred (watch item RISK-CREDENTIAL-END) |
 | No unauthorised post-credential use planned | verified | NEXT.md "When the Qloo credential ends"; no Qloo data stored to reuse |
-| $0 infrastructure | blocked | No paid resources configured; Gemini project has billing disabled; Cloudflare plan confirmation open (EXT-CF-PLAN) |
+| $0 infrastructure | verified | Owner visually verified Cloudflare billing: Workers Free, Active, no payment method on file (EXT-CF-PLAN resolved, PROGRESS #8); no paid resources configured; Gemini project has billing disabled |
 | Credential handling | verified | Secrets installed from stdin; names-only listings; no values in Git, logs, bundles, or responses |
 | Open-source licence | verified | MIT, detected by GitHub |
 | Private entry packet | verified | `.local/external-entry-packet.md` updated (git-ignored) |
-| Post-credential fallback implemented and verified | verified | Fixture mode and visitor-selected demonstration; e2e simulated rejection test passes locally and publicly |
+| Post-credential fallback implemented and verified | verified | Fixture mode and visitor-selected demonstration; e2e simulated rejection test passes locally and publicly. After the programme the public app runs only as this fictional demonstration for portfolio use (NEXT.md) |
 
 ## Known limitations
 See `docs/limitations.md`.

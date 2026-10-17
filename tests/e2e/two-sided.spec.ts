@@ -30,7 +30,7 @@ test("a custom scenario validates input and labels guest-entered host terms as u
   await expect(page.getByRole("heading", { level: 1, name: "Agreement Frontier" })).toBeVisible();
   await expect(page.getByText("One-sided: host terms unconfirmed")).toBeVisible();
   // Nothing about the host was guessed, so no option can be declared feasible.
-  await expect(page.getByRole("heading", { name: /Feasible on stated requirements/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^0 feasible/ })).toBeVisible();
 });
 
 test("a host answers through a private link and the scenario becomes two-sided", async ({ page, context }) => {
@@ -66,7 +66,8 @@ test("a host answers through a private link and the scenario becomes two-sided",
   await expect(page.getByText("Answered by the host")).toBeVisible();
   await page.getByRole("button", { name: "See the Agreement Frontier" }).click();
   await expect(page.getByText("Two-sided inputs")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Feasible on stated requirements/ })).toBeVisible();
+  await expect(page.getByText("Yes, on stated terms.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Ready to discuss|Curated shelf placement/ }).first()).toBeVisible();
 });
 
 test("an incomplete or unknown host link fails safely", async ({ page }) => {

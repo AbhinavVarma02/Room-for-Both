@@ -1,120 +1,34 @@
-import { ArrowRight, Lightbulb, Scale, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowRight, CheckCircle2, CircleDashed, FileText, Lock, ShieldCheck, XCircle } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { evaluateScenario } from "@shared/domain";
+import { applyChanges, evaluateScenario } from "@shared/domain";
 import { linkedSelection } from "@shared/domain/brief";
-import { type ProposalConcept, mostPromising, proposalConcepts } from "@shared/domain/concepts";
+import { mostPromising, proposalConcepts } from "@shared/domain/concepts";
 import { money } from "@shared/domain/format";
-import { blockerSummary, closestToWorking, featuredOption } from "@shared/domain/headline";
+import { blockerSummary, closestToWorking } from "@shared/domain/headline";
 import type { ArrangementOption, OptionStatus, ScenarioEvaluation } from "@shared/domain/types";
+import type { GuestProfile, HostProfile } from "@shared/schemas/profiles";
 import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav } from "../../app/Workspace";
-import { Button, Callout, Card, ProvenanceChip, StatusBadge } from "../../components/ui/primitives";
+import { Button, Disclosure, Notice, PartyTag, StatusBadge, StatusMark, cn, useMediaQuery } from "../../components/ui/primitives";
 import { ProposalConcepts } from "./Concepts";
-import { OptionCard } from "./OptionParts";
+import { OptionDetail } from "./OptionParts";
+import { TradeoffChart } from "./TradeoffChart";
+import { TRANSITION_GRID, TransitionArrow, TransitionStep, reasonsOf, toneOf } from "./Transition";
 
-const COLORS: Record<OptionStatus, string> = { feasible: "#166534", conditional: "#8a5300", no_go: "#a1232f" };
-const SHAPES: Record<OptionStatus, "circle" | "diamond" | "cross"> = { feasible: "circle", conditional: "diamond", no_go: "cross" };
-
-/** Round axis steps (1, 2, or 5 × a power of ten) so tick labels read naturally. */
-function niceTicks(max: number): number[] {
-  if (!(max > 0)) return [0, 1];
-  const raw = max / 4;
-  const power = 10 ** Math.floor(Math.log10(raw));
-  const step = ([1, 2, 5, 10].find((m) => m * power >= raw) ?? 10) * power;
-  const out: number[] = [];
-  for (let v = 0; v < max + step; v += step) out.push(v);
-  return out;
-}
-
-/**
- * Trade-off view: guest outlay against host fee. Shape and colour both encode status, so the
- * chart does not rely on colour alone, and every point is also listed in the cards below.
- */
-export function TradeoffChart({ evaluation }: { evaluation: ScenarioEvaluation }) {
-  const points = evaluation.options.filter((o) => o.metrics.guestOutlayUsd !== null && o.metrics.hostFeeUsd !== null);
-  const unplotted = evaluation.options.length - points.length;
-  const nd = new Set(evaluation.frontier.nonDominatedIds);
-  if (points.length === 0) {
-    return <p className="text-sm text-ink-soft">No option has both a known guest outlay and a known host fee yet, so there is nothing to plot.</p>;
-  }
-  const W = 560;
-  const H = 300;
-  const pad = { l: 64, r: 20, t: 16, b: 44 };
-  const xs = points.map((p) => p.metrics.guestOutlayUsd ?? 0);
-  const ys = points.map((p) => p.metrics.hostFeeUsd ?? 0);
-  const budget = evaluation.options[0]?.constraints.find((c) => c.id === "budget")?.inputs.find((i) => i.field === "maxOutlayUsd")?.value;
-  const xTicks = niceTicks(Math.max(...xs, typeof budget === "number" ? budget : 0) * 1.05);
-  const yTicks = niceTicks(Math.max(...ys) * 1.05);
-  const xMax = xTicks[xTicks.length - 1] ?? 1;
-  const yMax = yTicks[yTicks.length - 1] ?? 1;
-  const x = (v: number) => pad.l + (v / xMax) * (W - pad.l - pad.r);
-  const y = (v: number) => H - pad.b - (v / yMax) * (H - pad.t - pad.b);
-
-  return (
-    <figure>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-labelledby="chart-title chart-desc">
-        <title id="chart-title">Trade-off between guest outlay and host fee</title>
-        <desc id="chart-desc">
-          Each point is an arrangement option. Horizontal position is the guest's total outlay, vertical position is the host's fee. Circles are
-          feasible, diamonds conditional, crosses no-go.
-        </desc>
-        {xTicks.map((t) => (
-          <g key={`x${t}`}>
-            <line x1={x(t)} x2={x(t)} y1={pad.t} y2={H - pad.b} stroke="#e4dccf" />
-            <text x={x(t)} y={H - pad.b + 18} textAnchor="middle" fontSize="11" fill="#5f6a74">
-              {money(t)}
-            </text>
-          </g>
-        ))}
-        {yTicks.map((t) => (
-          <g key={`y${t}`}>
-            <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#e4dccf" />
-            <text x={pad.l - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="#5f6a74">
-              {money(t)}
-            </text>
-          </g>
-        ))}
-        {typeof budget === "number" && (
-          <g>
-            <line x1={x(budget)} x2={x(budget)} y1={pad.t} y2={H - pad.b} stroke="#0f766e" strokeDasharray="5 4" strokeWidth="1.5" />
-            <text x={x(budget) + 4} y={pad.t + 12} fontSize="11" fill="#0f766e">
-              guest budget
-            </text>
-          </g>
-        )}
-        <text x={(W + pad.l) / 2} y={H - 6} textAnchor="middle" fontSize="12" fill="#4a5560">
-          Guest total outlay →
-        </text>
-        <text x={14} y={(H - pad.b) / 2} textAnchor="middle" fontSize="12" fill="#4a5560" transform={`rotate(-90 14 ${(H - pad.b) / 2})`}>
-          Host fee →
-        </text>
-        {points.map((p, i) => {
-          const cx = x(p.metrics.guestOutlayUsd ?? 0) + (i % 3) * 3 - 3;
-          const cy = y(p.metrics.hostFeeUsd ?? 0);
-          const color = COLORS[p.status];
-          const shape = SHAPES[p.status];
-          return (
-            <g key={p.id}>
-              <title>{`${p.label}: ${p.status.replace("_", "-")}, outlay ${money(p.metrics.guestOutlayUsd ?? 0)}, fee ${money(p.metrics.hostFeeUsd ?? 0)}`}</title>
-              {nd.has(p.id) && p.status !== "no_go" && <circle cx={cx} cy={cy} r={11} fill="none" stroke="#2f4b8f" strokeWidth="2" />}
-              {shape === "circle" && <circle cx={cx} cy={cy} r={6} fill={color} />}
-              {shape === "diamond" && <rect x={cx - 5.5} y={cy - 5.5} width={11} height={11} fill={color} transform={`rotate(45 ${cx} ${cy})`} />}
-              {shape === "cross" && <path d={`M${cx - 5} ${cy - 5}L${cx + 5} ${cy + 5}M${cx + 5} ${cy - 5}L${cx - 5} ${cy + 5}`} stroke={color} strokeWidth="2.5" />}
-            </g>
-          );
-        })}
-      </svg>
-      <figcaption className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
-        <span>● feasible</span>
-        <span>◆ conditional</span>
-        <span>✕ no-go</span>
-        <span className="text-common">◯ on the frontier</span>
-        {unplotted > 0 && <span>{unplotted} option{unplotted === 1 ? "" : "s"} not plotted: fee or costs unknown</span>}
-      </figcaption>
-    </figure>
-  );
-}
+const STATUS_ORDER: OptionStatus[] = ["feasible", "conditional", "no_go"];
+const TILE: Record<OptionStatus, { word: string; hint: string; Icon: typeof CheckCircle2; on: string; text: string }> = {
+  feasible: { word: "Feasible", hint: "Pass every check", Icon: CheckCircle2, on: "border-ok/30 bg-ok-soft", text: "text-ok" },
+  conditional: { word: "Conditional", hint: "Waiting on answers", Icon: CircleDashed, on: "border-warn/30 bg-warn-soft", text: "text-warn" },
+  no_go: { word: "No-go", hint: "Blocked on current terms", Icon: XCircle, on: "border-bad/25 bg-bad-soft", text: "text-bad" },
+};
+type Filter = OptionStatus | "all";
+const WHOSE: Record<ScenarioEvaluation["twoSided"]["status"], { title: string; tone: "warn" | "info" }> = {
+  two_sided: { title: "Two-sided inputs", tone: "info" },
+  fictional_two_sided: { title: "Fictional two-sided example", tone: "warn" },
+  hypothetical_host: { title: "Hypothetical host terms", tone: "warn" },
+  one_sided: { title: "One-sided: host terms unconfirmed", tone: "warn" },
+};
 
 export function Frontier() {
   const { state } = useWorkspace();
@@ -138,169 +52,436 @@ export function Frontier() {
       evaluation,
     );
   }, [evaluation, guest, host, state.selection, state.research]);
-  if (!evaluation) return null;
-  const promising = mostPromising(concepts);
-  const nd = new Set(evaluation.frontier.nonDominatedIds);
-  const groups: { status: OptionStatus; title: string; options: ArrangementOption[] }[] = [
-    { status: "feasible", title: "Feasible on stated requirements", options: evaluation.options.filter((o) => o.status === "feasible") },
-    { status: "conditional", title: "Conditional: waiting on missing inputs", options: evaluation.options.filter((o) => o.status === "conditional") },
-    { status: "no_go", title: "No-go on current terms", options: evaluation.options.filter((o) => o.status === "no_go") },
-  ];
+  const closest = useMemo(() => (evaluation ? closestToWorking(evaluation) : null), [evaluation]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const explorer = useRef<HTMLElement>(null);
+  if (!evaluation || !guest || !host) return null;
+
+  const reverse = (id: string) => navigate(`/workspace/reversal?option=${encodeURIComponent(id)}`);
+  const showStatus = (s: OptionStatus) => {
+    setFilter(s);
+    setSelected(null);
+    explorer.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  };
+  // Whose inputs these are changes how far the result can be relied on, so it sits beside the answer,
+  // except for the labelled example, whose notice is already at the top of every step.
+  const whose = evaluation.twoSided.status === "fictional_two_sided" && state.isExample ? null : WHOSE[evaluation.twoSided.status];
 
   return (
     <div>
-      <StepHeader step="frontier">
-        Every arrangement Room for Both knows how to structure, checked against both parties' terms. Nothing here is a score: each status comes from
-        specific checks you can open.
-      </StepHeader>
+      <StepHeader step="frontier">Every way these two businesses could work together, checked against both sides' terms.</StepHeader>
 
-      <Headline evaluation={evaluation} onReverse={(id) => navigate(`/workspace/reversal?option=${encodeURIComponent(id)}`)} />
-      <WhatDecides concept={promising ?? concepts[0] ?? null} />
-      <ProposalConcepts concepts={concepts} promising={promising} />
+      <DecisionSummary evaluation={evaluation} onShow={showStatus} />
+      {whose && (
+        <Notice className="mt-3" tone={whose.tone} title={whose.title}>
+          {evaluation.twoSided.explanation}
+        </Notice>
+      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(0,24rem)]">
-        <Card>
-          <h2 className="text-lg font-semibold">Trade-offs</h2>
-          <div className="mt-3">
-            <TradeoffChart evaluation={evaluation} />
-          </div>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <p className="eyebrow">Summary</p>
-            <ul className="mt-3 space-y-2">
-              {(["feasible", "conditional", "no_go"] as const).map((s) => (
-                <li key={s} className="flex items-center justify-between">
-                  <StatusBadge status={s} />
-                  <span className="font-display text-2xl font-semibold tabular-nums">{evaluation.counts[s]}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-          <Callout tone={evaluation.twoSided.status === "two_sided" ? "ok" : "warn"} title={evaluation.twoSided.status === "two_sided" ? "Two-sided inputs" : evaluation.twoSided.status === "fictional_two_sided" ? "Fictional two-sided example" : "One-sided: host terms unconfirmed"}>
-            {evaluation.twoSided.explanation}
-          </Callout>
-          <p className="text-sm text-ink-soft">{evaluation.frontier.note}</p>
+      {evaluation.counts.feasible > 0 ? (
+        <ReadyPanel evaluation={evaluation} onBrief={() => navigate("/workspace/brief")} />
+      ) : closest ? (
+        <ClosestPanel
+          guest={guest}
+          host={host}
+          option={closest.option}
+          reversal={evaluation.reversals.find((r) => r.optionId === closest.option.id)}
+          onExplore={() => reverse(closest.option.id)}
+        />
+      ) : (
+        <BlockedPanel evaluation={evaluation} onReverse={() => navigate("/workspace/reversal")} />
+      )}
+
+      <ProposalConcepts concepts={concepts} promising={mostPromising(concepts)} />
+
+      <ArrangementExplorer
+        ref={explorer}
+        evaluation={evaluation}
+        filter={filter}
+        onFilter={(f) => {
+          setFilter(f);
+          setSelected(null);
+        }}
+        selectedId={selected ?? closest?.option.id ?? null}
+        onSelect={setSelected}
+        onReverse={reverse}
+      />
+
+      <div className="mt-6 space-y-3">
+        <Disclosure
+          tone="card"
+          title="Trade-off chart: what the guest pays against the host's fee"
+          meta={`${evaluation.options.filter((o) => o.metrics.guestOutlayUsd !== null && o.metrics.hostFeeUsd !== null).length} plotted`}
+        >
+          <TradeoffChart evaluation={evaluation} selectedId={selected ?? closest?.option.id ?? null} />
+          <p className="mt-3 text-sm text-ink-soft">{evaluation.frontier.note}</p>
+        </Disclosure>
+        <Disclosure tone="card" title="How these results are decided">
+          <ul className="space-y-3 text-sm text-ink-soft">
+            <li>
+              <span className="font-semibold text-ink">Operational feasibility</span> comes only from both sides' stated terms, through fixed rules you can open
+              on each arrangement. Cultural evidence never changes a fee, a schedule, or a check.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Cultural opportunity</span> suggests which idea is worth proposing. It is not a proxy for space, traffic,
+              rent, or a venue's willingness to partner.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Commercial success</span> is unknown. Nothing here forecasts revenue, foot traffic, or demand; only a
+              real activation can show it.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Whose inputs these are:</span> {evaluation.twoSided.explanation}
+            </li>
+          </ul>
+        </Disclosure>
+      </div>
+
+      <StepNav back="host" next="reversal" nextLabel="Explore what would change the answer" nextVariant="secondary" />
+    </div>
+  );
+}
+
+function headline(e: ScenarioEvaluation): { answer: string; detail: string } {
+  const { feasible, conditional, no_go } = e.counts;
+  const total = e.options.length;
+  if (feasible > 0)
+    return {
+      answer: "Yes, on stated terms.",
+      detail: `${feasible} of ${total} arrangement${feasible === 1 ? " passes" : "s pass"} every check. Both businesses still need to agree.`,
+    };
+  if (conditional > 0)
+    return {
+      answer: `Not yet, but ${conditional} could work.`,
+      detail: `${conditional} arrangement${conditional === 1 ? "" : "s"} could work once open questions are answered; ${no_go} ${no_go === 1 ? "is" : "are"} blocked on current terms.`,
+    };
+  return { answer: "Not on current terms.", detail: `All ${total} arrangements are blocked. The panel below shows what stands in the way.` };
+}
+
+/** The decision in one glance: the answer, three counts, and the most common blocker. */
+function DecisionSummary({ evaluation, onShow }: { evaluation: ScenarioEvaluation; onShow: (s: OptionStatus) => void }) {
+  const h = headline(evaluation);
+  const blocker = blockerSummary(evaluation, 1)[0];
+  return (
+    <section aria-labelledby="decision-title" className="card p-5 sm:p-7">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center">
+        <div>
+          <h2 id="decision-title" className="eyebrow !font-sans">
+            Can these businesses work together?
+          </h2>
+          <p className="mt-2 font-display text-3xl leading-tight font-semibold sm:text-4xl">{h.answer}</p>
+          <p className="mt-2 max-w-xl text-ink-soft">{h.detail}</p>
+        </div>
+        <ul className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Arrangements by status">
+          {STATUS_ORDER.map((s) => {
+            const t = TILE[s];
+            const n = evaluation.counts[s];
+            return (
+              <li key={s}>
+                <button
+                  type="button"
+                  onClick={() => onShow(s)}
+                  aria-label={`${n} ${t.word.toLowerCase()}: ${t.hint.toLowerCase()}. Show ${n === 1 ? "it" : "them"} in the list.`}
+                  className={cn(
+                    "flex h-full w-full flex-col items-start rounded-xl border p-3 text-left transition-colors sm:p-4",
+                    n > 0 ? t.on : "border-line bg-sunken/40",
+                    "hover:border-ink-faint",
+                  )}
+                >
+                  <span className={cn("flex items-center gap-1.5 text-xs font-semibold sm:text-sm", n > 0 ? t.text : "text-ink-faint")}>
+                    <t.Icon className="size-4 shrink-0" aria-hidden /> <span className="max-[400px]:sr-only">{t.word}</span>
+                  </span>
+                  <span className={cn("mt-1 font-display text-4xl leading-none font-semibold tabular-nums sm:text-5xl", n > 0 ? "text-ink" : "text-ink-faint")}>
+                    {n}
+                  </span>
+                  <span className={cn("mt-1 text-xs font-semibold min-[401px]:hidden", n > 0 ? t.text : "text-ink-faint")} aria-hidden>
+                    {t.word}
+                  </span>
+                  <span className="mt-1.5 hidden text-xs text-ink-soft sm:block">{t.hint}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {blocker && blocker.count > 1 && (
+        <p className="mt-5 flex items-start gap-2 border-t border-line pt-4 text-sm">
+          <XCircle className="mt-0.5 size-4 shrink-0 text-bad" aria-hidden />
+          <span>
+            <span className="font-semibold">Biggest blocker: {blocker.label.toLowerCase()}</span>
+            <span className="text-ink-soft">
+              {" "}
+              stops {blocker.count} of {evaluation.counts.no_go} blocked arrangements. {blocker.example}
+            </span>
+          </span>
+        </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The arrangement closest to working and the smallest verified change, shown as a before → after
+ * transition. Both states come from the rules engine; the "after" is re-checked by applying the change
+ * to a copy of the scenario, and the change is labelled as a proposal nobody has agreed to.
+ */
+function ClosestPanel({
+  guest,
+  host,
+  option,
+  reversal,
+  onExplore,
+}: {
+  guest: GuestProfile;
+  host: HostProfile;
+  option: ArrangementOption;
+  reversal: ScenarioEvaluation["reversals"][number] | undefined;
+  onExplore: () => void;
+}) {
+  const change = reversal?.minimalChange;
+  const after = useMemo(() => {
+    if (!change) return null;
+    return evaluateScenario(applyChanges({ guest, host }, change.changes)).options.find((o) => o.id === option.id) ?? null;
+  }, [guest, host, change, option.id]);
+  if (!change || !after) return null;
+  const nowReasons = reasonsOf(option);
+  const stillOpen = after.constraints.filter((c) => c.status === "unknown").map((c) => c.requirement?.text ?? c.explanation);
+  const parties = [...new Set(change.changes.map((c) => c.party))];
+
+  return (
+    <section aria-labelledby="closest-title" className="mt-6 rounded-[var(--radius-card)] border border-common/25 bg-common-soft/40 p-5 sm:p-7">
+      <p className="eyebrow">Closest to agreement</p>
+      <h2 id="closest-title" className="mt-1 text-2xl font-semibold sm:text-3xl">
+        {option.label}
+      </h2>
+      <div className={cn("mt-5", TRANSITION_GRID)}>
+        <TransitionStep tone={toneOf(option.status)} label="Now" badge={<StatusBadge status={option.status} short />}>
+          <ul className="space-y-1">
+            {nowReasons.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        </TransitionStep>
+        <TransitionArrow />
+        <TransitionStep tone="change" label="Proposed change">
+          <ul className="space-y-2">
+            {change.changes.map((c) => (
+              <li key={`${c.party}.${c.field}`} className="flex items-start gap-2 font-medium">
+                <PartyTag party={c.party} /> <span>{c.description}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink-soft">
+            Not agreed: the {parties.join(" and ")} {parties.length > 1 ? "have" : "has"} not confirmed this.
+          </p>
+        </TransitionStep>
+        <TransitionArrow />
+        <TransitionStep tone={toneOf(change.statusAfter)} label="Re-checked" badge={<StatusBadge status={change.statusAfter} short />}>
+          {stillOpen.length > 0 ? (
+            <>
+              <p className="text-ink-soft">Still waiting on:</p>
+              <ul className="mt-0.5 space-y-1">
+                {stillOpen.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          ) : change.statusAfter === "feasible" ? (
+            <p>Passes every check on stated terms.</p>
+          ) : (
+            <p>Still blocked by another check.</p>
+          )}
+        </TransitionStep>
+      </div>
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button size="lg" onClick={onExplore}>
+          Explore the change <ArrowRight className="size-4" aria-hidden />
+        </Button>
+        <p className="flex items-center gap-1.5 text-sm text-ink-soft">
+          <ShieldCheck className="size-4 shrink-0 text-common" aria-hidden /> Same rules, re-run. A what-if, not an agreement.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** When something already passes, lead with it: the next move is the brief, not a change. */
+function ReadyPanel({ evaluation, onBrief }: { evaluation: ScenarioEvaluation; onBrief: () => void }) {
+  const nd = new Set(evaluation.frontier.nonDominatedIds);
+  const feasible = evaluation.options.filter((o) => o.status === "feasible");
+  const option = feasible.find((o) => nd.has(o.id)) ?? feasible[0];
+  if (!option) return null;
+  return (
+    <section aria-labelledby="ready-title" className="mt-6 rounded-[var(--radius-card)] border border-ok/30 bg-ok-soft/40 p-5 sm:p-7">
+      <p className="eyebrow">Ready to discuss</p>
+      <h2 id="ready-title" className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold sm:text-3xl">
+        {option.label} <StatusBadge status="feasible" short />
+      </h2>
+      <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+        <div>
+          <dt className="text-ink-faint">Guest pays in total</dt>
+          <dd className="text-lg font-semibold tabular-nums">{option.metrics.guestOutlayUsd === null ? "Unknown" : money(option.metrics.guestOutlayUsd)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-faint">Host fee</dt>
+          <dd className="text-lg font-semibold tabular-nums">{option.metrics.hostFeeUsd === null ? "Unknown" : money(option.metrics.hostFeeUsd)}</dd>
+        </div>
+      </dl>
+      <p className="mt-3 max-w-2xl text-sm text-ink-soft">
+        It passes every check on both sides' stated terms. That is not an agreement: both businesses still confirm the details in the brief.
+      </p>
+      <Button size="lg" className="mt-5" onClick={onBrief}>
+        <FileText className="size-4" aria-hidden /> Build the decision brief
+      </Button>
+    </section>
+  );
+}
+
+/** No verified change exists: show what actually blocks, never an invented improvement. */
+function BlockedPanel({ evaluation, onReverse }: { evaluation: ScenarioEvaluation; onReverse: () => void }) {
+  const blockers = blockerSummary(evaluation, 3);
+  const locked = [...new Set(evaluation.reversals.flatMap((r) => r.nonNegotiableBlockers))];
+  const waiting = evaluation.options.filter((o) => o.status === "conditional");
+  return (
+    <section aria-labelledby="blocked-title" className="mt-6 rounded-[var(--radius-card)] border border-line-strong bg-sunken/50 p-5 sm:p-7">
+      <p className="eyebrow">What stands in the way</p>
+      <h2 id="blocked-title" className="mt-1 text-2xl font-semibold">
+        {waiting.length > 0 ? "Answers are needed before anything can work" : "No single negotiable change unblocks an arrangement"}
+      </h2>
+      {waiting.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {[...new Set(waiting.flatMap((o) => o.constraints.filter((c) => c.status === "unknown").map((c) => c.requirement?.text ?? c.explanation)))].map(
+            (t) => (
+              <li key={t} className="flex items-start gap-2">
+                <CircleDashed className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden /> {t}
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+      {blockers.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {blockers.map((b) => (
+            <li key={b.id} className="flex items-start gap-2">
+              <XCircle className="mt-0.5 size-4 shrink-0 text-bad" aria-hidden />
+              <span>
+                <span className="font-semibold">{b.label}</span> blocks {b.count} arrangement{b.count === 1 ? "" : "s"}.{" "}
+                <span className="text-ink-soft">{b.example}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {locked.length > 0 && (
+        <p className="mt-3 flex items-start gap-2 text-sm text-ink-soft">
+          <Lock className="mt-0.5 size-4 shrink-0" aria-hidden /> Some blockers depend on terms marked non-negotiable:{" "}
+          {locked.map((b) => b.replace(/_/g, " ")).join(", ")}.
+        </p>
+      )}
+      <Button size="lg" className="mt-5" onClick={onReverse}>
+        Explore what would change the answer <ArrowRight className="size-4" aria-hidden />
+      </Button>
+    </section>
+  );
+}
+
+interface ExplorerProps {
+  evaluation: ScenarioEvaluation;
+  filter: Filter;
+  onFilter: (f: Filter) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onReverse: (id: string) => void;
+  ref: React.Ref<HTMLElement>;
+}
+
+/** All arrangements as a compact list with one focused detail: side by side on wide screens, inline on narrow ones. */
+function ArrangementExplorer({ evaluation, filter, onFilter, selectedId, onSelect, onReverse, ref }: ExplorerProps) {
+  const wide = useMediaQuery("(min-width: 1024px)");
+  const nd = new Set(evaluation.frontier.nonDominatedIds);
+  const sorted = [...evaluation.options].sort(
+    (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || Number(nd.has(b.id)) - Number(nd.has(a.id)),
+  );
+  const visible = filter === "all" ? sorted : sorted.filter((o) => o.status === filter);
+  const current = visible.find((o) => o.id === selectedId) ?? visible[0] ?? null;
+  const filters: { id: Filter; label: string; n: number }[] = [
+    { id: "all", label: "All", n: evaluation.options.length },
+    ...STATUS_ORDER.map((s) => ({ id: s, label: TILE[s].word, n: evaluation.counts[s] })),
+  ];
+  const detail = (o: ArrangementOption, level: 3 | 4) => (
+    <OptionDetail option={o} nonDominated={nd.has(o.id)} onReverse={() => onReverse(o.id)} headingLevel={level} />
+  );
+
+  return (
+    <section ref={ref} className="mt-12 scroll-mt-6" aria-labelledby="explorer-title">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">Arrangement explorer</p>
+          <h2 id="explorer-title" className="mt-1 text-2xl font-semibold">
+            All {evaluation.options.length} arrangements
+          </h2>
+        </div>
+        <div role="group" aria-label="Show arrangements by status" className="flex flex-wrap gap-1.5">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={filter === f.id}
+              onClick={() => onFilter(f.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                filter === f.id ? "border-ink bg-ink text-white" : "border-line-strong bg-surface text-ink-soft hover:text-ink",
+              )}
+            >
+              {f.id !== "all" && <StatusMark status={f.id} className={filter === f.id ? "text-white" : undefined} label={false} />}
+              {f.label} <span className="tabular-nums opacity-75">{f.n}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {groups.map(
-        (g) =>
-          g.options.length > 0 && (
-            <section key={g.status} className="mt-10" aria-labelledby={`group-${g.status}`}>
-              <h2 id={`group-${g.status}`} className="text-xl font-semibold">
-                {g.title} <span className="text-ink-faint">({g.options.length})</span>
-              </h2>
-              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {g.options.map((o) => (
-                  <OptionCard
-                    key={o.id}
-                    option={o}
-                    nonDominated={nd.has(o.id)}
-                    action={
-                      o.status === "no_go" ? (
-                        <Button variant="secondary" size="sm" onClick={() => navigate(`/workspace/reversal?option=${encodeURIComponent(o.id)}`)}>
-                          What would change this?
-                        </Button>
-                      ) : undefined
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          ),
+      {visible.length === 0 ? (
+        <p className="card mt-4 p-6 text-sm text-ink-soft">No arrangement has this status on the current terms.</p>
+      ) : (
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] lg:items-start">
+          <ul className="card divide-y divide-line overflow-hidden p-0" aria-label="Arrangements">
+            {visible.map((o) => {
+              const active = current?.id === o.id;
+              return (
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    aria-controls={wide ? "arrangement-detail" : undefined}
+                    onClick={() => onSelect(o.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                      active ? "bg-common-soft/70 shadow-[inset_3px_0_0_var(--color-common)]" : "hover:bg-sunken/60",
+                    )}
+                  >
+                    <StatusMark status={o.status} className="text-lg" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-ink">{o.label}</span>
+                      <span className="block text-xs text-ink-soft">
+                        {TILE[o.status].word}
+                        {nd.has(o.id) && o.status !== "no_go" && " · on the frontier"} · guest{" "}
+                        {o.metrics.guestOutlayUsd === null ? "unknown" : money(o.metrics.guestOutlayUsd)}
+                      </span>
+                    </span>
+                  </button>
+                  {!wide && active && <div className="border-t border-line bg-surface px-4 py-4">{detail(o, 3)}</div>}
+                </li>
+              );
+            })}
+          </ul>
+          {wide && current && (
+            <div id="arrangement-detail" className="card sticky top-4 p-6">
+              {detail(current, 3)}
+            </div>
+          )}
+        </div>
       )}
-
-      <StepNav back="host" next="reversal" nextLabel="Explore what would change the answer" />
-    </div>
-  );
-}
-
-/** The result in one glance: why the obvious arrangement fails and which change is closest to working. */
-function Headline({ evaluation, onReverse }: { evaluation: ScenarioEvaluation; onReverse: (optionId: string) => void }) {
-  const blockers = blockerSummary(evaluation);
-  const featured = featuredOption(evaluation);
-  const closest = closestToWorking(evaluation);
-  const noGo = evaluation.counts.no_go;
-  const failing = featured?.constraints.filter((c) => c.status === "fail") ?? [];
-  return (
-    <Card className="mb-6" aria-labelledby="headline-title">
-      <h2 id="headline-title" className="text-lg font-semibold">
-        {evaluation.counts.feasible > 0
-          ? `${evaluation.counts.feasible} arrangement${evaluation.counts.feasible === 1 ? "" : "s"} feasible on stated requirements`
-          : evaluation.counts.conditional > 0
-            ? "Nothing is feasible yet: some options wait on answers, others are blocked"
-            : "Every option is blocked on the current terms"}
-      </h2>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {featured && featured.status === "no_go" && failing.length > 0 && (
-          <div className="rounded-xl border border-bad/25 bg-bad-soft/50 p-4 text-sm">
-            <p className="font-semibold">Why “{featured.label}” fails</p>
-            <ul className="mt-1 list-disc space-y-1 pl-4 text-ink-soft">
-              {failing.slice(0, 2).map((c) => (
-                <li key={c.id}>{c.explanation}</li>
-              ))}
-            </ul>
-            {blockers[0] && blockers[0].count > 1 && (
-              <p className="mt-2 text-ink-soft">
-                The same check, {blockers[0].label.toLowerCase()}, blocks {blockers[0].count} of {noGo} no-go options.
-              </p>
-            )}
-          </div>
-        )}
-        {closest && (
-          <div className="rounded-xl border border-common/25 bg-common-soft/50 p-4 text-sm">
-            <p className="font-semibold">Closest to working: {closest.option.label}</p>
-            <p className="mt-1 text-ink-soft">Smallest verified change: {closest.changes.join(" ")}</p>
-            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-ink-soft">
-              Re-checked with the same rules: <StatusBadge status={closest.option.status} short /> <ArrowRight className="size-3" aria-label="becomes" />{" "}
-              <StatusBadge status={closest.statusAfter as OptionStatus} short />
-            </p>
-            <Button size="sm" className="mt-3" onClick={() => onReverse(closest.option.id)}>
-              Try this change <ArrowRight className="size-4" aria-hidden />
-            </Button>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-/** Cultural opportunity, operational feasibility, and commercial success, kept visibly apart. */
-function WhatDecides({ concept }: { concept: ProposalConcept | null }) {
-  return (
-    <div className="mb-6 grid gap-3 md:grid-cols-3" role="list" aria-label="What decides what">
-      <div role="listitem" className="rounded-xl border border-line bg-surface p-4 text-sm">
-        <p className="flex items-center gap-2 font-semibold">
-          <Lightbulb className="size-4 text-guest" aria-hidden /> Cultural opportunity
-        </p>
-        {concept ? (
-          <>
-            <p className="mt-1 font-medium">{concept.formatTitle}</p>
-            <p className="mt-1 text-ink-soft">{concept.pitch}</p>
-            <p className="mt-1 text-xs text-ink-faint">The ideas below show where this comes from and which formats work.</p>
-            <p className="mt-2 flex flex-wrap gap-1.5">
-              {concept.sources.map((k) => (
-                <ProvenanceChip key={k} kind={k} />
-              ))}
-            </p>
-          </>
-        ) : (
-          <p className="mt-1 text-ink-soft">Run cultural research to get a theme worth proposing.</p>
-        )}
-      </div>
-      <div role="listitem" className="rounded-xl border border-line bg-surface p-4 text-sm">
-        <p className="flex items-center gap-2 font-semibold">
-          <Scale className="size-4 text-common" aria-hidden /> Operational feasibility
-        </p>
-        <p className="mt-1 text-ink-soft">Decided below, only by both parties' stated terms. The theme never changes a fee, a schedule, or a check.</p>
-      </div>
-      <div role="listitem" className="rounded-xl border border-line bg-surface p-4 text-sm">
-        <p className="flex items-center gap-2 font-semibold">
-          <TrendingUp className="size-4 text-ink-faint" aria-hidden /> Commercial success
-        </p>
-        <p className="mt-1 text-ink-soft">Unknown. Nothing here forecasts revenue, foot traffic, or demand; only a real activation can show it.</p>
-      </div>
-    </div>
+    </section>
   );
 }

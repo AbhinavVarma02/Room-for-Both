@@ -37,16 +37,18 @@ test("guided example: cultural reason, chosen venue, why it fails, one change, a
 
   await guide.getByRole("button", { name: "See which arrangements work" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Agreement Frontier" })).toBeVisible();
-  await expect(page.getByText("Why “Co-hosted event · 2 hours” fails")).toBeVisible();
-  await expect(page.getByText("Cultural opportunity", { exact: true })).toBeVisible();
-  await expect(page.getByText("Commercial success", { exact: true })).toBeVisible();
+  await expect(page.getByText("Can these businesses work together?")).toBeVisible();
+  const closest = (await page.locator("#closest-title").textContent())?.trim() ?? "";
+  expect(closest.length).toBeGreaterThan(0);
+  await expect(page.getByText("Nothing here forecasts sales", { exact: false })).toBeVisible();
 
-  await guide.getByRole("button", { name: "Find the smallest change" }).click();
+  // The guide points to the page's own single action instead of repeating it.
+  await page.getByRole("button", { name: /Explore the change/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Decision Reversal" })).toBeVisible();
   await page.getByRole("button", { name: /Apply this change/ }).click();
   const status = page.getByRole("status").filter({ hasText: "You applied" });
-  await expect(status).toContainText("Co-hosted event · 2 hours:");
-  await expect(status).toContainText("Conditional");
+  await expect(status).toContainText(`${closest}:`);
+  await expect(status).toContainText(/Conditional|Feasible/);
 
   await guide.getByRole("button", { name: "Build the decision brief" }).click();
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`× ${venue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(hypothetical terms\\)`) })).toBeVisible();
@@ -120,15 +122,18 @@ test("reference sensitivity, proposal ideas, and a brief that proposes a change"
   await guide.getByRole("button", { name: "See which arrangements work" }).click();
   const ideas = page.locator('[aria-labelledby="concepts-title"]');
   await expect(ideas.getByRole("heading", { name: "A reading list both audiences share" })).toBeVisible();
-  await expect(ideas.getByRole("heading", { name: "Start from the venue's own books" })).toBeVisible();
   await expect(ideas.getByText("Discuss first")).toHaveCount(1);
+  // Other ideas stay one choice away.
+  await ideas.getByRole("tab", { name: /Start from the venue's own books/ }).click();
+  await expect(ideas.getByRole("heading", { name: "Start from the venue's own books" })).toBeVisible();
 
-  await guide.getByRole("button", { name: "Find the smallest change" }).click();
+  await page.getByRole("button", { name: /Explore the change/ }).click();
   await page.getByRole("button", { name: /Apply this change/ }).click();
   await page.getByRole("button", { name: "Draft a brief proposing these changes" }).click();
   await expect(page.getByRole("heading", { name: "Proposed changes to discuss" })).toBeVisible();
   await expect(page.getByText(/needs confirmation by the (host|guest)/).first()).toBeVisible();
   await expect(page.getByText(/If the proposed changes listed below are accepted, the suggested starting point/)).toBeVisible();
+  await page.getByText("Full cultural evidence").click();
   await expect(page.getByText("How much each reference matters")).toBeVisible();
 });
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bot, CheckCircle2, CircleDashed, Cog, Loader2, MapPin, MinusCircle, Sparkles, XCircle } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, CircleDashed, Cog, Loader2, MapPin, MinusCircle, Sparkles, Store, Tags, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { SEED_KIND_LABELS, VENUE_CATEGORIES, VENUE_CATEGORY_LABELS, type VenueCategory } from "@shared/constants/vocabulary";
@@ -9,7 +9,7 @@ import type { PlannerDecision } from "@shared/schemas/planner";
 import { ApiRequestError, getConfig, streamResearch } from "../../app/api";
 import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav, stepHref } from "../../app/Workspace";
-import { Button, Callout, Card, ProvenanceChip, cn } from "../../components/ui/primitives";
+import { Button, Callout, Card, Disclosure, Notice, ProvenanceChip, cn } from "../../components/ui/primitives";
 import { DiscoveryComparisonPanel } from "./Comparison";
 import { SensitivityPanel } from "./Sensitivity";
 import { useSelectVenue } from "./selectVenue";
@@ -73,7 +73,9 @@ export function Discovery() {
   const [, navigate] = useLocation();
   const guest = state.guest;
   const config = useQuery({ queryKey: ["config"], queryFn: getConfig });
-  const [category, setCategory] = useState<VenueCategory | null>(state.research?.request.venueCategory ?? (state.isExample ? "bookstore" : state.host?.venueCategory ?? null));
+  const [category, setCategory] = useState<VenueCategory | null>(
+    state.research?.request.venueCategory ?? (state.isExample ? "bookstore" : (state.host?.venueCategory ?? null)),
+  );
   const [steps, setSteps] = useState<StepState[]>([]);
   const [decisions, setDecisions] = useState<PlannerDecision[]>([]);
   const [useModel, setUseModel] = useState(false);
@@ -154,31 +156,33 @@ export function Discovery() {
   return (
     <div>
       <StepHeader step="discovery">
-        Find venues and themes your audience already connects with. Qloo's taste data suggests <em>which</em> relationship to explore; it says nothing
-        about a venue's rent, traffic, or willingness to partner.
+        Qloo finds venues whose audiences share your customers' taste. It suggests <em>who</em> to approach; it says nothing about rent, traffic, or a venue's
+        willingness to partner.
       </StepHeader>
 
-      {mode === "fixture" && (
-        <Callout tone="warn" className="mb-6" title="Fixture mode: fictional cultural data">
-          Live Qloo access is not configured on this server, so research returns clearly labelled fictional results that exercise the same
-          pipeline. No Qloo request is made.
-        </Callout>
-      )}
-      {mode === "live" && (
-        <Callout tone="info" className="mb-6" title="Live Qloo cultural intelligence">
-          Results come from Qloo's Insights API in real time, within a fixed budget of {config.data?.callBudget} calls per run. A fictional
-          demonstration is available if live access fails.
-        </Callout>
-      )}
-      {mode === "live" && run?.mode === "fixture" && (
-        <Callout tone="warn" className="mb-6" title="Showing the fictional demonstration">
-          The results below are fictional demonstration data, not a Qloo response. Run research again to try live data.
-        </Callout>
-      )}
+      <div className="mb-6 space-y-2">
+        {mode === "fixture" && (
+          <Notice title="Fixture mode: fictional cultural data">
+            Live Qloo access is not configured on this server, so research returns labelled fictional results through the same pipeline. No Qloo request is
+            made.
+          </Notice>
+        )}
+        {mode === "live" && (
+          <Notice tone="info" title="Live Qloo cultural intelligence">
+            Results come from Qloo's Insights API in real time, within {config.data?.callBudget} calls per run.
+          </Notice>
+        )}
+        {mode === "live" && run?.mode === "fixture" && (
+          <Notice title="Showing the fictional demonstration">
+            The results below are fictional demonstration data, not a Qloo response. Run research again to try live data.
+          </Notice>
+        )}
+      </div>
 
       <AutoStart when={state.guided && !run && category !== null} onStart={start} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
-        <Card className="h-fit space-y-5">
+        {/* Once results exist, phones show them before the search form. */}
+        <Card className={cn("h-fit space-y-5", run && "order-2 lg:order-none")}>
           <div>
             <p className="eyebrow">Searching for</p>
             <p className="mt-1 font-medium">
@@ -204,7 +208,13 @@ export function Discovery() {
             <legend className="text-sm font-medium">Kind of host venue</legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {VENUE_CATEGORIES.map((v) => (
-                <label key={v} className={cn("cursor-pointer rounded-full border px-3 py-1.5 text-sm", category === v ? "border-common bg-common text-white" : "border-line-strong bg-surface text-ink-soft")}>
+                <label
+                  key={v}
+                  className={cn(
+                    "cursor-pointer rounded-full border px-3 py-1.5 text-sm",
+                    category === v ? "border-common bg-common text-white" : "border-line-strong bg-surface text-ink-soft",
+                  )}
+                >
                   <input type="radio" name="venue-category" value={v} className="sr-only" checked={category === v} onChange={() => setCategory(v)} />
                   {VENUE_CATEGORY_LABELS[v]}
                 </label>
@@ -223,12 +233,18 @@ export function Discovery() {
               <label className="flex items-start gap-2 text-sm">
                 <input type="radio" name="planner" className="mt-1 accent-common" checked={useModel} onChange={() => setUseModel(true)} />
                 <span>
-                  Let a language model choose research steps <span className="text-ink-faint">· up to two decisions from a fixed list, checked before they run</span>
+                  Let a language model choose research steps{" "}
+                  <span className="text-ink-faint">· up to two decisions from a fixed list, checked before they run</span>
                 </span>
               </label>
               {useModel && (
                 <label className="ml-6 flex items-start gap-2 rounded-lg bg-sunken/60 p-2.5 text-xs text-ink-soft">
-                  <input type="checkbox" className="mt-0.5 size-4 accent-common" checked={plannerConsent} onChange={(e) => setPlannerConsent(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 accent-common"
+                    checked={plannerConsent}
+                    onChange={(e) => setPlannerConsent(e.target.checked)}
+                  />
                   <span>
                     I agree to send my cultural references, product categories, venue type, and search area to Google's Gemini API, whose free tier may use
                     submitted content to improve Google's products. Business names, budgets, and terms are never sent. Without consent the rules decide.
@@ -243,14 +259,21 @@ export function Discovery() {
           </Button>
         </Card>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
+          {run && !running && <QlooStrip run={run} />}
           {(running || steps.length > 0) && (
-            <Card>
-              <h2 className="text-lg font-semibold">Research steps</h2>
+            <ResearchLog
+              collapsed={!running && run !== null}
+              count={steps.length}
+              planner={run?.planner?.requested === "model" ? "model-assisted" : "rules only"}
+            >
+              <h2 className={cn("text-lg font-semibold", !running && run !== null && "sr-only")}>Research steps</h2>
               <ol className="mt-3 space-y-2" aria-live="polite">
                 {steps.map((s) => (
                   <li key={s.id} className="flex items-start gap-2.5 text-sm">
-                    <span className="mt-0.5">{s.status === "pending" && running ? <Loader2 className="size-4 animate-spin text-common" aria-hidden /> : <StepIcon status={s.status} />}</span>
+                    <span className="mt-0.5">
+                      {s.status === "pending" && running ? <Loader2 className="size-4 animate-spin text-common" aria-hidden /> : <StepIcon status={s.status} />}
+                    </span>
                     <span>
                       <span className="font-medium">{s.label}</span>
                       <span className="sr-only"> — {s.status === "pending" ? (running ? "in progress" : "not run") : s.status}</span>
@@ -259,8 +282,10 @@ export function Discovery() {
                   </li>
                 ))}
               </ol>
-              {(decisions.length > 0 || run?.planner) && <DecisionTrace decisions={decisions.length ? decisions : (run?.planner?.decisions ?? [])} run={running ? null : run} />}
-            </Card>
+              {(decisions.length > 0 || run?.planner) && (
+                <DecisionTrace decisions={decisions.length ? decisions : (run?.planner?.decisions ?? [])} run={running ? null : run} />
+              )}
+            </ResearchLog>
           )}
 
           {error && (
@@ -300,17 +325,92 @@ export function Discovery() {
               replace it.
             </Callout>
           )}
-          {run && <ResearchResults run={run} onEvaluate={evaluateCandidate} selectedId={linked?.runId === run.runId ? linked.candidate.venue.id : null} comparison={
+          {run && (
+            <ResearchResults
+              run={run}
+              onEvaluate={evaluateCandidate}
+              selectedId={linked?.runId === run.runId ? linked.candidate.venue.id : null}
+              comparison={
                 <>
                   <DiscoveryComparisonPanel run={run} auto={state.guided} />
                   <SensitivityPanel run={run} />
                 </>
-              } />}
+              }
+            />
+          )}
         </div>
       </div>
 
       <StepNav back="guest" next="host" nextLabel={state.host ? `Continue with ${state.host.venueName}` : "Continue to the host"} />
     </div>
+  );
+}
+
+/** Qloo's part in one line of three steps: what went in, what it found, and what it can't say. */
+function QlooStrip({ run }: { run: ResearchRun }) {
+  const exact = run.seeds.filter((s) => s.status === "exact").length;
+  const bridged = run.themes.reduce((n, t) => n + t.items.length, 0);
+  const steps = [
+    {
+      Icon: Tags,
+      value: `${exact} of ${run.seeds.length}`,
+      label: "references matched",
+      detail:
+        run.seeds
+          .filter((s) => s.status === "exact")
+          .map((s) => s.input.label)
+          .join(", ") || "none",
+    },
+    {
+      Icon: Sparkles,
+      value: String(bridged),
+      label: bridged === 1 ? "title linked to them" : "titles linked to them",
+      detail: run.themes[0]?.title ?? "no theme",
+    },
+    {
+      Icon: Store,
+      value: String(run.candidates.length),
+      label: `${VENUE_CATEGORY_LABELS[run.request.venueCategory].toLowerCase()} venues ranked`,
+      detail: "by how strongly their audiences share this taste",
+    },
+  ];
+  return (
+    <section aria-labelledby="qloo-strip-title" className="card p-5 sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="qloo-strip-title" className="text-lg font-semibold">
+          What Qloo found
+        </h2>
+        <span className="text-xs text-ink-faint">
+          {run.mode === "live" ? `${run.callsUsed} of ${run.callBudget} Qloo calls used · live run` : "Fictional demonstration · no Qloo calls"}
+        </span>
+      </div>
+      <ol className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-7">
+        {steps.map((st, i) => (
+          <li key={st.label} className="relative flex min-w-0 items-start gap-3 rounded-xl bg-common-soft/50 p-3.5">
+            <st.Icon className="mt-1 size-5 shrink-0 text-common" aria-hidden />
+            <div className="min-w-0">
+              <p className="font-display text-2xl leading-none font-semibold tabular-nums">{st.value}</p>
+              <p className="mt-1 text-sm font-medium">{st.label}</p>
+              <p className="mt-0.5 text-xs text-ink-soft">{st.detail}</p>
+            </div>
+            {i < steps.length - 1 && <ArrowRight className="absolute top-1/2 -right-5.5 hidden size-4 -translate-y-1/2 text-ink-faint sm:block" aria-hidden />}
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-xs text-ink-soft">
+        Taste only: nothing here measures a venue's rent, traffic, or willingness to partner. Those come from the host.
+      </p>
+    </section>
+  );
+}
+
+/** While research runs, its steps stream in plainly; once done, they fold away behind one line. */
+function ResearchLog({ collapsed, count, planner, children }: { collapsed: boolean; count: number; planner: string; children: React.ReactNode }) {
+  if (!collapsed) return <Card>{children}</Card>;
+  return (
+    <Disclosure tone="card" title="How this research ran" meta={`${count} steps · ${planner}`}>
+      {children}
+    </Disclosure>
   );
 }
 
@@ -325,42 +425,60 @@ function ResearchResults({
   selectedId: string | null;
   comparison: React.ReactNode;
 }) {
+  const exact = run.seeds.filter((s) => s.status === "exact").length;
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Reference matching</h2>
-          <span className="text-xs text-ink-faint">
-            {run.mode === "live" ? `${run.callsUsed} of ${run.callBudget} Qloo calls used · live run` : "Fictional demonstration · no Qloo calls"}
-          </span>
-        </div>
-        {run.seeds.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-soft">No references were searched.</p>
+      <section aria-labelledby="candidates-heading">
+        <h2 id="candidates-heading" className="text-lg font-semibold">
+          Venue candidates
+        </h2>
+        {run.candidates.length === 0 ? (
+          <p className="mt-2 text-sm text-ink-soft">No venues were found for this search. You can still evaluate a host you choose yourself.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-line">
-            {run.seeds.map((s) => (
-              <li key={`${s.input.label}-${s.input.kind}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                <span>
-                  <span className="font-medium">{s.input.label}</span>
-                  <span className="text-ink-faint"> → </span>
-                  {s.entity ? s.entity.name : <span className="text-ink-faint">not found</span>}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-xs font-semibold",
-                      s.status === "exact" ? "bg-ok-soft text-ok" : s.status === "uncertain" ? "bg-warn-soft text-warn" : "bg-sunken text-ink-faint",
-                    )}
-                  >
-                    {s.status === "exact" ? "Exact match · used" : s.status === "uncertain" ? "Approximate · not used" : "Not used"}
-                  </span>
-                  <ProvenanceChip kind={s.provenance.kind} />
-                </span>
-              </li>
-            ))}
+          <ul className="mt-3 grid gap-4 md:grid-cols-2">
+            {run.candidates.map((c, i) => {
+              const chosen = selectedId === c.venue.id;
+              const featured = selectedId ? chosen : i === 0;
+              return (
+                <li key={c.venue.id} className={cn("card flex flex-col p-5", featured && "md:col-span-2 sm:p-6", chosen && "ring-2 ring-common")}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-ink-faint">
+                      #{c.rank} in this query
+                      {chosen ? (
+                        <span className="ml-2 font-semibold text-common">· Your chosen venue</span>
+                      ) : (
+                        featured && <span className="ml-2 font-semibold text-ink">· Closest taste match</span>
+                      )}
+                    </p>
+                    <ProvenanceChip kind={c.provenance.kind} />
+                  </div>
+                  <h3 className={cn("mt-1 font-display leading-snug font-semibold", featured ? "text-2xl" : "text-lg")}>{c.venue.name}</h3>
+                  <div className="mt-2">
+                    <StrengthPill strength={c.strength} affinity={c.venue.affinity} />
+                  </div>
+                  {c.venue.address && (
+                    <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-soft">
+                      <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden /> {c.venue.address}
+                    </p>
+                  )}
+                  {c.contributions.length > 0 && <p className="mt-2 text-sm text-ink-soft">Most influenced by: {influenceText(c.contributions).join(", ")}</p>}
+                  {c.sharedTags.length > 0 && (
+                    <p className="mt-2 text-sm">
+                      <span className="text-ink-soft">Shares taste signals with the bridge: </span>
+                      {c.sharedTags.join(", ")}
+                    </p>
+                  )}
+                  <div className="mt-auto pt-4">
+                    <Button variant={chosen ? "primary" : "secondary"} size="sm" onClick={() => onEvaluate(c)}>
+                      {chosen ? "Continue with this venue" : "Evaluate a partnership"}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
-      </Card>
+      </section>
 
       {run.themes.length > 0 && (
         <Card>
@@ -395,64 +513,47 @@ function ResearchResults({
         </Card>
       )}
 
-      <section aria-labelledby="candidates-heading">
-        <h2 id="candidates-heading" className="text-lg font-semibold">
-          Venue candidates
-        </h2>
-        {run.candidates.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-soft">No venues were found for this search. You can still evaluate a host you choose yourself.</p>
+      {comparison}
+
+      <Disclosure tone="card" title="Reference matching" meta={`${exact} of ${run.seeds.length} exact`}>
+        {run.seeds.length === 0 ? (
+          <p className="text-sm text-ink-soft">No references were searched.</p>
         ) : (
-          <ul className="mt-3 grid gap-4 md:grid-cols-2">
-            {run.candidates.map((c) => (
-              <li key={c.venue.id} className={cn("card flex flex-col p-5", selectedId === c.venue.id && "ring-2 ring-common")}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-ink-faint">
-                    #{c.rank} in this query{selectedId === c.venue.id && <span className="ml-2 font-semibold text-common">· Your chosen venue</span>}
-                  </p>
-                  <ProvenanceChip kind={c.provenance.kind} />
-                </div>
-                <h3 className="mt-1 font-display text-lg leading-snug font-semibold">{c.venue.name}</h3>
-                <div className="mt-2">
-                  <StrengthPill strength={c.strength} affinity={c.venue.affinity} />
-                </div>
-                {c.venue.address && (
-                  <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-soft">
-                    <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden /> {c.venue.address}
-                  </p>
-                )}
-                {c.contributions.length > 0 && (
-                  <p className="mt-2 text-sm text-ink-soft">
-                    Most influenced by: {influenceText(c.contributions).join(", ")}
-                  </p>
-                )}
-                {c.sharedTags.length > 0 && (
-                  <p className="mt-2 text-sm">
-                    <span className="text-ink-soft">Shares taste signals with the bridge: </span>
-                    {c.sharedTags.join(", ")}
-                  </p>
-                )}
-                <p className="mt-3 text-xs text-ink-faint">Cultural data says nothing about this venue's fees, space, or interest. Those come from the host.</p>
-                <div className="mt-auto pt-4">
-                  <Button variant={selectedId === c.venue.id ? "primary" : "secondary"} size="sm" onClick={() => onEvaluate(c)}>
-                    {selectedId === c.venue.id ? "Continue with this venue" : "Evaluate a partnership with this venue"}
-                  </Button>
-                </div>
+          <ul className="divide-y divide-line">
+            {run.seeds.map((s) => (
+              <li key={`${s.input.label}-${s.input.kind}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+                <span>
+                  <span className="font-medium">{s.input.label}</span>
+                  <span className="text-ink-faint"> → </span>
+                  {s.entity ? s.entity.name : <span className="text-ink-faint">not found</span>}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-semibold",
+                      s.status === "exact" ? "bg-ok-soft text-ok" : s.status === "uncertain" ? "bg-warn-soft text-warn" : "bg-sunken text-ink-faint",
+                    )}
+                  >
+                    {s.status === "exact" ? "Exact match · used" : s.status === "uncertain" ? "Approximate · not used" : "Not used"}
+                  </span>
+                  <ProvenanceChip kind={s.provenance.kind} />
+                </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Disclosure>
 
-      {comparison}
-
-      <Card className="bg-sunken/40">
-        <h2 className="text-base font-semibold">What this research does not show</h2>
+      <section aria-labelledby="limits-heading" className="rounded-[var(--radius-card)] border border-line bg-sunken/40 p-5">
+        <h2 id="limits-heading" className="text-base font-semibold">
+          What this research does not show
+        </h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-soft">
           {run.limitations.map((l) => (
             <li key={l}>{l}</li>
           ))}
         </ul>
-      </Card>
+      </section>
     </div>
   );
 }
@@ -465,17 +566,32 @@ function DecisionTrace({ decisions, run }: { decisions: PlannerDecision[]; run: 
       <p className="text-sm font-semibold">
         Planner decisions{" "}
         <span className="font-normal text-ink-faint">
-          · {trace ? (trace.requested === "model" ? `model requested, ${trace.modelCalls} of ${trace.maxDecisions} model calls used` : "rules only") : "in progress"}
+          ·{" "}
+          {trace
+            ? trace.requested === "model"
+              ? `model requested, ${trace.modelCalls} of ${trace.maxDecisions} model calls used`
+              : "rules only"
+            : "in progress"}
         </span>
       </p>
       {trace && trace.requested === "model" && <p className="mt-1 text-xs text-ink-faint">{trace.availability}</p>}
       <ul className="mt-2 space-y-2" aria-live="polite">
         {decisions.map((d) => (
           <li key={`${d.point}-${d.executed}`} className="flex gap-2.5 text-sm">
-            {d.planner === "model" ? <Bot className="mt-0.5 size-4 shrink-0 text-host" aria-hidden /> : <Cog className="mt-0.5 size-4 shrink-0 text-ink-faint" aria-hidden />}
+            {d.planner === "model" ? (
+              <Bot className="mt-0.5 size-4 shrink-0 text-host" aria-hidden />
+            ) : (
+              <Cog className="mt-0.5 size-4 shrink-0 text-ink-faint" aria-hidden />
+            )}
             <span>
-              <span className="font-medium">{d.point === "bridge" ? "How to build the cultural bridge" : "Whether to widen an empty search"}:</span> {d.executed}
-              <span className={cn("ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold", d.planner === "model" ? "bg-host-soft text-host" : "bg-sunken text-ink-soft")}>
+              <span className="font-medium">{d.point === "bridge" ? "How to build the cultural bridge" : "Whether to widen an empty search"}:</span>{" "}
+              {d.executed}
+              <span
+                className={cn(
+                  "ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
+                  d.planner === "model" ? "bg-host-soft text-host" : "bg-sunken text-ink-soft",
+                )}
+              >
                 {d.planner === "model" ? "model, validated" : d.fallback ? "rules, after fallback" : "rules"}
               </span>
               {d.proposed && d.planner !== "model" && <span className="block text-xs text-ink-faint">Model proposed: {d.proposed}</span>}
@@ -495,7 +611,9 @@ function DecisionTrace({ decisions, run }: { decisions: PlannerDecision[]; run: 
         </Callout>
       )}
       {trace?.stopReason && <p className="mt-2 text-sm text-warn">{trace.stopReason}</p>}
-      <p className="mt-2 text-xs text-ink-faint">A model may only choose from a fixed list of research actions. It never decides feasibility, fees, or schedules.</p>
+      <p className="mt-2 text-xs text-ink-faint">
+        A model may only choose from a fixed list of research actions. It never decides feasibility, fees, or schedules.
+      </p>
     </div>
   );
 }

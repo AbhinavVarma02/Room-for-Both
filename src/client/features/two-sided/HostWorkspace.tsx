@@ -63,7 +63,11 @@ const SOURCE_LABEL: Record<HostProfile["source"], { text: string; tone: string }
 function stableJson(value: unknown): string {
   return JSON.stringify(value, (_key, v: unknown) =>
     v && typeof v === "object" && !Array.isArray(v)
-      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)))
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>)
+            .filter(([, x]) => x !== undefined)
+            .sort(([a], [b]) => a.localeCompare(b)),
+        )
       : v,
   );
 }
@@ -74,37 +78,108 @@ function windows(a: Availability | null) {
   return a.map((w) => `${DAY_LABELS[w.day].slice(0, 3)} ${clock(w.start)}–${clock(w.end)}`).join(", ");
 }
 
-function Cell({ value, provenance }: { value: React.ReactNode; provenance: ReturnType<typeof guestProvenance> }) {
+type Provenance = ReturnType<typeof guestProvenance>;
+
+/** A stated value, or a dashed "not provided" box; the source chip shows only where it differs from the column's usual source. */
+function Cell({
+  value,
+  provenance,
+  usual,
+  hypothetical,
+}: {
+  value: React.ReactNode;
+  provenance: Provenance;
+  usual: Provenance | null;
+  hypothetical?: boolean;
+}) {
+  if (value === null || value === undefined || value === "") {
+    return <span className="inline-flex rounded-md border border-dashed border-line-strong px-2 py-0.5 text-sm text-ink-faint italic">Not provided</span>;
+  }
   return (
     <div className="flex flex-col items-start gap-1">
-      <span className={cn("text-sm", value === null || value === undefined ? "text-ink-faint italic" : "text-ink")}>{value ?? "Not provided"}</span>
-      <ProvenanceChip kind={provenance} />
+      <span className={cn("text-sm text-ink", hypothetical && "decoration-warn/60 decoration-dashed underline-offset-4 [text-decoration-line:underline]")}>
+        {value}
+      </span>
+      {provenance !== usual && <ProvenanceChip kind={provenance} />}
     </div>
   );
+}
+
+function usualOf(kinds: Provenance[]): Provenance | null {
+  const counts = new Map<Provenance, number>();
+  for (const k of kinds) if (k !== "unknown") counts.set(k, (counts.get(k) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
 
 export function SideBySide({ guest, host }: { guest: GuestProfile; host: HostProfile }) {
   const g = (v: unknown) => guestProvenance(guest, v);
   const h = (v: unknown) => hostProvenance(host, v);
   const rows: { label: string; guest: [React.ReactNode, unknown]; host: [React.ReactNode, unknown] }[] = [
-    { label: "Money", guest: [guest.maxOutlayUsd === null ? null : `Budget ${money(guest.maxOutlayUsd)}${guest.ownCostPerActivationUsd !== null ? `, own costs ${money(guest.ownCostPerActivationUsd)}` : ""}`, guest.maxOutlayUsd], host: [
-      [host.popupFeePerDayUsd !== null && `Pop-up ${money(host.popupFeePerDayUsd)}/day`, host.shelfFeePerWeekUsd !== null && `shelf ${money(host.shelfFeePerWeekUsd)}/week`, host.eventFeePerHourUsd !== null && `event ${money(host.eventFeePerHourUsd)}/hour`].filter(Boolean).join(", ") || null,
-      host.popupFeePerDayUsd ?? host.shelfFeePerWeekUsd ?? host.eventFeePerHourUsd,
-    ] },
+    {
+      label: "Money",
+      guest: [
+        guest.maxOutlayUsd === null
+          ? null
+          : `Budget ${money(guest.maxOutlayUsd)}${guest.ownCostPerActivationUsd !== null ? `, own costs ${money(guest.ownCostPerActivationUsd)}` : ""}`,
+        guest.maxOutlayUsd,
+      ],
+      host: [
+        [
+          host.popupFeePerDayUsd !== null && `Pop-up ${money(host.popupFeePerDayUsd)}/day`,
+          host.shelfFeePerWeekUsd !== null && `shelf ${money(host.shelfFeePerWeekUsd)}/week`,
+          host.eventFeePerHourUsd !== null && `event ${money(host.eventFeePerHourUsd)}/hour`,
+        ]
+          .filter(Boolean)
+          .join(", ") || null,
+        host.popupFeePerDayUsd ?? host.shelfFeePerWeekUsd ?? host.eventFeePerHourUsd,
+      ],
+    },
     { label: "Availability", guest: [windows(guest.availability), guest.availability], host: [windows(host.availability), host.availability] },
     {
       label: "Space",
-      guest: [[guest.popupFootprintSqFt !== null && `${guest.popupFootprintSqFt} sq ft pop-up`, guest.shelfLinearFt !== null && `${guest.shelfLinearFt} ft shelf`].filter(Boolean).join(", ") || null, guest.popupFootprintSqFt ?? guest.shelfLinearFt],
-      host: [[host.guestFloorSqFt !== null && `${host.guestFloorSqFt} sq ft floor`, host.shelfLinearFt !== null && `${host.shelfLinearFt} ft shelf`, host.eventCapacity !== null && `${host.eventCapacity} people`].filter(Boolean).join(", ") || null, host.guestFloorSqFt ?? host.shelfLinearFt ?? host.eventCapacity],
+      guest: [
+        [guest.popupFootprintSqFt !== null && `${guest.popupFootprintSqFt} sq ft pop-up`, guest.shelfLinearFt !== null && `${guest.shelfLinearFt} ft shelf`]
+          .filter(Boolean)
+          .join(", ") || null,
+        guest.popupFootprintSqFt ?? guest.shelfLinearFt,
+      ],
+      host: [
+        [
+          host.guestFloorSqFt !== null && `${host.guestFloorSqFt} sq ft floor`,
+          host.shelfLinearFt !== null && `${host.shelfLinearFt} ft shelf`,
+          host.eventCapacity !== null && `${host.eventCapacity} people`,
+        ]
+          .filter(Boolean)
+          .join(", ") || null,
+        host.guestFloorSqFt ?? host.shelfLinearFt ?? host.eventCapacity,
+      ],
     },
-    { label: "People", guest: [guest.staffCount === null ? null : `${guest.staffCount} team member${guest.staffCount === 1 ? "" : "s"}`, guest.staffCount], host: [host.staffHoursPerActivation === null ? null : `${host.staffHoursPerActivation} staff hours`, host.staffHoursPerActivation] },
-    { label: "Formats", guest: [guest.acceptableFormats.map((f) => FORMAT_LABELS[f]).join(", "), guest.acceptableFormats], host: [host.allowedFormats?.map((f) => FORMAT_LABELS[f]).join(", ") || (host.allowedFormats ? "None" : null), host.allowedFormats] },
+    {
+      label: "People",
+      guest: [guest.staffCount === null ? null : `${guest.staffCount} team member${guest.staffCount === 1 ? "" : "s"}`, guest.staffCount],
+      host: [host.staffHoursPerActivation === null ? null : `${host.staffHoursPerActivation} staff hours`, host.staffHoursPerActivation],
+    },
+    {
+      label: "Formats",
+      guest: [guest.acceptableFormats.map((f) => FORMAT_LABELS[f]).join(", "), guest.acceptableFormats],
+      host: [host.allowedFormats?.map((f) => FORMAT_LABELS[f]).join(", ") || (host.allowedFormats ? "None" : null), host.allowedFormats],
+    },
     {
       label: "Categories",
       guest: [guest.productCategories.map((c) => PRODUCT_CATEGORY_LABELS[c]).join(", "), guest.productCategories],
-      host: [host.excludedCategories === null ? null : host.excludedCategories.length ? `Excludes ${host.excludedCategories.map((c) => PRODUCT_CATEGORY_LABELS[c].toLowerCase()).join(", ")}` : "No exclusions", host.excludedCategories],
+      host: [
+        host.excludedCategories === null
+          ? null
+          : host.excludedCategories.length
+            ? `Excludes ${host.excludedCategories.map((c) => PRODUCT_CATEGORY_LABELS[c].toLowerCase()).join(", ")}`
+            : "No exclusions",
+        host.excludedCategories,
+      ],
     },
   ];
+  const guestUsual = usualOf(rows.filter((r) => r.guest[0]).map((r) => g(r.guest[1])));
+  const hostUsual = usualOf(rows.filter((r) => r.host[0]).map((r) => h(r.host[1])));
+  const hypothetical = host.source === "hypothetical_scenario";
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[34rem] text-left">
@@ -113,11 +188,16 @@ export function SideBySide({ guest, host }: { guest: GuestProfile; host: HostPro
           <tr className="text-xs text-ink-faint">
             <th scope="col" className="w-28 pb-2 font-medium" />
             <th scope="col" className="pb-2 font-medium">
-              <PartyTag party="guest" /> <span className="ml-1 text-ink">{guest.businessName}</span>
+              <span className="flex flex-wrap items-center gap-1.5">
+                <PartyTag party="guest" /> <span className="text-ink">{guest.businessName}</span>
+                {guestUsual && <ProvenanceChip kind={guestUsual} />}
+              </span>
             </th>
             <th scope="col" className="pb-2 font-medium">
-              <PartyTag party="host" /> <span className="ml-1 text-ink">{host.venueName || "Host"}</span>
-              {host.source === "hypothetical_scenario" && <span className="ml-1 font-semibold text-warn">· hypothetical terms</span>}
+              <span className="flex flex-wrap items-center gap-1.5">
+                <PartyTag party="host" /> <span className="text-ink">{host.venueName || "Host"}</span>
+                {hypothetical ? <span className="font-semibold text-warn">· hypothetical terms</span> : hostUsual && <ProvenanceChip kind={hostUsual} />}
+              </span>
             </th>
           </tr>
         </thead>
@@ -128,15 +208,19 @@ export function SideBySide({ guest, host }: { guest: GuestProfile; host: HostPro
                 {r.label}
               </th>
               <td className="py-3 pr-4">
-                <Cell value={r.guest[0]} provenance={g(r.guest[1])} />
+                <Cell value={r.guest[0]} provenance={g(r.guest[1])} usual={guestUsual} />
               </td>
-              <td className="py-3">
-                <Cell value={r.host[0]} provenance={h(r.host[1])} />
+              <td className={cn("py-3 pl-3", hypothetical && "bg-warn-soft/35")}>
+                <Cell value={r.host[0]} provenance={h(r.host[1])} usual={hostUsual} hypothetical={hypothetical} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="mt-3 text-xs text-ink-faint">
+        The chip by each name says where that side's values came from; a cell shows its own chip only when it differs. A dashed box means nobody has stated it
+        yet.{hypothetical ? " Shaded host values are hypothetical placeholders, not the venue's terms." : ""}
+      </p>
     </div>
   );
 }
@@ -164,7 +248,13 @@ function InvitePanel({ guest, host }: { guest: GuestProfile; host: HostProfile }
     onSuccess: (r) =>
       dispatch({
         type: "set_host_link",
-        link: { requestId: r.requestId, ownerToken: r.ownerToken, hostUrl: `${window.location.origin}/respond#t=${r.hostToken}`, expiresAt: r.expiresAt, venueName: host.venueName },
+        link: {
+          requestId: r.requestId,
+          ownerToken: r.ownerToken,
+          hostUrl: `${window.location.origin}/respond#t=${r.hostToken}`,
+          expiresAt: r.expiresAt,
+          venueName: host.venueName,
+        },
       }),
   });
 
@@ -183,8 +273,8 @@ function InvitePanel({ guest, host }: { guest: GuestProfile; host: HostProfile }
     return (
       <div className="space-y-5">
         <p className="text-sm text-ink-soft">
-          Create a private link the venue can open to enter its own terms. The venue sees only what is listed below: never your budget, costs,
-          priorities, or notes.
+          Create a private link the venue can open to enter its own terms. The venue sees only what is listed below: never your budget, costs, priorities, or
+          notes.
         </p>
         <div className="rounded-xl border border-line bg-paper/70 p-4 text-sm">
           <p>
@@ -215,8 +305,8 @@ function InvitePanel({ guest, host }: { guest: GuestProfile; host: HostProfile }
   return (
     <div className="space-y-5">
       <Callout tone="info" title="Send this link directly to the venue">
-        Anyone with the link can answer as the host, so share it privately. It expires {new Date(link.expiresAt).toLocaleDateString()} and allows
-        three edits. Room for Both never sends it for you.
+        Anyone with the link can answer as the host, so share it privately. It expires {new Date(link.expiresAt).toLocaleDateString()} and allows three edits.
+        Room for Both never sends it for you.
       </Callout>
       <div className="flex flex-wrap items-center gap-2">
         <label htmlFor="host-link" className="sr-only">
@@ -284,8 +374,7 @@ export function HostWorkspace() {
   return (
     <div>
       <StepHeader step="host">
-        Each side states its own terms. Nothing about the host is inferred from cultural data: a missing host answer stays unknown and keeps an option
-        conditional.
+        Each side states its own terms. Nothing about the host is inferred from cultural data, and a missing answer stays unknown.
       </StepHeader>
 
       {linked && (
@@ -297,11 +386,21 @@ export function HostWorkspace() {
       {linked && current.source === "hypothetical_scenario" && (
         <Callout tone="warn" className="mb-6" title={`Hypothetical terms: ${current.venueName} has not stated or agreed to any of them`}>
           <p>
-            Every host value below is a fictional placeholder copied from the example so you can explore the method with this venue in mind. Nothing
-            here describes the venue's actual fees, schedule, space, or willingness to partner. Edit any value, or replace them with the venue's own answers
-            through a private link.
+            Every host value below is a fictional placeholder for exploring the method. None describes the venue's real fees, schedule, space, or interest. Edit
+            them, or ask the venue for its own answers through a private link.
           </p>
-          <Button size="sm" variant="secondary" className="mt-3" onClick={() => linked && dispatch({ type: "set_host", host: unknownHostFor({ id: linked.candidate.venue.id, name: linked.candidate.venue.name, category: linked.candidate.category }) })}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="mt-3"
+            onClick={() =>
+              linked &&
+              dispatch({
+                type: "set_host",
+                host: unknownHostFor({ id: linked.candidate.venue.id, name: linked.candidate.venue.name, category: linked.candidate.category }),
+              })
+            }
+          >
             Clear the hypothetical terms
           </Button>
         </Callout>
@@ -314,7 +413,11 @@ export function HostWorkspace() {
           </h2>
           <p className="mt-1 text-sm text-ink-soft">Cultural research cannot tell you the venue's terms. Choose how to continue:</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Button variant="secondary" className="h-auto flex-col items-start gap-1 p-4 text-left" onClick={() => dispatch({ type: "use_hypothetical_terms" })}>
+            <Button
+              variant="secondary"
+              className="h-auto flex-col items-start gap-1 p-4 text-left"
+              onClick={() => dispatch({ type: "use_hypothetical_terms" })}
+            >
               <span className="flex items-center gap-2 font-semibold">
                 <FlaskConical className="size-4" aria-hidden /> Explore with hypothetical terms
               </span>
@@ -356,10 +459,16 @@ export function HostWorkspace() {
 
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as "answers" | "invite")}>
         <Tabs.List aria-label="Host inputs" className="mb-5 inline-flex rounded-xl border border-line bg-surface p-1">
-          <Tabs.Trigger value="answers" className="rounded-lg px-4 py-2 text-sm font-medium text-ink-soft data-[state=active]:bg-host data-[state=active]:text-white">
+          <Tabs.Trigger
+            value="answers"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-ink-soft data-[state=active]:bg-host data-[state=active]:text-white"
+          >
             Host's terms
           </Tabs.Trigger>
-          <Tabs.Trigger value="invite" className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-ink-soft data-[state=active]:bg-host data-[state=active]:text-white">
+          <Tabs.Trigger
+            value="invite"
+            className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-ink-soft data-[state=active]:bg-host data-[state=active]:text-white"
+          >
             <ShieldCheck className="size-4" aria-hidden /> Invite the host privately
           </Tabs.Trigger>
         </Tabs.List>
@@ -367,7 +476,13 @@ export function HostWorkspace() {
           <HostForm
             key={JSON.stringify(current)}
             initial={current}
-            mode={current.source === "fictional_example" || current.source === "hypothetical_scenario" ? "fictional" : current.source === "host_response_link" ? "host_entry" : "guest_entry"}
+            mode={
+              current.source === "fictional_example" || current.source === "hypothetical_scenario"
+                ? "fictional"
+                : current.source === "host_response_link"
+                  ? "host_entry"
+                  : "guest_entry"
+            }
             submitLabel="Save host terms and compare"
             onSubmit={(h) => {
               // If the guest edits answers the host supplied, those values are no longer the host's own words.

@@ -1,7 +1,7 @@
-import { CheckCircle2, ChevronDown, CircleDashed, HelpCircle, MinusCircle, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDashed, HelpCircle, MinusCircle, XCircle } from "lucide-react";
 import { windowLabel, money } from "@shared/domain/format";
-import type { ArrangementOption, ConstraintResult } from "@shared/domain/types";
-import { PartyTag, ProvenanceChip, StatusBadge, cn } from "../../components/ui/primitives";
+import type { ArrangementOption, ConstraintResult, ProfileField } from "@shared/domain/types";
+import { Button, Disclosure, PartyTag, ProvenanceChip, StatusBadge, cn } from "../../components/ui/primitives";
 
 const ICON = {
   pass: { Icon: CheckCircle2, className: "text-ok", label: "Pass" },
@@ -9,6 +9,34 @@ const ICON = {
   unknown: { Icon: HelpCircle, className: "text-warn", label: "Unknown" },
   not_applicable: { Icon: MinusCircle, className: "text-ink-faint", label: "Not applicable" },
 } as const;
+
+// Plain names for the profile fields a check reads, so the evidence line never shows code identifiers.
+export const FIELD_LABELS: Record<ProfileField, string> = {
+  maxOutlayUsd: "budget",
+  ownCostPerActivationUsd: "own costs",
+  availability: "availability",
+  popupFootprintSqFt: "pop-up footprint",
+  shelfLinearFt: "shelf space",
+  minEventAudience: "minimum audience",
+  staffCount: "team size",
+  acceptableFormats: "formats",
+  wantsSampling: "sampling",
+  dealbreakers: "dealbreakers",
+  allowedFormats: "formats hosted",
+  popupFeePerDayUsd: "pop-up day rate",
+  shelfFeePerWeekUsd: "shelf fee per week",
+  shelfMinWeeks: "minimum shelf term",
+  eventFeePerHourUsd: "event fee per hour",
+  eventMinHours: "minimum event length",
+  guestFloorSqFt: "floor space",
+  eventCapacity: "event capacity",
+  staffHoursPerActivation: "staff hours",
+  excludedCategories: "excluded categories",
+  samplingAllowed: "sampling allowed",
+  alcoholOnPremises: "alcohol on premises",
+  requiresExclusivity: "requires exclusivity",
+  productCategories: "product categories",
+};
 
 function display(value: unknown): string {
   if (value === null || value === undefined) return "not provided";
@@ -35,7 +63,7 @@ export function ConstraintRow({ c }: { c: ConstraintResult }) {
               <li key={`${i.party}.${i.field}`} className="flex items-center gap-1 text-[11px] text-ink-faint">
                 <PartyTag party={i.party} />
                 <span>
-                  {i.field}: {display(i.value)}
+                  {FIELD_LABELS[i.field] ?? i.field}: {display(i.value)}
                 </span>
                 <ProvenanceChip kind={i.provenance} />
               </li>
@@ -47,54 +75,64 @@ export function ConstraintRow({ c }: { c: ConstraintResult }) {
   );
 }
 
-export function OptionCard({ option, nonDominated, action }: { option: ArrangementOption; nonDominated: boolean; action?: React.ReactNode }) {
+/** Pass, fail, and unknown counts as icons with words, so the tally never depends on colour. */
+export function CheckTally({ option, className }: { option: ArrangementOption; className?: string }) {
+  const count = (s: ConstraintResult["status"]) => option.constraints.filter((c) => c.status === s).length;
+  const parts = (["pass", "fail", "unknown"] as const).map((s) => ({ s, n: count(s) })).filter((p) => p.n > 0);
+  return (
+    <p className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-soft", className)}>
+      {parts.map(({ s, n }) => {
+        const I = ICON[s];
+        return (
+          <span key={s} className="inline-flex items-center gap-1">
+            <I.Icon className={cn("size-4", I.className)} aria-hidden />
+            <span className="tabular-nums">
+              {n} {s === "pass" ? "pass" : s === "fail" ? (n === 1 ? "fails" : "fail") : "unknown"}
+            </span>
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+export function whenLabel(option: ArrangementOption) {
+  return option.slot ? windowLabel(option.slot.day, option.slot.start, option.slot.end) : option.format === "shelf" ? "Normal opening hours" : "No shared time";
+}
+
+/** The focused view of one arrangement: the reason first, then the numbers, then every check on request. */
+export function OptionDetail({
+  option,
+  nonDominated,
+  onReverse,
+  headingLevel = 3,
+}: {
+  option: ArrangementOption;
+  nonDominated: boolean;
+  onReverse?: () => void;
+  headingLevel?: 3 | 4;
+}) {
   const failing = option.constraints.filter((c) => c.status === "fail");
   const unknown = option.constraints.filter((c) => c.status === "unknown");
+  const H = headingLevel === 3 ? "h3" : "h4";
   return (
-    <article
-      className={cn(
-        "card flex flex-col p-5",
-        option.status === "feasible" && "border-ok/30",
-        option.status === "conditional" && "border-warn/30",
-        option.status === "no_go" && "bg-surface/70",
-      )}
-      aria-labelledby={`opt-${option.id}`}
-    >
+    <article aria-labelledby={`opt-${option.id}`} className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 id={`opt-${option.id}`} className="font-display text-lg font-semibold">
+        <H id={`opt-${option.id}`} className="font-display text-xl font-semibold">
           {option.label}
-        </h3>
+        </H>
         <StatusBadge status={option.status} short />
       </div>
       {nonDominated && option.status !== "no_go" && (
-        <p className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-common-soft px-2 py-0.5 text-xs font-semibold text-common">
+        <p className="inline-flex w-fit items-center gap-1 rounded-full bg-common-soft px-2 py-0.5 text-xs font-semibold text-common">
           On the frontier · not beaten on every stated priority
         </p>
       )}
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <div>
-          <dt className="text-ink-faint">Guest outlay</dt>
-          <dd className="font-medium tabular-nums">{option.metrics.guestOutlayUsd === null ? "Unknown" : money(option.metrics.guestOutlayUsd)}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-faint">Host fee</dt>
-          <dd className="font-medium tabular-nums">{option.metrics.hostFeeUsd === null ? "Unknown" : money(option.metrics.hostFeeUsd)}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-faint">When</dt>
-          <dd className="font-medium">{option.slot ? windowLabel(option.slot.day, option.slot.start, option.slot.end) : option.format === "shelf" ? "Normal opening hours" : "No shared slot"}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-faint">Staff hours</dt>
-          <dd className="font-medium tabular-nums">
-            guest {option.metrics.guestStaffHours} · host {option.metrics.hostStaffHours}
-          </dd>
-        </div>
-      </dl>
+
       {failing.length > 0 && (
-        <div className="mt-3 rounded-lg bg-bad-soft/70 p-3 text-sm">
+        <div className="rounded-lg border-l-4 border-bad bg-bad-soft/60 p-3 text-sm">
           <p className="font-semibold text-bad">Why it is blocked</p>
-          <ul className="mt-1 space-y-1 text-ink-soft">
+          <ul className="mt-1 space-y-1 text-ink">
             {failing.map((c) => (
               <li key={c.id}>{c.explanation}</li>
             ))}
@@ -102,23 +140,48 @@ export function OptionCard({ option, nonDominated, action }: { option: Arrangeme
         </div>
       )}
       {failing.length === 0 && unknown.length > 0 && (
-        <div className="mt-3 rounded-lg bg-warn-soft/70 p-3 text-sm">
+        <div className="rounded-lg border-l-4 border-warn bg-warn-soft/60 p-3 text-sm">
           <p className="flex items-center gap-1.5 font-semibold text-warn">
             <CircleDashed className="size-4" aria-hidden /> Waiting on
           </p>
-          <ul className="mt-1 space-y-1 text-ink-soft">
+          <ul className="mt-1 space-y-1 text-ink">
             {unknown.map((c) => (
               <li key={c.id}>{c.requirement?.text ?? c.explanation}</li>
             ))}
           </ul>
         </div>
       )}
-      <details className="group mt-3">
-        <summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-common">
-          <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-          All {option.constraints.length} checks and assumptions
-        </summary>
-        <ul className="mt-2 divide-y divide-line">
+      {failing.length === 0 && unknown.length === 0 && (
+        <p className="rounded-lg border-l-4 border-ok bg-ok-soft/60 p-3 text-sm font-medium text-ink">
+          Passes every check on both sides' stated terms. Both still need to agree.
+        </p>
+      )}
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt className="text-ink-faint">Guest pays in total</dt>
+          <dd className="font-semibold tabular-nums">{option.metrics.guestOutlayUsd === null ? "Unknown" : money(option.metrics.guestOutlayUsd)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-faint">Host fee</dt>
+          <dd className="font-semibold tabular-nums">{option.metrics.hostFeeUsd === null ? "Unknown" : money(option.metrics.hostFeeUsd)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-faint">When</dt>
+          <dd className="font-semibold">{whenLabel(option)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-faint">Staff hours</dt>
+          <dd className="font-semibold tabular-nums">
+            guest {option.metrics.guestStaffHours} · host {option.metrics.hostStaffHours}
+          </dd>
+        </div>
+      </dl>
+
+      <CheckTally option={option} />
+
+      <Disclosure title={`All ${option.constraints.length} checks and assumptions`} className="border-t border-line pt-2">
+        <ul className="divide-y divide-line">
           {option.constraints.map((c) => (
             <ConstraintRow key={c.id} c={c} />
           ))}
@@ -133,8 +196,13 @@ export function OptionCard({ option, nonDominated, action }: { option: Arrangeme
             ))}
           </ul>
         </div>
-      </details>
-      {action && <div className="mt-auto pt-4">{action}</div>}
+      </Disclosure>
+
+      {onReverse && option.status !== "feasible" && (
+        <Button variant="secondary" size="sm" onClick={onReverse}>
+          {option.status === "no_go" ? "What would change this?" : "What is still missing?"} <ArrowRight className="size-4" aria-hidden />
+        </Button>
+      )}
     </article>
   );
 }

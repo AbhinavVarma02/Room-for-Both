@@ -1,8 +1,8 @@
 import * as RadixSlider from "@radix-ui/react-slider";
 import * as RadixSwitch from "@radix-ui/react-switch";
 import { clsx, type ClassValue } from "clsx";
-import { AlertTriangle, CheckCircle2, CircleDashed, Info, XCircle } from "lucide-react";
-import { type ButtonHTMLAttributes, type ReactNode, forwardRef, useId } from "react";
+import { AlertTriangle, CheckCircle2, ChevronDown, CircleDashed, Info, XCircle } from "lucide-react";
+import { type ButtonHTMLAttributes, type ReactNode, forwardRef, useId, useSyncExternalStore } from "react";
 import { twMerge } from "tailwind-merge";
 import { PROVENANCE_LABELS, type ProvenanceKind } from "@shared/schemas/common";
 import type { OptionStatus } from "@shared/domain/types";
@@ -21,25 +21,26 @@ const VARIANTS: Record<Variant, string> = {
   danger: "bg-surface text-bad border-bad/40 hover:bg-bad-soft",
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg" }>(
-  function Button({ variant = "primary", size = "md", className, type = "button", ...props }, ref) {
-    return (
-      <button
-        ref={ref}
-        type={type}
-        className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-lg border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-          size === "sm" && "px-3 py-1.5 text-sm",
-          size === "md" && "px-4 py-2 text-[15px]",
-          size === "lg" && "px-5 py-3 text-base",
-          VARIANTS[variant],
-          className,
-        )}
-        {...props}
-      />
-    );
-  },
-);
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg" }>(function Button(
+  { variant = "primary", size = "md", className, type = "button", ...props },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 rounded-lg border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        size === "sm" && "px-3 py-1.5 text-sm",
+        size === "md" && "px-4 py-2 text-[15px]",
+        size === "lg" && "px-5 py-3 text-base",
+        VARIANTS[variant],
+        className,
+      )}
+      {...props}
+    />
+  );
+});
 
 export function Card({ className, children, ...rest }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -58,7 +59,7 @@ const STATUS: Record<OptionStatus, { label: string; className: string; Icon: typ
 export function StatusBadge({ status, short = false }: { status: OptionStatus; short?: boolean }) {
   const s = STATUS[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold", s.className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap", s.className)}>
       <s.Icon className="size-3.5" aria-hidden />
       {short && status === "feasible" ? "Feasible" : s.label}
     </span>
@@ -122,7 +123,13 @@ export function Callout({
       )}
     >
       <Icon
-        className={cn("mt-0.5 size-4 shrink-0", tone === "info" && "text-common", tone === "warn" && "text-warn", tone === "bad" && "text-bad", tone === "ok" && "text-ok")}
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          tone === "info" && "text-common",
+          tone === "warn" && "text-warn",
+          tone === "bad" && "text-bad",
+          tone === "ok" && "text-ok",
+        )}
         aria-hidden
       />
       <div className="min-w-0 space-y-1">
@@ -292,4 +299,91 @@ export function Switch({ checked, onChange, label, id }: { checked: boolean; onC
 
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-md bg-sunken", className)} aria-hidden />;
+}
+
+const STATUS_MARK: Record<OptionStatus, { Icon: typeof CheckCircle2; className: string; word: string }> = {
+  feasible: { Icon: CheckCircle2, className: "text-ok", word: "Feasible" },
+  conditional: { Icon: CircleDashed, className: "text-warn", word: "Conditional" },
+  no_go: { Icon: XCircle, className: "text-bad", word: "No-go" },
+};
+
+/** Status as an icon whose shape differs per status, so it never relies on colour alone. */
+export function StatusMark({ status, className, label = false }: { status: OptionStatus; className?: string; label?: boolean }) {
+  const s = STATUS_MARK[status];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 font-semibold", s.className, className)}>
+      <s.Icon className="size-[1.1em] shrink-0" aria-hidden={label} aria-label={label ? undefined : s.word} role={label ? undefined : "img"} />
+      {label && s.word}
+    </span>
+  );
+}
+
+/**
+ * Progressive disclosure on a native <details>, so it works without JavaScript, with the keyboard,
+ * and in print (print styles open it).
+ */
+export function Disclosure({
+  title,
+  meta,
+  children,
+  className,
+  defaultOpen,
+  tone = "plain",
+}: {
+  title: ReactNode;
+  meta?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  defaultOpen?: boolean;
+  tone?: "plain" | "card";
+}) {
+  return (
+    <details className={cn("group", tone === "card" && "card", className)} open={defaultOpen}>
+      <summary
+        className={cn(
+          "flex cursor-pointer list-none items-center gap-2 rounded-lg font-medium text-ink select-none hover:text-common [&::-webkit-details-marker]:hidden",
+          tone === "card" ? "px-5 py-4 sm:px-6" : "py-2",
+        )}
+      >
+        <ChevronDown className="size-4 shrink-0 text-ink-faint transition-transform group-open:rotate-180" aria-hidden />
+        <span className="min-w-0 flex-1">{title}</span>
+        {meta && <span className="shrink-0 text-sm font-normal text-ink-faint">{meta}</span>}
+      </summary>
+      <div className={cn(tone === "card" ? "border-t border-line px-5 pt-4 pb-5 sm:px-6" : "pt-2")}>{children}</div>
+    </details>
+  );
+}
+
+/** A compact one-line notice for caveats that matter but should not dominate the screen. */
+export function Notice({ tone = "warn", title, children, className }: { tone?: "warn" | "info"; title: ReactNode; children?: ReactNode; className?: string }) {
+  const Icon = tone === "warn" ? AlertTriangle : Info;
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm",
+        tone === "warn" ? "border-warn/25 bg-warn-soft/70" : "border-common/20 bg-common-soft/70",
+        className,
+      )}
+    >
+      <Icon className={cn("mt-0.5 size-4 shrink-0", tone === "warn" ? "text-warn" : "text-common")} aria-hidden />
+      <p className="min-w-0">
+        <span className="font-semibold text-ink">{title}</span>
+        {children && <span className="text-ink-soft"> · {children}</span>}
+      </p>
+    </div>
+  );
+}
+
+const subscribeToResize = (onChange: () => void) => {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+};
+
+/** True while the media query matches; layouts that change structure, not just style, use it. */
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    subscribeToResize,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }

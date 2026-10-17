@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Download, FileText, Printer } from "lucide-react";
+import { ChevronDown, Download, FileText, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearch } from "wouter";
 import { evaluateScenario } from "@shared/domain";
@@ -9,10 +9,36 @@ import type { ProvenanceKind } from "@shared/schemas/common";
 import { ApiRequestError, draftNarrative, getConfig } from "../../app/api";
 import { useWorkspace } from "../../app/store";
 import { StepNav } from "../../app/Workspace";
-import { Button, Callout, PartyTag, ProvenanceChip, StatusBadge } from "../../components/ui/primitives";
+import { Button, Callout, Notice, PartyTag, ProvenanceChip, StatusBadge, cn } from "../../components/ui/primitives";
 
 function H2({ children }: { children: React.ReactNode }) {
   return <h2 className="mt-10 border-b border-line pb-2 text-xl font-semibold">{children}</h2>;
+}
+
+/**
+ * Reference sections start collapsed on screen so the decision reads first. Every one opens for
+ * printing (see the print handler in App), so the printed brief stays complete.
+ */
+function Section({ title, meta, children }: { title: string; meta?: string; children: React.ReactNode }) {
+  return (
+    <details className="group mt-6 border-b border-line">
+      <summary className="flex cursor-pointer list-none items-center gap-2 py-3 select-none hover:text-common [&::-webkit-details-marker]:hidden">
+        <ChevronDown className="no-print size-4 shrink-0 text-ink-faint transition-transform group-open:rotate-180" aria-hidden />
+        <h2 className="flex-1 text-xl font-semibold">{title}</h2>
+        {meta && <span className="no-print text-sm text-ink-faint">{meta}</span>}
+      </summary>
+      <div className="pb-6">{children}</div>
+    </details>
+  );
+}
+
+function Glance({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("rounded-xl border border-line bg-paper/60 p-4", className)}>
+      <dt className="eyebrow">{label}</dt>
+      <dd className="mt-1.5 text-sm text-ink">{children}</dd>
+    </div>
+  );
 }
 
 export function Brief() {
@@ -62,13 +88,13 @@ export function Brief() {
 
   return (
     <div>
-      <div className="no-print">
+      <div className="no-print mb-6 flex flex-wrap items-end justify-between gap-4">
         {/* The brief's own title is this page's h1, so the step header here is a plain intro. */}
-        <p className="eyebrow">Step 6 of 6 · Decision brief</p>
-        <p className="mt-2 mb-6 max-w-3xl text-ink-soft">
-          A draft for both businesses to review together. Print it, save it as a PDF from the print dialog, or download the data.
-        </p>
-        <div className="mb-8 flex flex-wrap gap-3">
+        <div>
+          <p className="eyebrow">Step 6 of 6 · Decision brief</p>
+          <p className="mt-1.5 max-w-xl text-ink-soft">A draft for both businesses to review together. Printing opens every section.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Button onClick={() => window.print()}>
             <Printer className="size-4" aria-hidden /> Print or save as PDF
           </Button>
@@ -94,26 +120,72 @@ export function Brief() {
               </Callout>
             )}
             {brief.fictional && !brief.hostTerms.disclaimer && (
-              <Callout tone="warn" title="Fictional example">
-                Describes invented businesses for demonstration. It is not about any real company.
-              </Callout>
+              <Notice title="Fictional example">Describes invented businesses for demonstration. It is not about any real company.</Notice>
             )}
             {brief.hostTerms.disclaimer && scenario.guest.origin === "synthetic_demo" && (
-              <Callout tone="warn" title="Fictional guest">
-                The guest business is invented for demonstration. It is not a real company.
-              </Callout>
+              <Notice title="Fictional guest">The guest business is invented for demonstration. It is not a real company.</Notice>
             )}
             {brief.hypothetical && (
-              <Callout tone="warn" title="What-if values">
-                Built from hypothetical values explored in Decision Reversal, not the parties' entered terms.
-                {brief.counterproposal ? " Each changed value is listed below as a proposal that the named party still has to confirm." : ""}
-              </Callout>
+              <Notice title="What-if values">
+                Built from values explored in Decision Reversal, not the parties' entered terms.
+                {brief.counterproposal ? " Each changed value is listed below as a proposal the named party still has to confirm." : ""}
+              </Notice>
             )}
-            <Callout tone={brief.twoSided.status === "two_sided" ? "ok" : "info"} title="Whose inputs these are">
-              {brief.twoSided.explanation}
-            </Callout>
+            {brief.twoSided.status !== "fictional_two_sided" && brief.twoSided.status !== "hypothetical_host" && (
+              <Notice tone="info" title="Whose inputs these are">
+                {brief.twoSided.explanation}
+              </Notice>
+            )}
           </div>
         </header>
+
+        <section aria-labelledby="glance-title" className="mt-8">
+          <h2 id="glance-title" className="text-xl font-semibold">
+            At a glance
+          </h2>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Glance label="Proposed collaboration">
+              {brief.proposal ? (
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-lg font-semibold">{brief.activation?.title ?? brief.proposal.label}</span>
+                  {brief.activation && <span className="text-ink-soft">as a {brief.proposal.label.toLowerCase()}</span>}
+                </span>
+              ) : (
+                <span className="text-ink-soft">No arrangement is feasible or conditional yet.</span>
+              )}
+            </Glance>
+            <Glance label="Current feasibility">
+              <span className="flex flex-wrap items-center gap-2">
+                {brief.proposal ? <StatusBadge status={brief.proposal.status} /> : <StatusBadge status="no_go" />}
+                <span className="text-ink-soft">
+                  {(["feasible", "conditional", "no_go"] as const)
+                    .map((st) => `${brief.options.filter((o) => o.status === st).length} ${st === "no_go" ? "no-go" : st}`)
+                    .join(" · ")}
+                </span>
+              </span>
+            </Glance>
+            <Glance label="Cultural rationale">
+              {brief.activation?.why[0] ?? (brief.cultural ? "See the cultural evidence below." : "No cultural research was run for this brief.")}
+            </Glance>
+            <Glance label="Needs confirming first">
+              {brief.unresolved.length > 0 ? (
+                <ul className="space-y-1">
+                  {brief.unresolved.slice(0, 2).map((u) => (
+                    <li key={u}>{u}</li>
+                  ))}
+                  {brief.unresolved.length > 2 && <li className="text-ink-faint">and {brief.unresolved.length - 2} more below</li>}
+                </ul>
+              ) : (
+                "Nothing unresolved on the stated terms; both sides still confirm the details."
+              )}
+            </Glance>
+            {brief.questions[0] && (
+              <Glance label="Recommended next conversation" className="sm:col-span-2 border-common/25 bg-common-soft/40">
+                <span className="font-medium">Ask: “{brief.questions[0].text}”</span>
+              </Glance>
+            )}
+          </dl>
+        </section>
 
         <H2>Summary</H2>
         <p className="mt-3 leading-relaxed">{brief.summary}</p>
@@ -127,7 +199,9 @@ export function Brief() {
                   Plain-language draft <ProvenanceChip kind="llm_interpretation" />
                 </p>
                 <p className="mt-2 text-sm leading-relaxed">{narrative.data.summary}</p>
-                <p className="mt-2 text-xs text-ink-faint">Drafted by {narrative.data.model} from the facts above and checked for added numbers or claims. Verify before use.</p>
+                <p className="mt-2 text-xs text-ink-faint">
+                  Drafted by {narrative.data.model} from the facts above and checked for added numbers or claims. Verify before use.
+                </p>
               </div>
             ) : (
               <div className="space-y-3 text-sm">
@@ -135,8 +209,8 @@ export function Brief() {
                 <label className="flex items-start gap-2">
                   <input type="checkbox" className="mt-1 size-4 accent-common" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                   <span className="text-ink-soft">
-                    I agree to send the summary facts shown above (names, option labels, statuses, and amounts) to Google's Gemini API, whose free tier may
-                    use submitted content to improve Google's products.
+                    I agree to send the summary facts shown above (names, option labels, statuses, and amounts) to Google's Gemini API, whose free tier may use
+                    submitted content to improve Google's products.
                   </span>
                 </label>
                 <Button size="sm" variant="secondary" disabled={!consent || narrative.isPending} onClick={() => narrative.mutate()}>
@@ -144,7 +218,8 @@ export function Brief() {
                 </Button>
                 {narrative.error && (
                   <p className="text-bad" role="alert">
-                    {narrative.error instanceof ApiRequestError ? narrative.error.message : "The summary could not be drafted."} The rule-based summary is unaffected.
+                    {narrative.error instanceof ApiRequestError ? narrative.error.message : "The summary could not be drafted."} The rule-based summary is
+                    unaffected.
                   </p>
                 )}
               </div>
@@ -156,8 +231,8 @@ export function Brief() {
           <>
             <H2>Proposed changes to discuss</H2>
             <p className="mt-3 text-sm text-ink-soft">
-              Nobody has agreed to these. They are the values tried in Decision Reversal, set against what each side stated, and each one needs the
-              named party's confirmation before anything below holds.
+              Nobody has agreed to these. They are the values tried in Decision Reversal, set against what each side stated, and each one needs the named
+              party's confirmation before anything below holds.
             </p>
             <ul className="mt-3 space-y-2 text-sm">
               {brief.counterproposal.changes.map((c) => (
@@ -226,10 +301,14 @@ export function Brief() {
                 </ul>
               </div>
             </div>
-            <p className="text-xs text-ink-faint">Hypotheses describe why each side might want this. They are not forecasts and promise no gain to either party.</p>
+            <p className="text-xs text-ink-faint">
+              Hypotheses describe why each side might want this. They are not forecasts and promise no gain to either party.
+            </p>
           </div>
         ) : (
-          <p className="mt-3 text-ink-soft">No option is currently feasible or conditional. The closest blocked options and what would unblock them are listed below.</p>
+          <p className="mt-3 text-ink-soft">
+            No option is currently feasible or conditional. The closest blocked options and what would unblock them are listed below.
+          </p>
         )}
 
         {brief.activation && (
@@ -269,8 +348,7 @@ export function Brief() {
         )}
 
         {brief.concepts.length > 1 && (
-          <>
-            <H2>Other ideas the evidence supports</H2>
+          <Section title="Other ideas the evidence supports" meta={`${brief.concepts.length} ideas`}>
             <ul className="mt-3 space-y-3 text-sm">
               {brief.concepts.map((c) => (
                 <li key={c.basis} className="rounded-xl border border-line p-3">
@@ -289,7 +367,7 @@ export function Brief() {
               ))}
             </ul>
             <p className="mt-2 text-xs text-ink-faint">Statuses come from the same checks as the options below; the evidence only chooses the idea.</p>
-          </>
+          </Section>
         )}
 
         <H2>What decides what</H2>
@@ -323,41 +401,41 @@ export function Brief() {
           ))}
         </ol>
 
-        <H2>All options</H2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="text-ink-faint">
-              <tr>
-                <th className="py-2 pr-3 font-medium">Option</th>
-                <th className="py-2 pr-3 font-medium">Status</th>
-                <th className="py-2 pr-3 font-medium">Outlay</th>
-                <th className="py-2 pr-3 font-medium">Fee</th>
-                <th className="py-2 font-medium">Main reason</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line align-top">
-              {brief.options.map((o) => (
-                <tr key={o.label}>
-                  <td className="py-2 pr-3 font-medium">
-                    {o.label}
-                    {o.onFrontier && <span className="block text-xs text-common">on the frontier</span>}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <StatusBadge status={o.status} short />
-                  </td>
-                  <td className="py-2 pr-3 tabular-nums">{o.guestOutlayUsd === null ? "—" : money(o.guestOutlayUsd)}</td>
-                  <td className="py-2 pr-3 tabular-nums">{o.hostFeeUsd === null ? "—" : money(o.hostFeeUsd)}</td>
-                  <td className="py-2 text-ink-soft">{o.note}</td>
+        <Section title="All options" meta={`${brief.options.length} checked`}>
+          <div className="mt-1 overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead className="text-ink-faint">
+                <tr>
+                  <th className="py-2 pr-3 font-medium">Option</th>
+                  <th className="py-2 pr-3 font-medium">Status</th>
+                  <th className="py-2 pr-3 font-medium">Outlay</th>
+                  <th className="py-2 pr-3 font-medium">Fee</th>
+                  <th className="py-2 font-medium">Main reason</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-line align-top">
+                {brief.options.map((o) => (
+                  <tr key={o.label}>
+                    <td className="py-2 pr-3 font-medium">
+                      {o.label}
+                      {o.onFrontier && <span className="block text-xs text-common">on the frontier</span>}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <StatusBadge status={o.status} short />
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">{o.guestOutlayUsd === null ? "—" : money(o.guestOutlayUsd)}</td>
+                    <td className="py-2 pr-3 tabular-nums">{o.hostFeeUsd === null ? "—" : money(o.hostFeeUsd)}</td>
+                    <td className="py-2 text-ink-soft">{o.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
 
         {brief.closestBlocked.length > 0 && (
-          <>
-            <H2>What would change the answer</H2>
-            <ul className="mt-3 space-y-4">
+          <Section title="What would change the answer" meta={`${brief.closestBlocked.length} blocked options`}>
+            <ul className="mt-1 space-y-4">
               {brief.closestBlocked.map((b) => (
                 <li key={b.label}>
                   <p className="font-medium">{b.label}</p>
@@ -370,7 +448,7 @@ export function Brief() {
                 </li>
               ))}
             </ul>
-          </>
+          </Section>
         )}
 
         <H2>Cultural evidence</H2>
@@ -397,129 +475,134 @@ export function Brief() {
                 </p>
               </div>
             )}
-            {brief.bridge && (brief.bridge.venueSide || brief.bridge.shared.length > 0) && (
-              <div className="grid gap-3 text-sm sm:grid-cols-2">
-                {brief.bridge.guestSide && (
-                  <div>
-                    <p className="font-medium">Guest side: {brief.bridge.guestSide.title}</p>
-                    <p className="text-ink-soft">{brief.bridge.guestSide.items.join(", ")}</p>
-                    <p className="text-xs text-ink-faint">Source: {brief.bridge.guestSide.source}</p>
+            <Section title="Full cultural evidence" meta="bridge, comparison, sensitivity, sources">
+              <div className="space-y-4">
+                {brief.bridge && (brief.bridge.venueSide || brief.bridge.shared.length > 0) && (
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    {brief.bridge.guestSide && (
+                      <div>
+                        <p className="font-medium">Guest side: {brief.bridge.guestSide.title}</p>
+                        <p className="text-ink-soft">{brief.bridge.guestSide.items.join(", ")}</p>
+                        <p className="text-xs text-ink-faint">Source: {brief.bridge.guestSide.source}</p>
+                      </div>
+                    )}
+                    {brief.bridge.venueSide && (
+                      <div>
+                        <p className="font-medium">Venue side: {brief.bridge.venueSide.title}</p>
+                        <p className="text-ink-soft">{brief.bridge.venueSide.items.join(", ") || "No results."}</p>
+                        <p className="text-xs text-ink-faint">Source: {brief.bridge.venueSide.source}</p>
+                      </div>
+                    )}
+                    <p className="sm:col-span-2">
+                      {brief.bridge.shared.length ? `In both: ${brief.bridge.shared.join(", ")}.` : "No item appears on both sides."}
+                      {brief.bridge.sharedTags.length ? ` Shared taste tags: ${brief.bridge.sharedTags.join(", ")}.` : ""}{" "}
+                      <span className="text-xs text-ink-faint">{brief.bridge.method}</span>
+                    </p>
                   </div>
                 )}
-                {brief.bridge.venueSide && (
-                  <div>
-                    <p className="font-medium">Venue side: {brief.bridge.venueSide.title}</p>
-                    <p className="text-ink-soft">{brief.bridge.venueSide.items.join(", ") || "No results."}</p>
-                    <p className="text-xs text-ink-faint">Source: {brief.bridge.venueSide.source}</p>
+                {brief.discoveryComparison && (
+                  <div className="text-sm">
+                    <p className="font-medium">With and without the taste signal</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+                      {brief.discoveryComparison.findings.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-ink-faint">Category-only source: {brief.discoveryComparison.source}</p>
                   </div>
                 )}
-                <p className="sm:col-span-2">
-                  {brief.bridge.shared.length ? `In both: ${brief.bridge.shared.join(", ")}.` : "No item appears on both sides."}
-                  {brief.bridge.sharedTags.length ? ` Shared taste tags: ${brief.bridge.sharedTags.join(", ")}.` : ""}{" "}
-                  <span className="text-xs text-ink-faint">{brief.bridge.method}</span>
-                </p>
-              </div>
-            )}
-            {brief.discoveryComparison && (
-              <div className="text-sm">
-                <p className="font-medium">With and without the taste signal</p>
-                <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
-                  {brief.discoveryComparison.findings.map((f) => (
-                    <li key={f}>{f}</li>
+                {brief.sensitivity && (
+                  <div className="text-sm">
+                    <p className="font-medium">How much each reference matters</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+                      {brief.sensitivity.findings.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                      {brief.sensitivity.references.map((r) => (
+                        <li key={r.omitted}>
+                          Without “{r.omitted}”: {r.finding}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {brief.cultural.themes.map((t) => (
+                  <div key={t.title}>
+                    <p className="flex items-center gap-2 font-medium">
+                      {t.title} <ProvenanceChip kind={t.provenance} />
+                    </p>
+                    <p className="text-sm text-ink-soft">{t.items.join(", ")}</p>
+                    <p className="text-xs text-ink-faint">Source: {t.source}</p>
+                  </div>
+                ))}
+                {brief.cultural.themes.length === 0 && <p className="text-sm text-ink-soft">The research run produced no cultural themes.</p>}
+                <ul className="list-disc space-y-1 pl-5 text-xs text-ink-faint">
+                  {brief.cultural.limitations.map((l) => (
+                    <li key={l}>{l}</li>
                   ))}
                 </ul>
-                <p className="text-xs text-ink-faint">Category-only source: {brief.discoveryComparison.source}</p>
               </div>
-            )}
-            {brief.sensitivity && (
-              <div className="text-sm">
-                <p className="font-medium">How much each reference matters</p>
-                <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
-                  {brief.sensitivity.findings.map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                  {brief.sensitivity.references.map((r) => (
-                    <li key={r.omitted}>
-                      Without “{r.omitted}”: {r.finding}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {brief.cultural.themes.map((t) => (
-              <div key={t.title}>
-                <p className="flex items-center gap-2 font-medium">
-                  {t.title} <ProvenanceChip kind={t.provenance} />
-                </p>
-                <p className="text-sm text-ink-soft">{t.items.join(", ")}</p>
-                <p className="text-xs text-ink-faint">Source: {t.source}</p>
-              </div>
-            ))}
-            {brief.cultural.themes.length === 0 && <p className="text-sm text-ink-soft">The research run produced no cultural themes.</p>}
-            <ul className="list-disc space-y-1 pl-5 text-xs text-ink-faint">
-              {brief.cultural.limitations.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
+            </Section>
           </div>
         ) : (
           <p className="mt-3 text-sm text-ink-soft">No cultural research was run for this brief.</p>
         )}
 
-        <H2>Inputs and where they came from</H2>
-        <div className="mt-3 space-y-5">
-          {brief.counterproposal && (
-            <div>
-              <h3 className="text-sm font-semibold">Proposed in this what-if, not stated by the party</h3>
-              <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-                {brief.inputs
-                  .filter((i) => i.proposedChange)
-                  .map((i) => (
+        <Section title="Inputs and where they came from" meta={`${brief.inputs.length} inputs`}>
+          <div className="mt-1 space-y-5">
+            {brief.counterproposal && (
+              <div>
+                <h3 className="text-sm font-semibold">Proposed in this what-if, not stated by the party</h3>
+                <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                  {brief.inputs
+                    .filter((i) => i.proposedChange)
+                    .map((i) => (
+                      <li key={`${i.party}-${i.label}`} className="flex items-baseline gap-2">
+                        <PartyTag party={i.party} />
+                        <span className="text-ink-soft">{i.label}:</span> <span>{i.value}</span>
+                        <span className="text-xs text-ink-faint">(stated: {i.proposedChange?.from})</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+            {(Object.keys(byProvenance) as ProvenanceKind[]).map((k) => (
+              <div key={k}>
+                <h3 className="text-sm font-semibold">
+                  <ProvenanceChip kind={k} className="text-xs" />
+                  <span className="sr-only"> inputs</span>
+                </h3>
+                <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                  {byProvenance[k]?.map((i) => (
                     <li key={`${i.party}-${i.label}`} className="flex items-baseline gap-2">
                       <PartyTag party={i.party} />
                       <span className="text-ink-soft">{i.label}:</span> <span>{i.value}</span>
-                      <span className="text-xs text-ink-faint">(stated: {i.proposedChange?.from})</span>
                     </li>
                   ))}
-              </ul>
-            </div>
-          )}
-          {(Object.keys(byProvenance) as ProvenanceKind[]).map((k) => (
-            <div key={k}>
-              <h3 className="text-sm font-semibold">
-                <ProvenanceChip kind={k} className="text-xs" />
-                <span className="sr-only"> inputs</span>
-              </h3>
-              <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-                {byProvenance[k]?.map((i) => (
-                  <li key={`${i.party}-${i.label}`} className="flex items-baseline gap-2">
-                    <PartyTag party={i.party} />
-                    <span className="text-ink-soft">{i.label}:</span> <span>{i.value}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                </ul>
+              </div>
+            ))}
+          </div>
+        </Section>
 
         {brief.proposal && (
-          <>
-            <H2>Assumptions in the proposed format</H2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
+          <Section title="Assumptions in the proposed format" meta={`${brief.proposal.assumptions.length}`}>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
               {brief.proposal.assumptions.map((a) => (
                 <li key={a}>{a}</li>
               ))}
             </ul>
-          </>
+          </Section>
         )}
 
-        <H2>Method and limits</H2>
-        <p className="mt-3 text-sm">{brief.method}</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-soft">
-          {brief.limitations.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ul>
+        <Section title="Method and limits">
+          <p className="mt-1 text-sm">{brief.method}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-soft">
+            {brief.limitations.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </Section>
       </article>
 
       <StepNav back="reversal" />

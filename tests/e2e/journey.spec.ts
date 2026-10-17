@@ -44,15 +44,32 @@ test("complete journey: discovery, frontier, reversal, and brief", async ({ page
 
   await page.getByRole("button", { name: "See the Agreement Frontier" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Agreement Frontier" })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Trade-off between guest outlay and host fee/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Conditional: waiting on missing inputs \(2\)/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /No-go on current terms \(7\)/ })).toBeVisible();
+  // The decision first: three counts from the engine, then the arrangement closest to agreement.
+  const counts = page.getByRole("list", { name: "Arrangements by status" });
+  await expect(counts.getByRole("button", { name: /^0 feasible/ })).toBeVisible();
+  await expect(counts.getByRole("button", { name: /^2 conditional/ })).toBeVisible();
+  await expect(counts.getByRole("button", { name: /^7 no-go/ })).toBeVisible();
+  const closest = page.locator('[aria-labelledby="closest-title"]');
+  await expect(closest.getByText("Closest to agreement")).toBeVisible();
+  await expect(closest.getByText("Not agreed: the host has not confirmed this.")).toBeVisible();
+  await expect(closest.getByRole("button", { name: /Explore the change/ })).toBeVisible();
+
+  // Every arrangement stays available: a status filter, a compact list, and one focused detail.
+  await counts.getByRole("button", { name: /^2 conditional/ }).click();
+  const list = page.getByRole("list", { name: "Arrangements", exact: true });
+  await expect(list.locator(":scope > li")).toHaveCount(2);
+  await page.getByRole("group", { name: "Show arrangements by status" }).getByRole("button", { name: /^All/ }).click();
+  await expect(list.locator(":scope > li")).toHaveCount(9);
+  await list.getByRole("button", { name: /Curated shelf placement · 4 weeks/ }).click();
+  await expect(page.getByText("Waiting on", { exact: true })).toBeVisible();
   await page.getByText(/All 12 checks and assumptions/).first().click();
   await expect(page.getByText("Template assumptions").first()).toBeVisible();
+  await page.getByText(/Trade-off chart/).click();
+  await expect(page.getByRole("img", { name: /Trade-off between guest outlay and host fee/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Explore what would change the answer" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Decision Reversal" })).toBeVisible();
-  await page.getByLabel("Option").selectOption("cohosted_event:2");
+  await page.getByLabel("Arrangement").selectOption("cohosted_event:2");
   await expect(page.getByRole("heading", { name: "Why is this blocked?" })).toBeVisible();
   await expect(page.getByText("No shared day").first()).toBeVisible();
   await expect(page.getByText(/Re-checked with the same rules/)).toBeVisible();

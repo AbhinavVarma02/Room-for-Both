@@ -2,7 +2,6 @@ import { ArrowRight, Compass, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { evaluateScenario } from "@shared/domain";
 import { linkedSelection } from "@shared/domain/brief";
-import { closestToWorking, featuredOption } from "@shared/domain/headline";
 import { useWorkspace } from "../../app/store";
 import { type StepId, stepHref } from "../../app/Workspace";
 import { Button } from "../../components/ui/primitives";
@@ -26,18 +25,18 @@ export function GuideBanner({ step }: { step: StepId }) {
 
   let index = 1;
   let text: string;
-  let action: { label: string; run: () => void } | null = null;
+  let action: { label: string; run: () => void; secondary?: boolean } | null = null;
   switch (step) {
     case "guest":
-      text = "This fictional skincare brand names three cultural references its customers love. You can skip its form: the example is already filled in.";
+      text = "A fictional skincare brand with three cultural references its customers love. The form is already filled in.";
       action = { label: "Start the cultural research", run: () => go("discovery") };
       break;
     case "discovery":
       index = 2;
       if (!run) {
-        text = "Qloo matches the brand's references and ranks real venues in its area by how strongly their audiences share that taste.";
+        text = "Qloo matches the brand's references and ranks venues in its area by how strongly their audiences share that taste.";
       } else if (top) {
-        text = `Qloo ranked these venues by affinity to the brand's references, and the comparison below shows what the taste signal changed. The guide picks #1, ${top.venue.name}; you can choose any other venue below instead.${run.mode === "live" ? " Qloo does not say whether a venue is independent or part of a chain, so check before reaching out." : ""}`;
+        text = `Qloo ranked these venues by shared taste with the brand. The guide picks #1, ${top.venue.name}; you can choose another below.${run.mode === "live" ? " Qloo does not say whether a venue is independent, so check before reaching out." : ""}`;
         action = {
           label: `Choose ${top.venue.name}`,
           run: () => {
@@ -52,7 +51,7 @@ export function GuideBanner({ step }: { step: StepId }) {
     case "host":
       index = 3;
       text = linked
-        ? `Nobody has ${linked.candidate.venue.name}'s terms yet, so the guide explores with hypothetical terms, labelled on every screen. Look at where the two sides' cultural evidence meets.`
+        ? `Nobody has ${linked.candidate.venue.name}'s terms yet, so the guide uses hypothetical terms, labelled on every screen.`
         : "The host states its own terms. In this example they are fictional and labelled as such.";
       action = {
         label: "See which arrangements work",
@@ -62,48 +61,45 @@ export function GuideBanner({ step }: { step: StepId }) {
         },
       };
       break;
-    case "frontier": {
+    case "frontier":
       index = 4;
-      const featured = evaluation ? featuredOption(evaluation) : null;
-      const closest = evaluation ? closestToWorking(evaluation) : null;
-      text = featured
-        ? `Nine arrangements are checked against both sides' terms. The obvious first proposal, ${featured.label}, is ${featured.status === "no_go" ? "blocked" : featured.status}; the card below says exactly why.`
-        : "Nine arrangements are checked against both sides' terms.";
-      const target = featured?.status === "no_go" && evaluation?.reversals.some((r) => r.optionId === featured.id && r.minimalChange?.verified) ? featured : closest?.option;
-      action = { label: "Find the smallest change", run: () => go("reversal", target ? `?option=${encodeURIComponent(target.id)}` : "") };
+      // The page's own "Explore the change" is this step's single action, so the guide only points to it.
+      text = evaluation?.counts.feasible
+        ? "Every arrangement is checked against both sides' terms. The panel below shows the one ready to discuss."
+        : "Every arrangement is checked against both sides' terms. Below: the one closest to agreement and the change that would unblock it.";
       break;
-    }
     case "reversal":
       index = 5;
-      text = "Apply the highlighted change and watch the status re-check with the same rules. Every value here stays hypothetical.";
-      action = { label: "Build the decision brief", run: () => go("brief") };
+      text = "Apply the suggested change and watch the status re-check with the same rules. Every value here stays hypothetical.";
+      action = { label: "Build the decision brief", run: () => go("brief"), secondary: true };
       break;
     case "brief":
       index = 6;
-      text = "The brief ties it together: the venue and why it was suggested, the arrangement, the activation idea, and what is still unverified.";
-      action = { label: "Finish the guide", run: () => dispatch({ type: "end_guide" }) };
+      text = "The brief ties it together: the venue, the arrangement, the idea, and what is still unverified.";
+      action = { label: "Finish the guide", run: () => dispatch({ type: "end_guide" }), secondary: true };
       break;
   }
 
   return (
-    <aside className="no-print mt-5 rounded-xl border border-common/30 bg-surface p-4 shadow-sm" aria-label="Guided example">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="flex min-w-0 flex-1 items-start gap-2.5 text-sm">
-          <Compass className="mt-0.5 size-5 shrink-0 text-common" aria-hidden />
-          <span>
-            <span className="font-semibold">Guided example · {index} of 6.</span> {text}
-          </span>
-        </p>
-        <div className="flex items-center gap-2">
-          {action && (
-            <Button size="sm" onClick={action.run}>
-              {action.label} <ArrowRight className="size-4" aria-hidden />
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => dispatch({ type: "end_guide" })} aria-label="Exit the guided example">
-            <X className="size-4" aria-hidden /> Exit guide
+    <aside
+      className="no-print mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-common/25 bg-surface px-3.5 py-2.5 text-sm"
+      aria-label="Guided example"
+    >
+      <p className="flex min-w-0 flex-1 basis-72 items-start gap-2">
+        <Compass className="mt-0.5 size-4 shrink-0 text-common" aria-hidden />
+        <span>
+          <span className="font-semibold">Guide {index}/6</span> <span className="text-ink-soft">{text}</span>
+        </span>
+      </p>
+      <div className="flex items-center gap-1">
+        {action && (
+          <Button size="sm" variant={action.secondary ? "secondary" : "primary"} onClick={action.run}>
+            {action.label} <ArrowRight className="size-4" aria-hidden />
           </Button>
-        </div>
+        )}
+        <Button size="sm" variant="ghost" onClick={() => dispatch({ type: "end_guide" })} aria-label="Exit the guided example">
+          <X className="size-4" aria-hidden /> Exit
+        </Button>
       </div>
     </aside>
   );

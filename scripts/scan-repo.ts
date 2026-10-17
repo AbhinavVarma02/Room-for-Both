@@ -9,7 +9,20 @@ import { localVar } from "./lib";
 const files = execFileSync("git", ["ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean);
 const problems: string[] = [];
 
-const FORBIDDEN_PATHS = [/^\.dev\.vars$/, /^\.env$/, /^\.env\.(?!example$)/, /^\.local\//, /^\.wrangler\//, /^node_modules\//, /^dist\//];
+// Local state, build output, and private notes. Assistant instructions and development ledgers are local
+// working material too, not part of the product.
+const FORBIDDEN_PATHS = [
+  /^\.dev\.vars$/,
+  /^\.env$/,
+  /^\.env\.(?!example$)/,
+  /^\.local\//,
+  /^\.wrangler\//,
+  /^node_modules\//,
+  /^dist\//,
+  /(^|\/)CLAUDE(\.local)?\.md$/,
+  /^\.claude\//,
+  /^\.agent\//,
+];
 const SECRET_PATTERNS: [string, RegExp][] = [
   ["private key block", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ["Google API key", /AIza[0-9A-Za-z_-]{35}/],

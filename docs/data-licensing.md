@@ -6,7 +6,7 @@ two-sided workflow, and the brief work unchanged.
 | Service | Used for | Required? | Where it runs |
 |---------|----------|-----------|---------------|
 | Qloo Insights API | Cultural discovery: resolving references, ranking venues by affinity, building a cultural bridge | No. Without it, research runs as a labelled fictional demonstration | Server-side only, in the Worker |
-| Gemini Developer API | An optional plain-language summary of the brief, drafted from already-computed facts | No. The rule-based summary is always shown | Server-side only, in the Worker, after visitor consent |
+| Gemini Developer API | Three optional, separately consented uses: a plain-language summary of the brief drafted from already-computed facts, research-planner proposals validated against an allow-list, and a language-model-only baseline shown beside the Qloo results | No. The rule-based summary is always shown and the rules plan every research run by default | Server-side only, in the Worker, after visitor consent |
 
 ## Qloo access
 

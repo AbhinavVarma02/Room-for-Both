@@ -45,5 +45,8 @@ desktop.ini
 !.vscode/extensions.json
 *.swp
 
-# Local assistant and editor tooling
+# Local assistant tooling, instructions, and development ledgers (kept in .claude/ and .local/)
 .claude/
+CLAUDE.md
+CLAUDE.local.md
+.agent/

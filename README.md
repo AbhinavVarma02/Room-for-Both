@@ -94,9 +94,10 @@ venue's own side met the guest's side through shared taste tags rather than iden
 ([evaluation](docs/evaluation.md)).
 
 **Gemini** is optional and used only after the visitor consents: a plain-language version of the rule-based
-summary, a bounded research planner that may choose among two allow-listed research steps (validated before it
-runs, with the rules as fallback), and a language-model-only baseline shown beside the Qloo results. A model never
-decides feasibility, fees, or schedules.
+summary; a bounded research planner that, at two fixed points in a run (which cultural domain to bridge from, and
+whether to widen an empty neighbourhood search), proposes one action from an allow-list, validated before it runs,
+with the rule's choice as the fallback; and a language-model-only baseline shown beside the Qloo results. A model
+never decides feasibility, fees, or schedules.
 
 ## Architecture
 
@@ -113,8 +114,8 @@ tests        unit, integration, end-to-end, evaluation, synthetic fixtures
 docs         product and engineering documentation
 ```
 
-More detail: [architecture](docs/architecture.md), [decision method](docs/decision-method.md),
-[API and Qloo routes](docs/api.md).
+More detail: [architecture](docs/architecture.md), [design decisions](docs/decisions.md),
+[decision method](docs/decision-method.md), [API and Qloo routes](docs/api.md).
 
 ## Run it locally
 
@@ -141,7 +142,7 @@ every form, and **Start your own scenario** starts blank.
 
 | Command | What it runs |
 |---------|--------------|
-| `npm run check` | Everything offline, as CI runs it: types, lint, unit, integration, evaluation, build |
+| `npm run check` | Everything offline: types, lint, unit, integration, evaluation, build (CI also runs the scan and the Playwright journeys) |
 | `npm test` | Unit tests for every constraint, frontier rule, reversal property, idea, sensitivity finding, and schema bound |
 | `npm run test:integration` | The real API against a local D1, with a synthetic Qloo upstream shaped like real responses |
 | `npm run test:e2e` | Playwright journeys on desktop and mobile against the production build, including widths from 320 px and axe accessibility checks |
@@ -174,7 +175,7 @@ What is and is not measured, including live results and Worker CPU, is in [evalu
 ## Documentation
 
 [Business case](docs/business-case.md) · [Decision method](docs/decision-method.md) ·
-[Architecture](docs/architecture.md) · [API](docs/api.md) · [Data sources and licensing](docs/data-licensing.md) ·
+[Architecture](docs/architecture.md) · [Design decisions](docs/decisions.md) · [API](docs/api.md) · [Data sources and licensing](docs/data-licensing.md) ·
 [Security](docs/security.md) · [Privacy](docs/privacy.md) · [Limitations](docs/limitations.md) ·
 [Evaluation](docs/evaluation.md) · [Deployment and rollback](docs/deployment.md)
 

@@ -110,6 +110,29 @@ To measure CPU time per route on the deployed Worker (Workers Free allows 10 ms 
 npm run measure:cpu -- https://room-for-both.<your-subdomain>.workers.dev
 ```
 
+## Monitoring
+
+A routine check spends as little upstream quota as possible:
+
+1. CI is green for the commit that is deployed, and `npx wrangler deployments list` shows the expected version.
+2. `curl -s <url>/api/health` reports `research.mode` as `live` (or `fixture` when no credential is set) and, when
+   Gemini is configured, `narrative.enabled` as `true`. This spends no upstream calls.
+3. `npm run verify:public -- <url>` runs one live research stream (about 7 Qloo calls). `npm run smoke:planner`
+   spends 2 model calls and no Qloo calls.
+4. `npm run cpu:analytics` reads Cloudflare's analytics for CPU time and outcomes. Look for `exceededCpu` or
+   Error 1102: live research uses roughly 15–25 ms CPU at the median against the Free plan's nominal 10 ms, and so
+   far no request has been terminated. If terminations appear, reduce the work per request (fewer or smaller
+   upstream payloads), re-measure with `npm run measure:cpu`, and never upgrade the plan.
+5. In `npx wrangler tail`, a `research_quota_exhausted` event (HTTP 503 `quota_exhausted`) means the monthly Qloo allowance or the daily ceiling was reached;
+   visitors are offered the fictional demonstration until it resets. `auth` errors on every run mean the
+   credential has been rejected (see [when the credential ends](data-licensing.md#after-the-credential-ends)).
+
+Each client may start 12 research runs an hour, so repeated checks from one address can return HTTP 429
+`rate_limited` until the next UTC hour.
+
+README screenshots come from the fictional example only: run `npm run dev:fixture`, then
+`npx tsx scripts/screenshots.ts`.
+
 ## Rotating or revoking credentials
 
 - **Rotate** a key: create the new key with the provider, `npx wrangler secret put <NAME>` with the new value,

@@ -11,7 +11,13 @@ mkdirSync("docs/images", { recursive: true });
 
 /** Scrolls so an element starts just below the top edge, framing the section that follows it. */
 async function frame(selector: string) {
-  await page.locator(selector).first().evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 24));
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((el) => {
+      const view = el.ownerDocument.defaultView;
+      view?.scrollTo(0, el.getBoundingClientRect().top + view.scrollY - 24);
+    });
 }
 
 const browser = await chromium.launch();

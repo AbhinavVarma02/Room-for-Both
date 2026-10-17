@@ -112,3 +112,22 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   meet through shared themes, not identical titles, and the activation idea says so.
 - All evidence `qloo_observed` (39/39), 0/114 items dropped by the normaliser, 0 unsupported statements.
 - Live calls spent: Qloo 30.
+
+## #9 Language-model-only baseline and a live candidate walkthrough (U2-05)
+
+- Commit 9cc7695: `POST /api/research/llm-baseline` (consent required; one Gemini call; shares the daily model
+  allowance; 6 per visitor per hour). The answer is labelled a language-model interpretation, unsafe suggestions are
+  discarded, and names are compared only with the Qloo lists already on the page (`src/shared/domain/llm-match.ts`).
+  Unit 3 and integration 4 new tests.
+- Candidate version 3a22350e uploaded to the `candidate` alias (production unchanged). A first page load showed a
+  blank page because the browser still held the previous candidate's HTML referencing replaced asset hashes; a reload
+  fixed it. Recorded as a deployment note: open tabs from before a deploy can fail to load lazy chunks until reloaded.
+- Live guided walkthrough on the candidate: research widened Greenpoint to Brooklyn; comparison `different_venues`
+  (taste #1 was #3 category-only; one taste-ranked venue absent from the category-only top 10); venue-side lookup
+  returned 8 books with no title in common and 4 shared genre tags; the activation idea said so; reversal flipped the
+  2-hour event to conditional; the brief carried the hypothetical disclaimer. The language-model-only answer named
+  two venues: one matched a Qloo result by name, one was absent from the Qloo lists on the page (and is a plausible
+  real local shop), which is shown as a baseline, not a failure of either side.
+- Polish: subtitles trimmed in activation sentences; the guide says any other venue can be chosen (the live #1 was a
+  national chain); name matches are worded as name matches.
+- Live calls spent: Qloo 9, Gemini 1.

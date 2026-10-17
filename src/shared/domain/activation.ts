@@ -41,8 +41,14 @@ const TITLES: Record<Nouns, Record<Format, string>> = {
   tags: { cohosted_event: "Theme night", shelf: "Themed shelf pairing", popup: "Themed pop-up" },
 };
 
+// Live book titles carry long subtitles; the main title is enough in a sentence.
+const short = (name: string) => {
+  const colon = name.indexOf(": ");
+  return colon > 3 ? name.slice(0, colon) : name;
+};
+
 function list(names: string[]): string {
-  const quoted = names.map((n) => `“${n}”`);
+  const quoted = names.map((n) => `“${short(n)}”`);
   if (quoted.length <= 1) return quoted.join("");
   return `${quoted.slice(0, -1).join(", ")} and ${quoted[quoted.length - 1]}`;
 }

@@ -37,7 +37,7 @@ export function GuideBanner({ step }: { step: StepId }) {
       if (!run) {
         text = "Qloo matches the brand's references and ranks real venues in its area by how strongly their audiences share that taste.";
       } else if (top) {
-        text = `Qloo ranked these venues by affinity to the brand's references, and the comparison below shows what the taste signal changed. The guide picks #1, ${top.venue.name}.`;
+        text = `Qloo ranked these venues by affinity to the brand's references, and the comparison below shows what the taste signal changed. The guide picks #1, ${top.venue.name}; you can choose any other venue below instead.`;
         action = {
           label: `Choose ${top.venue.name}`,
           run: () => {

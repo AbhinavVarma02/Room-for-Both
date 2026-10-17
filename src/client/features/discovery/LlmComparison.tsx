@@ -65,9 +65,9 @@ export function LlmComparison({ run, baseline }: { run: ResearchRun; baseline: B
                     <span className="font-medium">{v.name}</span> <ProvenanceChip kind="llm_interpretation" />
                     <span className="text-xs text-ink-faint">
                       {v.tasteRank !== null
-                        ? `also #${v.tasteRank} in the taste-informed Qloo list`
+                        ? `name matches #${v.tasteRank} in the taste-informed Qloo list`
                         : v.categoryRank !== null
-                          ? `also #${v.categoryRank} in the category-only Qloo list`
+                          ? `name matches #${v.categoryRank} in the category-only Qloo list`
                           : "not among the Qloo results on this page (not checked further)"}
                     </span>
                   </p>

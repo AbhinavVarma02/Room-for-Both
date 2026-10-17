@@ -3,6 +3,7 @@
  * candidate on its preview URL. Each probe kind runs alone inside its own clock minute; Cloudflare's
  * GraphQL analytics, grouped by minute and version, then attribute CPU to each kind.
  * Usage: npm run measure:cpu:windows -- https://<alias>-room-for-both.<subdomain>.workers.dev <version id prefix> [--live] [--planner] [--n 3]
+ *        [--only health,evaluate,research,baseline,venue-bridge,research+planner]
  * Without --live every research request is the fictional demonstration and no upstream quota is spent.
  * With --live: n research runs (up to 7 Qloo calls each), n category-only comparisons and n venue-side
  * lookups (1 call each). --planner adds two model-planned runs (up to 2 model calls each).
@@ -90,8 +91,14 @@ if (planner) {
   ]);
 }
 
+// `--only research,baseline` limits the probes (research still runs first when a follow-up needs its result).
+const only = args.includes("--only") ? (args[args.indexOf("--only") + 1] ?? "").split(",") : null;
 const windows = new Map<string, string>();
 for (const [kind, fn] of probes) {
+  if (only && !only.includes(kind)) {
+    if (kind === "research" && only.some((k) => k === "baseline" || k === "venue-bridge")) await fn();
+    continue;
+  }
   const minute = await nextMinute();
   const count = kind === "research+planner" ? 2 : kind === "health" || kind === "evaluate" ? 5 : n;
   for (let i = 0; i < count; i += 1) await fn();

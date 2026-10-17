@@ -84,3 +84,18 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   (place payloads carry ~9.5 KB of descriptive properties each); Node parses and normalises it in under 1 ms, so the
   Workers figure is not explained by parsing alone.
 - Live calls spent in this entry: Qloo 42 (39 measurement + 3 payload-size probes), Gemini 4.
+
+## #7 CPU experiment and decision on splitting research (U6-02)
+
+- Experiment version d31f587c (alias `exp1`, never deployed, code change not committed): research events buffered
+  into one write instead of streamed. Same minute, demo mode, n=5: streamed candidate p50 8.2 / max 28.8 ms,
+  buffered p50 6.2 / max 14.2 ms. The gain is within run-to-run noise and would remove the live step display, so it
+  was not adopted.
+- 24-hour analytics by version (`npm run cpu:analytics -- --minutes 1440`): every version, including production
+  1c4b8f19 (p50 4.4, p90 23.5, max 28.5 ms) and the candidate 72add54d (p50 3.8, p90 18.9, max 44.7 ms), shows only
+  `success` statuses and 0 errors; no request was terminated for CPU, including requests above 60 ms.
+- Decision: research is not split. Requests with zero upstream calls (demo research, health) already reach 8–29 ms
+  on a cold isolate, so the tail is dominated by per-isolate start-up work rather than by how many upstream payloads
+  one request handles; splitting would add requests and complexity without bringing the tail under 10 ms. The model
+  planner did not raise research CPU (p50 18.9 vs 20.6 ms). RISK-CPU stays an open watch item.
+- Live calls spent: none (demo mode).

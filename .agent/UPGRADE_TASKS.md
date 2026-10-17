@@ -61,9 +61,9 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U6-01 | Profile CPU of research stages | U0-02 | scripts | pending | measurements recorded | — |
-| U6-02 | Split research into independently bounded requests if needed | U6-01 | research route, client | pending | integration + measured CPU | — |
-| U6-03 | Measure the candidate on Cloudflare without moving production traffic | U6-02 | — | pending | CPU p50/p90/p99 | — |
+| U6-01 | Profile CPU of research stages | U0-02 | scripts | verified_complete | measurements recorded | UPGRADE_PROGRESS #6 |
+| U6-02 | Split research into independently bounded requests if needed | U6-01 | research route, client | deferred | integration + measured CPU | evidence in UPGRADE_PROGRESS #7: cold start dominates; split not adopted |
+| U6-03 | Measure the candidate on Cloudflare without moving production traffic | U6-02 | — | verified_complete | CPU p50/p90/p99 | candidate 72add54d measured, UPGRADE_PROGRESS #6–#7 |
 | U6-04 | Private quota-increase request draft | — | `.local/` | pending | file present | — |
 
 ## U7 — Product impact

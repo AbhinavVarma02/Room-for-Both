@@ -222,3 +222,14 @@ export const SEED_KIND_TO_QLOO_TYPE: Record<SeedKind, string> = {
   destination: "urn:entity:destination",
   videogame: "urn:entity:videogame",
 };
+
+/**
+ * Which other cultural domain gives a natural collaboration theme for a venue category. The same
+ * domain is queried from both sides (the guest's references and the venue's own Qloo entity), so the
+ * two result lists can be compared item by item. Categories without an entry use taste tags.
+ */
+export const CROSS_DOMAIN_BY_VENUE: Partial<Record<VenueCategory, { type: string; title: string; noun: string }>> = {
+  bookstore: { type: "urn:entity:book", title: "Co-curated reading list", noun: "books" },
+  record_store: { type: "urn:entity:artist", title: "Listening session pairing", noun: "music artists" },
+  cafe: { type: "urn:entity:podcast", title: "Conversation series pairing", noun: "podcasts" },
+};

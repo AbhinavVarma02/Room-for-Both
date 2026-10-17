@@ -26,8 +26,8 @@ export function Brief() {
 
   const brief = useMemo(() => {
     if (!scenario) return null;
-    return buildBrief(scenario, evaluateScenario(scenario), state.research, { hypothetical: useWhatIf, selectedCandidateId: state.selectedCandidateId });
-  }, [scenario, state.research, state.selectedCandidateId, useWhatIf]);
+    return buildBrief(scenario, evaluateScenario(scenario), state.research, { hypothetical: useWhatIf, selection: state.selection });
+  }, [scenario, state.research, state.selection, useWhatIf]);
 
   const narrative = useMutation({
     mutationFn: () => {
@@ -81,9 +81,19 @@ export function Brief() {
             Generated {new Date(brief.generatedAt).toLocaleString()} · rules engine v{brief.engineVersion}
           </p>
           <div className="mt-4 space-y-2">
-            {brief.fictional && (
+            {brief.hostTerms.disclaimer && (
+              <Callout tone="bad" title="Hypothetical host terms">
+                {brief.hostTerms.disclaimer}
+              </Callout>
+            )}
+            {brief.fictional && !brief.hostTerms.disclaimer && (
               <Callout tone="warn" title="Fictional example">
                 Describes invented businesses for demonstration. It is not about any real company.
+              </Callout>
+            )}
+            {brief.hostTerms.disclaimer && scenario.guest.origin === "synthetic_demo" && (
+              <Callout tone="warn" title="Fictional guest">
+                The guest business is invented for demonstration. It is not a real company.
               </Callout>
             )}
             {brief.hypothetical && (
@@ -179,6 +189,52 @@ export function Brief() {
           <p className="mt-3 text-ink-soft">No option is currently feasible or conditional. The closest blocked options and what would unblock them are listed below.</p>
         )}
 
+        {brief.activation && (
+          <>
+            <H2>Activation idea</H2>
+            <div className="mt-4 rounded-xl border border-common/25 bg-common-soft/40 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-display text-lg font-semibold">{brief.activation.title}</p>
+                <span className="flex flex-wrap gap-1.5">
+                  {brief.activation.sources.map((k) => (
+                    <ProvenanceChip key={k} kind={k} />
+                  ))}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-ink-faint">For: {brief.activation.forOption}</p>
+              <p className="mt-3 leading-relaxed">{brief.activation.pitch}</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-semibold">Why this theme</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">
+                    {brief.activation.why.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Still unverified</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">
+                    {brief.activation.unverified.map((u) => (
+                      <li key={u}>{u}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        <H2>What decides what</H2>
+        <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          {[brief.decides.opportunity, brief.decides.feasibility, brief.decides.commercial].map((d) => (
+            <li key={d} className="rounded-xl border border-line bg-paper/60 p-3 text-ink-soft">
+              <span className="font-semibold text-ink">{d.slice(0, d.indexOf(":") + 1)}</span>
+              {d.slice(d.indexOf(":") + 1)}
+            </li>
+          ))}
+        </ul>
+
         {brief.unresolved.length > 0 && (
           <>
             <H2>Unresolved before commitment</H2>
@@ -259,12 +315,55 @@ export function Brief() {
                 They describe aggregate taste associations only, not either business's customers, sales, or terms.
               </Callout>
             )}
-            {brief.cultural.selectedVenue && (
-              <p className="text-sm">
-                Selected venue: <span className="font-medium">{brief.cultural.selectedVenue.name}</span> ({brief.cultural.selectedVenue.strength}
-                {brief.cultural.selectedVenue.affinity !== null ? `, affinity ${brief.cultural.selectedVenue.affinity.toFixed(2)}` : ""}). Source:{" "}
-                {brief.cultural.selectedVenue.source}.
-              </p>
+            {brief.venue && (
+              <div className="rounded-xl border border-line p-4 text-sm">
+                <p className="flex flex-wrap items-center gap-2">
+                  Venue chosen from research: <span className="font-semibold">{brief.venue.name}</span> <ProvenanceChip kind={brief.venue.evidence} />
+                </p>
+                <p className="mt-1 text-ink-soft">
+                  #{brief.venue.rank} in its research run · {brief.venue.strength}
+                  {brief.venue.affinity !== null ? `, affinity ${brief.venue.affinity.toFixed(2)}` : ""}
+                  {brief.venue.influencedBy.length > 0 ? ` · most influenced by ${brief.venue.influencedBy.join(", ")}` : ""}
+                  {brief.venue.address ? ` · ${brief.venue.address}` : ""}
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Source: {brief.venue.request}, {brief.venue.retrievedAt} · entity {brief.venue.qlooEntityId}
+                </p>
+              </div>
+            )}
+            {brief.bridge && (brief.bridge.venueSide || brief.bridge.shared.length > 0) && (
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                {brief.bridge.guestSide && (
+                  <div>
+                    <p className="font-medium">Guest side: {brief.bridge.guestSide.title}</p>
+                    <p className="text-ink-soft">{brief.bridge.guestSide.items.join(", ")}</p>
+                    <p className="text-xs text-ink-faint">Source: {brief.bridge.guestSide.source}</p>
+                  </div>
+                )}
+                {brief.bridge.venueSide && (
+                  <div>
+                    <p className="font-medium">Venue side: {brief.bridge.venueSide.title}</p>
+                    <p className="text-ink-soft">{brief.bridge.venueSide.items.join(", ") || "No results."}</p>
+                    <p className="text-xs text-ink-faint">Source: {brief.bridge.venueSide.source}</p>
+                  </div>
+                )}
+                <p className="sm:col-span-2">
+                  {brief.bridge.shared.length ? `In both: ${brief.bridge.shared.join(", ")}.` : "No item appears on both sides."}
+                  {brief.bridge.sharedTags.length ? ` Shared taste tags: ${brief.bridge.sharedTags.join(", ")}.` : ""}{" "}
+                  <span className="text-xs text-ink-faint">{brief.bridge.method}</span>
+                </p>
+              </div>
+            )}
+            {brief.discoveryComparison && (
+              <div className="text-sm">
+                <p className="font-medium">With and without the taste signal</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+                  {brief.discoveryComparison.findings.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-ink-faint">Category-only source: {brief.discoveryComparison.source}</p>
+              </div>
             )}
             {brief.cultural.themes.map((t) => (
               <div key={t.title}>

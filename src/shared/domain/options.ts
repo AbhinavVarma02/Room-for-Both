@@ -46,6 +46,11 @@ export function twoSidedStatus(scenario: Scenario): { status: TwoSidedStatus; ex
             ? "Both profiles are fictional examples written to demonstrate the method. They describe no real business."
             : "The host profile is a fictional example. Replace it with the host's own inputs before relying on the result.",
       };
+    case "hypothetical_scenario":
+      return {
+        status: "hypothetical_host",
+        explanation: `${scenario.host.venueName} is a venue suggested by cultural research, but every host term here is a fictional placeholder for exploration. The venue has not seen, stated, or agreed to any of them.`,
+      };
     case "entered_by_guest":
       return {
         status: "one_sided",

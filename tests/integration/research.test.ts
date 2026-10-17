@@ -227,3 +227,98 @@ describe("live mode against a synthetic upstream", () => {
     expect(fake.calls.filter((c) => c.url.pathname === "/v2/tags").length).toBe(first);
   });
 });
+
+describe("follow-ups: category-only comparison and venue side", () => {
+  const live = { QLOO_API_KEY: KEY };
+  const baselineBody = { categoryTagId: "urn:tag:synthetic:place:bookstore", categoryName: "Bookstore", location: "Brooklyn", venueCategory: "bookstore" };
+
+  it("repeats the venue search without any taste signal, in one call", async () => {
+    const res = await h.request("/api/research/baseline", jsonInit("POST", baselineBody), live);
+    expect(res.status).toBe(200);
+    const body = res.json() as { candidates: { strength: string; venue: { affinity: number | null } }[]; provenance: { kind: string; request: string }; callsUsed: number };
+    expect(fake.calls).toHaveLength(1);
+    const call = fake.calls[0]?.url;
+    expect(call?.searchParams.get("signal.interests.entities")).toBeNull();
+    expect(call?.searchParams.get("filter.tags")).toBe(baselineBody.categoryTagId);
+    expect(call?.searchParams.get("take")).toBe("10");
+    expect(body.provenance.kind).toBe("qloo_observed");
+    expect(body.provenance.request).toMatch(/no taste signal/);
+    expect(body.candidates.every((c) => c.strength === "unscored" && c.venue.affinity === null)).toBe(true);
+    const row = await h.db.prepare("SELECT count FROM usage_counters WHERE name = 'qloo_calls'").first<{ count: number }>();
+    expect(row?.count).toBe(1);
+  });
+
+  it("looks up the venue's own side with the venue as the only signal", async () => {
+    const res = await h.request("/api/research/venue-bridge", jsonInit("POST", { venueId: "SYN-VENUE-1", venueName: "Synthetic Venue A", venueCategory: "bookstore" }), live);
+    expect(res.status).toBe(200);
+    const body = res.json() as { items: unknown[]; domain: string; provenance: { kind: string } };
+    expect(fake.calls[0]?.url.searchParams.get("signal.interests.entities")).toBe("SYN-VENUE-1");
+    expect(fake.calls[0]?.url.searchParams.get("filter.type")).toBe("urn:entity:book");
+    expect(body.domain).toBe("urn:entity:book");
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.provenance.kind).toBe("qloo_observed");
+  });
+
+  it("treats a rejected venue signal as an empty answer, not a failure", async () => {
+    fake = createQlooFake({ rejectCrossDomain: true });
+    const res = await h.request("/api/research/venue-bridge", jsonInit("POST", { venueId: "SYN-VENUE-1", venueName: "Synthetic Venue A", venueCategory: "bookstore" }), live);
+    expect(res.status).toBe(200);
+    expect((res.json() as { items: unknown[] }).items).toEqual([]);
+  });
+
+  it("offers no venue-side lookup for categories without a cross-domain type", async () => {
+    const res = await h.request("/api/research/venue-bridge", jsonInit("POST", { venueId: "SYN-VENUE-1", venueName: "Synthetic Venue A", venueCategory: "plant_shop" }), live);
+    expect(res.status).toBe(400);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("rejects identifiers that are not plain IDs", async () => {
+    const res = await h.request("/api/research/baseline", jsonInit("POST", { ...baselineBody, categoryTagId: "urn:tag:x&signal.interests.entities=evil" }), live);
+    expect(res.status).toBe(400);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("never mixes fictional and live identifiers", async () => {
+    const res = await h.request("/api/research/baseline", jsonInit("POST", { ...baselineBody, categoryTagId: "fixture:tag:bookstore" }), live);
+    expect(res.status).toBe(409);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("runs both follow-ups as fictional data in fixture mode, without calling Qloo", async () => {
+    const base = await h.request("/api/research/baseline", jsonInit("POST", { ...baselineBody, categoryTagId: "fixture:tag:bookstore" }));
+    expect(base.status).toBe(200);
+    expect((base.json() as { mode: string }).mode).toBe("fixture");
+    const venue = await h.request("/api/research/venue-bridge", jsonInit("POST", { venueId: "fixture-venue-1", venueName: "Larkspur & Lamp Bookstore (fictional)", venueCategory: "bookstore" }));
+    const body = venue.json() as { items: { name: string }[]; provenance: { kind: string } };
+    expect(body.provenance.kind).toBe("synthetic_demo");
+    expect(body.items.every((i) => i.name.includes("(fictional)"))).toBe(true);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("respects the daily ceiling", async () => {
+    const res = await h.request("/api/research/baseline", jsonInit("POST", baselineBody), { ...live, QLOO_DAILY_CALL_CEILING: "1" });
+    expect(res.status).toBe(503);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("throttles repeated follow-ups from one client", async () => {
+    const env = { ...live, RESEARCH_RUNS_PER_HOUR_PER_CLIENT: "1" };
+    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
+    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
+    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(429);
+  });
+
+  it("reports an authentication failure without exposing the key", async () => {
+    fake = createQlooFake({ statusFor: { "/v2/insights": 401 } });
+    const res = await h.request("/api/research/baseline", jsonInit("POST", baselineBody), live);
+    expect(res.status).toBe(503);
+    expect(res.text).not.toContain(KEY);
+  });
+
+  it("records the venue search and bridge domain on research runs", async () => {
+    const run = result((await h.request("/api/research", jsonInit("POST", request), live)).text);
+    expect(run.venueSearch).toMatchObject({ location: "Greenpoint", categoryTagId: "urn:tag:synthetic:place:bookstore", take: 4 });
+    expect(run.bridgeDomain).toBe("urn:entity:book");
+    expect(run.themes[0]?.items[0]?.tags).toEqual(["Nature Writing"]);
+  });
+});

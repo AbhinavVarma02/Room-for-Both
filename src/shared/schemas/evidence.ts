@@ -63,7 +63,10 @@ export const ThemeItem = z.object({
   type: z.string(),
   affinity: z.number().nullable(),
   strength: Strength,
+  /** Thematic tag names Qloo returned on the item; used to find shared themes, never as a score. */
+  tags: z.array(z.string().max(120)).max(6).optional(),
 });
+export type ThemeItem = z.infer<typeof ThemeItem>;
 
 export const CulturalTheme = z.object({
   id: z.string(),
@@ -122,8 +125,61 @@ export const ResearchRun = z.object({
   callsUsed: z.number().int(),
   callBudget: z.number().int(),
   durationMs: z.number(),
+  /** The venue search that produced the candidates, so a category-only comparison can repeat it exactly. */
+  venueSearch: z.object({ location: z.string(), categoryTagId: z.string(), categoryName: z.string(), take: z.number().int() }).nullable().optional(),
+  /** The cross-domain type used for the cultural bridge, when one was used. */
+  bridgeDomain: z.string().nullable().optional(),
 });
 export type ResearchRun = z.infer<typeof ResearchRun>;
+
+// Identifiers from a previous response that a follow-up request may send back. They only ever become
+// Qloo query parameters, so a strict character set is enough to keep them inert.
+const EntityId = z.string().trim().regex(/^[A-Za-z0-9_.:-]{1,80}$/);
+const TagId = z.string().trim().regex(/^[A-Za-z0-9_.:-]{1,200}$/);
+
+/** Category-only discovery: the same category and location as a taste-informed run, with no taste signal. */
+export const BaselineRequest = z.strictObject({
+  categoryTagId: TagId,
+  categoryName: z.string().trim().min(1).max(120),
+  location: z.string().trim().min(1).max(60),
+  venueCategory: VenueCategory,
+  demo: z.literal(true).optional(),
+});
+export type BaselineRequest = z.infer<typeof BaselineRequest>;
+
+export const BaselineResult = z.object({
+  mode: z.enum(["live", "fixture"]),
+  request: BaselineRequest,
+  candidates: z.array(PartnershipCandidate).max(10),
+  depth: z.number().int(),
+  provenance: EvidenceProvenance,
+  callsUsed: z.number().int(),
+  limitations: z.array(z.string()),
+});
+export type BaselineResult = z.infer<typeof BaselineResult>;
+
+/** Venue-side evidence: what Qloo associates with the selected venue itself, in the bridge's domain. */
+export const VenueBridgeRequest = z.strictObject({
+  venueId: EntityId,
+  venueName: z.string().trim().min(1).max(200),
+  venueCategory: VenueCategory,
+  demo: z.literal(true).optional(),
+});
+export type VenueBridgeRequest = z.infer<typeof VenueBridgeRequest>;
+
+export const VenueBridge = z.object({
+  mode: z.enum(["live", "fixture"]),
+  venueId: z.string(),
+  venueName: z.string(),
+  domain: z.string(),
+  title: z.string(),
+  noun: z.string(),
+  items: z.array(ThemeItem).max(10),
+  provenance: EvidenceProvenance,
+  callsUsed: z.number().int(),
+  limitations: z.array(z.string()),
+});
+export type VenueBridge = z.infer<typeof VenueBridge>;
 
 export const ResearchEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("plan"), mode: z.enum(["live", "fixture"]), steps: z.array(z.object({ id: ResearchStepId, label: z.string() })) }),

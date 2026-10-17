@@ -11,7 +11,7 @@ const Line = z.string().trim().min(1).max(200);
 export const NarrativeFacts = z.strictObject({
   guestName: ShortText,
   hostName: ShortText,
-  twoSidedStatus: z.enum(["two_sided", "fictional_two_sided", "one_sided"]),
+  twoSidedStatus: z.enum(["two_sided", "fictional_two_sided", "hypothetical_host", "one_sided"]),
   proposed: z
     .strictObject({
       label: z.string().trim().min(1).max(80),

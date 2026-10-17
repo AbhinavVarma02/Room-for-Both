@@ -9,7 +9,7 @@ export function guestProvenance(guest: GuestProfile, value: unknown): Provenance
 
 export function hostProvenance(host: HostProfile, value: unknown): ProvenanceKind {
   if (value === null || value === undefined) return "unknown";
-  return host.source === "fictional_example" ? "synthetic_demo" : "party_supplied";
+  return host.source === "fictional_example" || host.source === "hypothetical_scenario" ? "synthetic_demo" : "party_supplied";
 }
 
 export function guestInput<K extends keyof GuestProfile & ProfileField>(guest: GuestProfile, field: K): InputUse {

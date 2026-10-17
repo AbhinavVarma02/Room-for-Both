@@ -2,7 +2,7 @@
   "name": "room-for-both",
   "version": "0.1.0",
   "private": true,
-  "description": "Room for Both — find common ground and build a better deal between two independent businesses.",
+  "description": "Room for Both \u2014 find common ground and build a better deal between two independent businesses.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:fixture": "vite --mode fixture",
     "build": "vite build",
     "preview": "npm run build && vite preview",
     "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.test.json && tsc -p tsconfig.node.json",

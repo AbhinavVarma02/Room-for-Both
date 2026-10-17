@@ -1,9 +1,11 @@
 import { Hono } from "hono";
-import { ResearchRequest, type ResearchEvent } from "../../shared/schemas/evidence";
+import { CROSS_DOMAIN_BY_VENUE } from "../../shared/constants/vocabulary";
+import { BaselineRequest, ResearchRequest, VenueBridgeRequest, type ResearchEvent } from "../../shared/schemas/evidence";
 import { settings } from "../env";
-import { type AppEnv, apiError, clientAddress, readJson } from "../http";
+import { type AppContext, type AppEnv, apiError, clientAddress, readJson } from "../http";
 import { QlooClient, QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { FixtureTransport } from "../integrations/qloo/fixture-transport";
+import { runBaseline, runVenueBridge } from "../orchestration/followups";
 import { runResearch } from "../orchestration/research";
 import { limiterFor } from "../persistence/limits";
 import { clientKey, randomToken } from "../security/crypto";
@@ -125,4 +127,111 @@ research.post("/research", async (c) => {
       "X-Request-Id": c.get("requestId"),
     },
   });
+});
+
+// A follow-up makes one upstream call; the second slot only covers a single retry after a 429 or 5xx.
+const FOLLOWUP_BUDGET = 2;
+
+/**
+ * Shared gate for the single-call follow-ups: same per-visitor limit family as research, the same
+ * daily ceiling, and the same fail-closed rule when the counter is unavailable.
+ */
+async function followupGate(c: AppContext, demo: boolean, kind: string): Promise<{ ok: false; response: Response } | { ok: true; mode: "live" | "fixture"; transport: QlooTransport; finish: () => Promise<void> }> {
+  const s = settings(c.env);
+  const log = c.get("log");
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const limiter = limiterFor(c.env.DB);
+  const mode = s.qlooConfigured && !demo ? "live" : "fixture";
+  try {
+    const who = await clientKey(clientAddress(c), c.env.CLIENT_KEY_SALT, now);
+    // Two follow-ups per research run at most (comparison and venue side), so twice the run limit.
+    if (!(await limiter.hit(`followup:${who}`, s.runsPerHour * 2, 3600, now)).allowed) {
+      log.warn("followup_throttled", { kind, mode });
+      return { ok: false, response: apiError(c, 429, "rate_limited", "You have run several lookups recently. Please wait before starting another.") };
+    }
+    if (mode === "live" && (await limiter.usage(day, "qloo_calls")) + FOLLOWUP_BUDGET > s.dailyCeiling) {
+      log.warn("followup_quota_exhausted", { kind });
+      return { ok: false, response: apiError(c, 503, "quota_exhausted", "Today's cultural research allowance is used up. Everything else keeps working.") };
+    }
+  } catch {
+    log.error("limiter_unavailable", { kind, mode });
+    if (mode === "live") return { ok: false, response: apiError(c, 503, "limiter_unavailable", "This lookup is temporarily unavailable. Please try again shortly.") };
+  }
+  let transport: QlooTransport;
+  try {
+    transport =
+      mode === "live"
+        ? new QlooClient({
+            apiKey: c.env.QLOO_API_KEY,
+            baseUrl: c.env.QLOO_BASE_URL,
+            timeoutMs: s.timeoutMs,
+            callBudget: FOLLOWUP_BUDGET,
+            ...(c.get("upstreamFetch") ? { fetchImpl: c.get("upstreamFetch"), sleep: async () => {} } : {}),
+          })
+        : new FixtureTransport(FOLLOWUP_BUDGET);
+  } catch (error) {
+    const code = error instanceof QlooError ? error.code : "UPSTREAM";
+    return { ok: false, response: apiError(c, 503, "research_unavailable", PUBLIC_MESSAGES[code] ?? "Research is unavailable.") };
+  }
+  const finish = async () => {
+    if (mode !== "live") return;
+    try {
+      await limiter.addUsage(day, "qloo_calls", transport.callsUsed);
+    } catch {
+      log.error("usage_record_failed", { qlooCalls: transport.callsUsed });
+    }
+  };
+  return { ok: true, mode, transport, finish };
+}
+
+function upstreamFailure(c: AppContext, error: unknown) {
+  const code = error instanceof QlooError ? error.code : "INTERNAL";
+  c.get("log").error("followup_failed", { errorClass: code });
+  const status = code === "AUTH" || code === "NOT_CONFIGURED" ? 503 : 502;
+  return apiError(c, status, code.toLowerCase(), (error instanceof QlooError && PUBLIC_MESSAGES[error.code]) || "The lookup could not be completed. Everything else keeps working.");
+}
+
+/** Identifiers must belong to the same mode as the run that produced them, so fictional and Qloo data never mix. */
+const fictionalId = (id: string) => id.startsWith("fixture");
+
+research.post("/research/baseline", async (c) => {
+  const body = await readJson(c, BaselineRequest);
+  if (!body.ok) return body.response;
+  const gate = await followupGate(c, body.data.demo === true, "baseline");
+  if (!gate.ok) return gate.response;
+  if (fictionalId(body.data.categoryTagId) !== (gate.mode === "fixture")) {
+    return apiError(c, 409, "mode_mismatch", "This comparison belongs to a research run in a different mode. Run research again first.");
+  }
+  try {
+    const result = await runBaseline(body.data, { transport: gate.transport, mode: gate.mode });
+    c.get("log").info("baseline_complete", { mode: gate.mode, qlooCalls: gate.transport.callsUsed, venues: result.candidates.length });
+    return c.json(result);
+  } catch (error) {
+    return upstreamFailure(c, error);
+  } finally {
+    await gate.finish();
+  }
+});
+
+research.post("/research/venue-bridge", async (c) => {
+  const body = await readJson(c, VenueBridgeRequest);
+  if (!body.ok) return body.response;
+  if (!CROSS_DOMAIN_BY_VENUE[body.data.venueCategory]) {
+    return apiError(c, 400, "no_venue_domain", "Venue-side cultural evidence is available for bookstores, record stores, and cafes. Add the venue's own programming interests instead.");
+  }
+  const gate = await followupGate(c, body.data.demo === true, "venue_bridge");
+  if (!gate.ok) return gate.response;
+  if (fictionalId(body.data.venueId) !== (gate.mode === "fixture")) {
+    return apiError(c, 409, "mode_mismatch", "This venue belongs to a research run in a different mode. Run research again first.");
+  }
+  try {
+    const result = await runVenueBridge(body.data, { transport: gate.transport, mode: gate.mode });
+    c.get("log").info("venue_bridge_complete", { mode: gate.mode, qlooCalls: gate.transport.callsUsed, items: result.items.length });
+    return c.json(result);
+  } catch (error) {
+    return upstreamFailure(c, error);
+  } finally {
+    await gate.finish();
+  }
 });

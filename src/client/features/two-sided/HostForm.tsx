@@ -141,6 +141,14 @@ export function HostForm({
             </select>
           </Field>
         </div>
+        <Field
+          label="Programming the venue is interested in"
+          htmlFor="programmingInterests"
+          optional
+          hint="In the venue's own words, for example “nature writing, local makers”. Shapes the activation idea; never used in any check."
+        >
+          <input id="programmingInterests" className="input" maxLength={200} {...register("programmingInterests", { setValueAs: (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined) })} />
+        </Field>
         <Field label="What the venue wants from partnerships" optional>
           <Controller control={control} name="goals" render={({ field }) => <ToggleChips options={HOST_GOALS} labels={HOST_GOAL_LABELS} value={field.value} onChange={field.onChange} ariaLabel="Host goals" tone="host" max={3} />} />
         </Field>

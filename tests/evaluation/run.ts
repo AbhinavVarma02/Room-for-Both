@@ -7,7 +7,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { evaluateScenario, diffEvaluations } from "../../src/shared/domain";
+import { compareBridge, crossDomainTheme } from "../../src/shared/domain/bridge";
 import { buildBrief } from "../../src/shared/domain/brief";
+import { compareDiscovery } from "../../src/shared/domain/comparison";
+import { selectionFrom } from "../../src/shared/domain/selection";
 import type { ScenarioEvaluation } from "../../src/shared/domain/types";
 import type { ResearchRequest, ResearchRun } from "../../src/shared/schemas/evidence";
 import type { Scenario } from "../../src/shared/schemas/profiles";
@@ -15,7 +18,9 @@ import { checkDraft } from "../../src/worker/integrations/gemini/client";
 import { QlooClient, QlooError, type QlooPath, type QlooTransport, type QueryValue } from "../../src/worker/integrations/qloo/client";
 import { FixtureTransport } from "../../src/worker/integrations/qloo/fixture-transport";
 import { normalizeEntity, normalizeTag, resultItems } from "../../src/worker/integrations/qloo/normalize";
+import { runBaseline, runVenueBridge } from "../../src/worker/orchestration/followups";
 import { runResearch } from "../../src/worker/orchestration/research";
+import type { VenueSelection } from "../../src/shared/schemas/selection";
 import { localVar } from "../../scripts/lib";
 import { CASES, NARRATIVE_FACTS, type ResearchCase } from "./cases";
 
@@ -49,7 +54,7 @@ class FaultTransport implements QlooTransport {
 const UNSUPPORTED = /\b(will|would) (increase|boost|grow|generate|bring|attract|double)\b|\bguarantee(d|s)?\b|\b(expected|projected|estimated) (revenue|sales|visitors|footfall|customers)\b|\b\d+(\.\d+)?\s?%/i;
 
 function statements(e: ScenarioEvaluation, s: Scenario): string[] {
-  const brief = buildBrief(s, e, null, { hypothetical: false, selectedCandidateId: null, now: new Date(0) });
+  const brief = buildBrief(s, e, null, { hypothetical: false, selection: null, now: new Date(0) });
   return [
     ...e.options.flatMap((o) => o.constraints.flatMap((c) => [c.explanation, c.requirement?.text ?? ""])),
     ...e.reversals.flatMap((r) => r.candidates.flatMap((c) => c.changes.map((ch) => ch.description))),
@@ -121,6 +126,7 @@ async function runLive() {
     return null;
   }
   const results = [];
+  let extraCalls = 0;
   for (const { id, request } of LIVE_SCENARIOS) {
     const inner = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 7 });
     let rawItems = 0;
@@ -145,6 +151,29 @@ async function runLive() {
       const evidence = [...run.seeds.map((x) => x.provenance), ...run.candidates.map((c) => c.provenance), ...run.themes.map((t) => t.provenance)];
       const text = [...run.limitations, ...run.themes.map((t) => t.rationale), ...run.steps.map((x) => x.summary)];
       const bridge = run.steps.find((x) => x.id === "cultural_bridge");
+      // Category-only comparison (one call) and venue-side bridge for the first venue (one call).
+      const extra = { compare: "not run", inBoth: 0, onlyWithTaste: 0, topInCategoryOnly: "n/a", venueSideItems: 0, sharedItems: 0, sharedTags: 0 };
+      const top = run.candidates[0];
+      if (run.venueSearch && top && top.strength !== "unscored") {
+        const followup = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 2 });
+        const base = await runBaseline(
+          { categoryTagId: run.venueSearch.categoryTagId, categoryName: run.venueSearch.categoryName, location: run.venueSearch.location, venueCategory: request.venueCategory },
+          { transport: followup, mode: "live" },
+        );
+        extraCalls += followup.callsUsed;
+        const cmp = compareDiscovery(run.candidates, base.candidates, base.depth);
+        const r = cmp.rows.find((x) => x.id === top.venue.id)?.baselineRank;
+        Object.assign(extra, { compare: cmp.outcome, inBoth: cmp.inBoth, onlyWithTaste: cmp.onlyWithTaste, topInCategoryOnly: r ? `#${r}` : `not in top ${base.depth}` });
+        const vb = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 2 });
+        try {
+          const venue = await runVenueBridge({ venueId: top.venue.id, venueName: top.venue.name, venueCategory: request.venueCategory }, { transport: vb, mode: "live" });
+          const b = compareBridge(crossDomainTheme(run.themes), venue, run.bridgeDomain ?? null);
+          Object.assign(extra, { venueSideItems: venue.items.length, sharedItems: b?.shared.length ?? 0, sharedTags: b?.sharedTags.length ?? 0 });
+        } catch {
+          // Categories without a cross-domain type have no venue-side lookup.
+        }
+        extraCalls += vb.callsUsed;
+      }
       results.push({
         id,
         references: request.seeds.length,
@@ -162,6 +191,7 @@ async function runLive() {
         unsupportedStatements: text.filter((x) => UNSUPPORTED.test(x)).length,
         normalisationDropped: `${dropped}/${rawItems}`,
         callsUsed: run.callsUsed,
+        ...extra,
         ms: Math.round(performance.now() - t0),
       });
     } catch (error) {
@@ -172,6 +202,7 @@ async function runLive() {
   writeFileSync("tests/evaluation/output/live-results.json", `${JSON.stringify(results, null, 2)}
 `);
   console.table(results);
+  console.log(`Follow-up calls (comparison and venue side): ${extraCalls}`);
   return results;
 }
 
@@ -186,7 +217,9 @@ async function main() {
   const researchCalls: number[] = [];
   let invariant = 0;
   let invariantTotal = 0;
-  let withQloo = { themes: 0, candidates: 0, evidence: 0 };
+  let withQloo = { themes: 0, candidates: 0, evidence: 0, activations: 0 };
+  let activationStatements = 0;
+  let activationUnsupported = 0;
 
   const fixtureRun = await runResearch(CASES.find((c): c is ResearchCase => c.kind === "research")?.request as ResearchRequest, {
     transport: new FixtureTransport(7),
@@ -194,6 +227,21 @@ async function main() {
     callBudget: 7,
     runId: "eval",
   });
+  // Follow-ups on the fixture run: the category-only comparison and the venue's own side of the bridge.
+  const search = fixtureRun.venueSearch;
+  const firstVenue = fixtureRun.candidates[0];
+  if (!search || !firstVenue) throw new Error("The fixture research run returned no venues.");
+  const fixtureBaseline = await runBaseline(
+    { categoryTagId: search.categoryTagId, categoryName: search.categoryName, location: search.location, venueCategory: fixtureRun.request.venueCategory },
+    { transport: new FixtureTransport(2), mode: "fixture" },
+  );
+  const fixtureComparison = compareDiscovery(fixtureRun.candidates, fixtureBaseline.candidates, fixtureBaseline.depth);
+  const fixtureVenueBridge = await runVenueBridge(
+    { venueId: firstVenue.venue.id, venueName: firstVenue.venue.name, venueCategory: fixtureRun.request.venueCategory },
+    { transport: new FixtureTransport(2), mode: "fixture" },
+  );
+  const fixtureSelection: VenueSelection = { ...(selectionFrom(fixtureRun, firstVenue.venue.id, new Date(0)) as VenueSelection), venueBridge: fixtureVenueBridge, baseline: fixtureBaseline };
+  const fixtureBridge = compareBridge(crossDomainTheme(fixtureRun.themes), fixtureVenueBridge, fixtureRun.bridgeDomain ?? null);
 
   for (const c of CASES) {
     const failures: string[] = [];
@@ -227,14 +275,26 @@ async function main() {
       }
       // Baseline comparison: the same case with and without cultural research. Decisions must not move.
       invariantTotal += 1;
-      const plain = buildBrief(c.scenario, e, null, { hypothetical: false, selectedCandidateId: null, now: new Date(0) });
-      const cultural = buildBrief(c.scenario, evaluateScenario(c.scenario), fixtureRun, { hypothetical: false, selectedCandidateId: fixtureRun.candidates[0]?.venue.id ?? null, now: new Date(0) });
-      if (JSON.stringify(plain.options) === JSON.stringify(cultural.options)) invariant += 1;
+      const plain = buildBrief(c.scenario, e, null, { hypothetical: false, selection: null, now: new Date(0) });
+      // The cultural arm links the host to a selected venue with venue-side evidence, so the activation
+      // idea and the two-sided bridge are attached; decisions must still not move.
+      const linkedScenario: Scenario = { ...c.scenario, host: { ...c.scenario.host, qlooEntityId: fixtureSelection.candidate.venue.id } };
+      const cultural = buildBrief(linkedScenario, evaluateScenario(linkedScenario), fixtureRun, { hypothetical: false, selection: fixtureSelection, now: new Date(0) });
+      if (JSON.stringify(plain.options) === JSON.stringify(cultural.options) && JSON.stringify(plain.proposal) === JSON.stringify(cultural.proposal)) invariant += 1;
       withQloo = {
         themes: withQloo.themes + (cultural.cultural?.themes.length ?? 0),
-        candidates: withQloo.candidates + (cultural.cultural?.selectedVenue ? 1 : 0),
+        candidates: withQloo.candidates + (cultural.venue ? 1 : 0),
         evidence: withQloo.evidence + (cultural.cultural?.themes.reduce((s, t) => s + t.items.length, 0) ?? 0),
+        activations: withQloo.activations + (cultural.activation ? 1 : 0),
       };
+      const activationText = [cultural.activation?.pitch ?? "", ...(cultural.activation?.why ?? []), ...(cultural.activation?.unverified ?? []), cultural.hostTerms.disclaimer ?? ""];
+      for (const st of activationText.filter(Boolean)) {
+        activationStatements += 1;
+        if (UNSUPPORTED.test(st)) {
+          activationUnsupported += 1;
+          failures.push(`activation statement flagged: ${st.slice(0, 60)}`);
+        }
+      }
     } else if (c.kind === "research") {
       const budget = c.budget ?? 7;
       const transport = c.fault && c.fault !== "none" ? new FaultTransport(budget, c.fault) : new FixtureTransport(budget);
@@ -271,7 +331,9 @@ async function main() {
     unsupportedClaimRate: { flagged: unsupported, statements: statementsTotal },
     numericGrounding: { grounded: numericGrounded, numbers: numericTotal, examples: ungroundedExamples },
     decisionInvariance: { identical: invariant, cases: invariantTotal },
-    culturalLayer: { mode: "fixture", ...withQloo },
+    culturalLayer: { mode: "fixture", ...withQloo, activationStatements, activationUnsupported },
+    categoryOnlyComparison: { mode: "fixture", outcome: fixtureComparison.outcome, inBoth: fixtureComparison.inBoth, onlyWithTaste: fixtureComparison.onlyWithTaste, onlyCategory: fixtureComparison.onlyCategory },
+    venueSideBridge: { mode: "fixture", items: fixtureVenueBridge.items.length, shared: fixtureBridge?.shared.length ?? 0, sharedTags: fixtureBridge?.sharedTags.length ?? 0 },
     researchCalls: { runs: researchCalls.length, max: Math.max(...researchCalls), mean: researchCalls.reduce((a, b) => a + b, 0) / researchCalls.length },
     engineLatencyMs: { samples: latencies.length, median: quantile(latencies, 0.5), p95: quantile(latencies, 0.95) },
     rows,
@@ -289,7 +351,8 @@ async function main() {
     `| Individual checks passing | ${passedChecks} / ${totalChecks} (${pct(passedChecks, totalChecks)}) |`,
     `| Generated statements flagged as unsupported claims | ${unsupported} / ${statementsTotal} (${pct(unsupported, statementsTotal)}) |`,
     `| Numbers in generated statements traceable to inputs or reported arithmetic | ${numericGrounded} / ${numericTotal} (${pct(numericGrounded, numericTotal)}) |`,
-    `| Decisions identical with and without the cultural layer | ${invariant} / ${invariantTotal} |`,
+    `| Decisions identical with and without the cultural layer (venue, bridge, and activation idea attached) | ${invariant} / ${invariantTotal} |`,
+    `| Activation-idea and disclaimer statements flagged as unsupported claims | ${activationUnsupported} / ${activationStatements} |`,
     `| Research runs: upstream calls per run (max / mean) | ${results.researchCalls.max} / ${results.researchCalls.mean.toFixed(1)} over ${researchCalls.length} runs |`,
     `| Engine evaluation time, median / p95 (ms, ${latencies.length} samples) | ${results.engineLatencyMs.median.toFixed(2)} / ${results.engineLatencyMs.p95.toFixed(2)} |`,
     "",
@@ -299,6 +362,13 @@ async function main() {
     `numbers measure pipeline mechanics only, not the quality of Qloo's data: the cultural arm attached ${withQloo.themes} themes and`,
     `${withQloo.evidence} provenance-labelled evidence items across ${invariantTotal} briefs; the baseline attached none. Decision`,
     `invariance (${invariant}/${invariantTotal}) confirms cultural data never changes a feasibility verdict.`,
+    "",
+    "## Category-only comparison and venue-side bridge (fixture mechanics)",
+    "",
+    `The fixture run was compared with a category-only search of the same category and area (outcome: ${fixtureComparison.outcome}).`,
+    `${fixtureComparison.inBoth} venues appear in both lists, ${fixtureComparison.onlyWithTaste} only in the taste-informed list, and ${fixtureComparison.onlyCategory} only in the category-only list.`,
+    `The venue-side lookup for the first venue returned ${fixtureVenueBridge.items.length} items: ${fixtureBridge?.shared.length ?? 0} also on the guest side, with ${fixtureBridge?.sharedTags.length ?? 0} shared taste tags.`,
+    "Fixture data is fictional, so these figures check the mechanics only. Live figures are recorded in `docs/evaluation.md`.",
     "",
     "Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and",
     "recorded with their date in `docs/evaluation.md`; this generated report stays offline so it is reproducible.",

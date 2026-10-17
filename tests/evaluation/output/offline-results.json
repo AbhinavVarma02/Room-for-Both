@@ -20,7 +20,23 @@
     "mode": "fixture",
     "themes": 27,
     "candidates": 27,
-    "evidence": 162
+    "evidence": 162,
+    "activations": 27,
+    "activationStatements": 188,
+    "activationUnsupported": 0
+  },
+  "categoryOnlyComparison": {
+    "mode": "fixture",
+    "outcome": "different_venues",
+    "inBoth": 5,
+    "onlyWithTaste": 0,
+    "onlyCategory": 3
+  },
+  "venueSideBridge": {
+    "mode": "fixture",
+    "items": 6,
+    "shared": 2,
+    "sharedTags": 4
   },
   "researchCalls": {
     "runs": 9,
@@ -29,8 +45,8 @@
   },
   "engineLatencyMs": {
     "samples": 675,
-    "median": 0.05379999999999541,
-    "p95": 0.16650000000001342
+    "median": 0.05370000000002051,
+    "p95": 0.162399999999991
   },
   "rows": [
     {

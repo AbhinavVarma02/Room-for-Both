@@ -1,12 +1,13 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Link2, RefreshCcw, ShieldCheck } from "lucide-react";
+import { Copy, FlaskConical, Link2, PencilLine, RefreshCcw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { DAY_LABELS, FORMATS, FORMAT_LABELS, PRODUCT_CATEGORY_LABELS } from "@shared/constants/vocabulary";
 import { clock, money } from "@shared/domain/format";
 import { guestProvenance, hostProvenance } from "@shared/domain/provenance";
 import { EXAMPLE_HOST } from "@shared/fixtures/example-scenario";
+import { unknownHostFor } from "@shared/fixtures/hypothetical";
 import type { Availability } from "@shared/schemas/common";
 import type { GuestProfile, HostProfile } from "@shared/schemas/profiles";
 import { ApiRequestError, createHostLink, getConfig, getOwnerView, revokeHostLink } from "../../app/api";
@@ -14,6 +15,7 @@ import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav, stepHref } from "../../app/Workspace";
 import { Button, Callout, Card, Field, PartyTag, ProvenanceChip, ToggleChips, cn } from "../../components/ui/primitives";
 import { HostForm } from "./HostForm";
+import { SelectedVenuePanel } from "./SelectedVenue";
 
 const BLANK_HOST: HostProfile = {
   source: "entered_by_guest",
@@ -39,10 +41,23 @@ const BLANK_HOST: HostProfile = {
   fixedFields: [],
 };
 
+const HOST_TERM_KEYS = [
+  "allowedFormats",
+  "availability",
+  "popupFeePerDayUsd",
+  "shelfFeePerWeekUsd",
+  "eventFeePerHourUsd",
+  "guestFloorSqFt",
+  "shelfLinearFt",
+  "eventCapacity",
+  "staffHoursPerActivation",
+] as const satisfies readonly (keyof HostProfile)[];
+
 const SOURCE_LABEL: Record<HostProfile["source"], { text: string; tone: string }> = {
   fictional_example: { text: "Fictional example host", tone: "bg-warn-soft text-warn" },
   host_response_link: { text: "Answered by the host", tone: "bg-ok-soft text-ok" },
   entered_by_guest: { text: "Entered by the guest · unconfirmed", tone: "bg-sunken text-ink-soft" },
+  hypothetical_scenario: { text: "Hypothetical terms · not from the venue", tone: "bg-warn-soft text-warn" },
 };
 
 function stableJson(value: unknown): string {
@@ -102,6 +117,7 @@ export function SideBySide({ guest, host }: { guest: GuestProfile; host: HostPro
             </th>
             <th scope="col" className="pb-2 font-medium">
               <PartyTag party="host" /> <span className="ml-1 text-ink">{host.venueName || "Host"}</span>
+              {host.source === "hypothetical_scenario" && <span className="ml-1 font-semibold text-warn">· hypothetical terms</span>}
             </th>
           </tr>
         </thead>
@@ -258,10 +274,12 @@ export function HostWorkspace() {
   const [, navigate] = useLocation();
   const guest = state.guest;
   const host = state.host;
-  const [tab, setTab] = useState<"answers" | "invite">(host?.source === "entered_by_guest" ? "invite" : "answers");
+  const [tab, setTab] = useState<"answers" | "invite">(host?.source === "entered_by_guest" && !state.selection ? "invite" : "answers");
   if (!guest) return null;
   const current = host ?? BLANK_HOST;
   const source = SOURCE_LABEL[current.source];
+  const linked = state.selection && host?.qlooEntityId === state.selection.candidate.venue.id.slice(0, 64) ? state.selection : null;
+  const noTermsYet = linked !== null && current.source === "entered_by_guest" && HOST_TERM_KEYS.every((k) => current[k] === null);
 
   return (
     <div>
@@ -269,6 +287,54 @@ export function HostWorkspace() {
         Each side states its own terms. Nothing about the host is inferred from cultural data: a missing host answer stays unknown and keeps an option
         conditional.
       </StepHeader>
+
+      {linked && (
+        <div className="mb-6">
+          <SelectedVenuePanel selection={linked} />
+        </div>
+      )}
+
+      {linked && current.source === "hypothetical_scenario" && (
+        <Callout tone="warn" className="mb-6" title={`Hypothetical terms: ${current.venueName} has not stated or agreed to any of them`}>
+          <p>
+            Every host value below is a fictional placeholder copied from the example so you can explore the method with this venue in mind. Nothing
+            here describes the venue's actual fees, schedule, space, or willingness to partner. Edit any value, or replace them with the venue's own answers
+            through a private link.
+          </p>
+          <Button size="sm" variant="secondary" className="mt-3" onClick={() => linked && dispatch({ type: "set_host", host: unknownHostFor({ id: linked.candidate.venue.id, name: linked.candidate.venue.name, category: linked.candidate.category }) })}>
+            Clear the hypothetical terms
+          </Button>
+        </Callout>
+      )}
+
+      {noTermsYet && (
+        <Card className="mb-6" aria-labelledby="terms-choice">
+          <h2 id="terms-choice" className="text-lg font-semibold">
+            No terms from {current.venueName} yet
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">Cultural research cannot tell you the venue's terms. Choose how to continue:</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Button variant="secondary" className="h-auto flex-col items-start gap-1 p-4 text-left" onClick={() => dispatch({ type: "use_hypothetical_terms" })}>
+              <span className="flex items-center gap-2 font-semibold">
+                <FlaskConical className="size-4" aria-hidden /> Explore with hypothetical terms
+              </span>
+              <span className="text-xs font-normal text-ink-soft">Fictional placeholder terms, labelled on every screen.</span>
+            </Button>
+            <Button variant="secondary" className="h-auto flex-col items-start gap-1 p-4 text-left" onClick={() => setTab("answers")}>
+              <span className="flex items-center gap-2 font-semibold">
+                <PencilLine className="size-4" aria-hidden /> Enter terms the venue gave you
+              </span>
+              <span className="text-xs font-normal text-ink-soft">Marked as entered by you, unconfirmed by the venue.</span>
+            </Button>
+            <Button variant="secondary" className="h-auto flex-col items-start gap-1 p-4 text-left" onClick={() => setTab("invite")}>
+              <span className="flex items-center gap-2 font-semibold">
+                <ShieldCheck className="size-4" aria-hidden /> Invite the venue privately
+              </span>
+              <span className="text-xs font-normal text-ink-soft">The venue states its own terms through a private link.</span>
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {host && (
         <Card className="mb-6">
@@ -301,7 +367,7 @@ export function HostWorkspace() {
           <HostForm
             key={JSON.stringify(current)}
             initial={current}
-            mode={current.source === "fictional_example" ? "fictional" : current.source === "host_response_link" ? "host_entry" : "guest_entry"}
+            mode={current.source === "fictional_example" || current.source === "hypothetical_scenario" ? "fictional" : current.source === "host_response_link" ? "host_entry" : "guest_entry"}
             submitLabel="Save host terms and compare"
             onSubmit={(h) => {
               // If the guest edits answers the host supplied, those values are no longer the host's own words.

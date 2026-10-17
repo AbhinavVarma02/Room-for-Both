@@ -4,5 +4,5 @@
     "lib": ["ES2023"],
     "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["tests/unit", "tests/integration", "tests/evaluation", "tests/fixtures", "src/shared", "src/worker", "scripts"]
+  "include": ["tests/unit", "tests/integration", "tests/evaluation", "tests/fixtures", "src/shared", "src/worker", "src/client/app/workspace-state.ts", "scripts"]
 }

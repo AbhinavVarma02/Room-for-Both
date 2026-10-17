@@ -91,7 +91,11 @@ export const GuestProfile = z.strictObject({
 });
 export type GuestProfile = z.infer<typeof GuestProfile>;
 
-export const HOST_SOURCES = ["fictional_example", "host_response_link", "entered_by_guest"] as const;
+/**
+ * `hypothetical_scenario` is the fictional example's terms attached to a real venue chosen from
+ * research, so the method can be explored before the venue answers. The venue has not stated them.
+ */
+export const HOST_SOURCES = ["fictional_example", "host_response_link", "entered_by_guest", "hypothetical_scenario"] as const;
 export const HostSource = z.enum(HOST_SOURCES);
 export type HostSource = z.infer<typeof HostSource>;
 
@@ -119,6 +123,8 @@ export const HostProfile = z.strictObject({
   priorities: z.array(HostCriterion).max(2),
   fixedFields: z.array(HostField).max(HOST_NEGOTIABLE_FIELDS.length),
   notes: OptionalNote,
+  /** The venue's own programming interests, in its words. Shapes the activation idea; never a constraint. */
+  programmingInterests: z.string().trim().max(200).optional(),
 });
 export type HostProfile = z.infer<typeof HostProfile>;
 

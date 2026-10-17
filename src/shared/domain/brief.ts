@@ -1,8 +1,12 @@
 import { DAY_LABELS, FORMAT_LABELS, HOST_GOAL_LABELS, OBJECTIVE_LABELS, PRODUCT_CATEGORY_LABELS } from "../constants/vocabulary";
-import type { ResearchRun } from "../schemas/evidence";
+import type { CulturalTheme, ResearchRun } from "../schemas/evidence";
 import type { NarrativeFacts } from "../schemas/narrative";
 import type { ProvenanceKind } from "../schemas/common";
-import type { GuestProfile, HostProfile, Scenario } from "../schemas/profiles";
+import type { GuestProfile, HostProfile, HostSource, Scenario } from "../schemas/profiles";
+import type { VenueSelection } from "../schemas/selection";
+import { type ActivationConcept, activationConcept } from "./activation";
+import { compareBridge, crossDomainTheme } from "./bridge";
+import { compareDiscovery } from "./comparison";
 import { clock, hours, money, weeks, windowLabel } from "./format";
 import { guestProvenance, hostProvenance } from "./provenance";
 import type { ArrangementOption, OptionStatus, ScenarioEvaluation } from "./types";
@@ -41,6 +45,35 @@ export interface DecisionBrief {
     selectedVenue: { name: string; strength: string; affinity: number | null; source: string } | null;
     limitations: string[];
   } | null;
+  /** How the host's terms were obtained. A hypothetical scenario always carries a disclaimer. */
+  hostTerms: { source: HostSource; label: string; disclaimer: string | null };
+  /** The venue chosen from research, with the evidence that led to it. */
+  venue: {
+    name: string;
+    qlooEntityId: string;
+    rank: number;
+    strength: string;
+    affinity: number | null;
+    address: string | null;
+    influencedBy: string[];
+    evidence: ProvenanceKind;
+    request: string;
+    retrievedAt: string;
+    runId: string;
+  } | null;
+  /** A concrete idea for the proposal, from cultural evidence. Never part of any check. */
+  activation: (ActivationConcept & { forOption: string }) | null;
+  bridge: {
+    guestSide: { title: string; items: string[]; source: string } | null;
+    venueSide: { title: string; items: string[]; source: string } | null;
+    shared: string[];
+    sharedTags: string[];
+    method: string;
+    evidence: ProvenanceKind;
+  } | null;
+  discoveryComparison: { outcome: string; findings: string[]; onlyWithSignals: string[]; source: string } | null;
+  /** What each kind of evidence can and cannot decide. */
+  decides: { opportunity: string; feasibility: string; commercial: string };
   inputs: BriefInput[];
   unresolved: string[];
   questions: { text: string; detail: string }[];
@@ -98,9 +131,10 @@ function when(o: ArrangementOption): string {
 }
 
 /** Value statements are hypotheses tied to what each party said it wants. They are not forecasts. */
-function guestValue(g: GuestProfile, o: ArrangementOption, research: ResearchRun | null): string[] {
+function guestValue(g: GuestProfile, o: ArrangementOption, themes: CulturalTheme[], mode: ResearchRun["mode"] | null, activation: ActivationConcept | null): string[] {
   const live = o.format !== "shelf";
-  const theme = research?.themes[0]?.title;
+  const theme = themes[0]?.title;
+  const named = activation?.items.map((i) => `“${i}”`).join(" and ");
   return g.objectives.map((obj) => {
     const head = OBJECTIVE_LABELS[obj];
     switch (obj) {
@@ -108,8 +142,10 @@ function guestValue(g: GuestProfile, o: ArrangementOption, research: ResearchRun
         return `${head}: ${live ? `meets the host's visitors in person for ${hours(o.variant)}.` : `puts the range in front of the host's customers for ${weeks(o.variant)} without staff on site.`}`;
       case "cultural_relevance":
         return `${head}: ${
-          theme
-            ? `can be framed around “${theme}”, which ${research?.mode === "live" ? "Qloo associates" : "the fictional fixture data associates"} with the guest's references.`
+          activation && named
+            ? `can be framed as a ${activation.title.toLowerCase()} built on ${named}, which ${mode === "live" ? "Qloo associates" : "the fictional fixture data associates"} with the guest's references.`
+            : theme
+            ? `can be framed around “${theme}”, which ${mode === "live" ? "Qloo associates" : "the fictional fixture data associates"} with the guest's references.`
             : "a cultural theme still needs to be agreed."
         }`;
       case "product_trial":
@@ -142,13 +178,30 @@ function hostValue(h: HostProfile, o: ArrangementOption): string[] {
   });
 }
 
+const HOST_TERMS_LABEL: Record<HostSource, string> = {
+  fictional_example: "Fictional example host",
+  host_response_link: "Answered by the host through a private link",
+  entered_by_guest: "Entered by the guest on the host's behalf, unconfirmed",
+  hypothetical_scenario: "Hypothetical terms for exploration",
+};
+
+/** A selection describes this brief's venue only while the host still refers to that Qloo entity. */
+export function linkedSelection(host: HostProfile, selection: VenueSelection | null): VenueSelection | null {
+  return selection && host.qlooEntityId !== undefined && host.qlooEntityId === selection.candidate.venue.id.slice(0, 64) ? selection : null;
+}
+
 export function buildBrief(
   scenario: Scenario,
   evaluation: ScenarioEvaluation,
   research: ResearchRun | null,
-  options: { hypothetical: boolean; selectedCandidateId: string | null; now?: Date },
+  options: { hypothetical: boolean; selection: VenueSelection | null; now?: Date },
 ): DecisionBrief {
   const { guest, host } = scenario;
+  const selection = linkedSelection(host, options.selection);
+  // The brief cites the run the venue was chosen from; without a linked venue, the latest run.
+  const themes = selection ? selection.guestThemes : (research?.themes ?? []);
+  const evidenceMode = selection ? selection.mode : (research?.mode ?? null);
+  const evidenceKind: ProvenanceKind = evidenceMode === "fixture" ? "synthetic_demo" : "qloo_observed";
   const nd = new Set(evaluation.frontier.nonDominatedIds);
   const top = evaluation.options[0];
   const proposalOption = top && top.status !== "no_go" ? top : null;
@@ -177,7 +230,28 @@ export function buildBrief(
     if (next) questions.push(next);
   }
 
-  const selected = research?.candidates.find((c) => c.venue.id === options.selectedCandidateId) ?? null;
+  const selected = selection?.candidate ?? null;
+  // The concept is offered for the proposed option, or for the closest blocked one when nothing passes yet.
+  const activationOption = proposalOption ?? evaluation.options.find((o) => o.id === evaluation.reversals[0]?.optionId) ?? null;
+  const concept =
+    activationOption && (themes.length > 0 || host.programmingInterests)
+      ? activationConcept({
+          format: activationOption.format,
+          guestName: guest.businessName,
+          guestProducts: guest.productCategories,
+          host,
+          themes,
+          bridgeDomain: selection?.bridgeDomain ?? research?.bridgeDomain ?? null,
+          venueBridge: selection?.venueBridge ?? null,
+          signals: selection?.signals ?? (research?.seeds.filter((x) => x.status === "exact").map((x) => x.input.label) ?? []),
+          evidenceMode,
+        })
+      : null;
+  const cross = crossDomainTheme(themes);
+  const bridgeCmp = selection ? compareBridge(cross, selection.venueBridge, selection.bridgeDomain) : null;
+  const cmp =
+    selection?.baseline && research?.runId === selection.runId ? compareDiscovery(research.candidates, selection.baseline.candidates, selection.baseline.depth) : null;
+  const hypotheticalHost = host.source === "hypothetical_scenario";
   const c = evaluation.counts;
   const lead = `Of ${evaluation.options.length} arrangements checked, ${c.feasible} ${c.feasible === 1 ? "is" : "are"} feasible on stated requirements, ${c.conditional} conditional, and ${c.no_go} no-go.`;
   const proposalText = proposalOption
@@ -186,10 +260,10 @@ export function buildBrief(
   const closestText = closest[0] && closest[0].changes.length ? ` The closest blocked option, ${closest[0].label}, would need: ${closest[0].changes.join(" ")}` : "";
 
   return {
-    title: `${guest.businessName} × ${host.venueName}`,
+    title: `${guest.businessName} × ${host.venueName}${hypotheticalHost ? " (hypothetical terms)" : ""}`,
     generatedAt: (options.now ?? new Date()).toISOString(),
     engineVersion: evaluation.engineVersion,
-    fictional: guest.origin === "synthetic_demo" || host.source === "fictional_example",
+    fictional: guest.origin === "synthetic_demo" || host.source === "fictional_example" || hypotheticalHost,
     hypothetical: options.hypothetical,
     twoSided: evaluation.twoSided,
     summary: `${lead}${proposalText}${closestText}`,
@@ -204,7 +278,7 @@ export function buildBrief(
           assumptions: proposalOption.assumptions,
         }
       : null,
-    guestValue: proposalOption ? guestValue(guest, proposalOption, research) : [],
+    guestValue: proposalOption ? guestValue(guest, proposalOption, themes, evidenceMode, concept?.format === proposalOption.format ? concept : null) : [],
     hostValue: proposalOption ? hostValue(host, proposalOption) : [],
     options: evaluation.options.map((o) => ({
       label: o.label,
@@ -220,10 +294,11 @@ export function buildBrief(
             : "All checks pass.",
     })),
     closestBlocked: closest,
-    cultural: research
+    cultural:
+      research || selection
       ? {
-          mode: research.mode,
-          themes: research.themes.map((t) => ({
+          mode: evidenceMode ?? "fixture",
+          themes: themes.map((t) => ({
             title: t.title,
             items: t.items.map((i) => (i.affinity === null ? i.name : `${i.name} (${i.affinity.toFixed(2)})`)),
             source: `${t.provenance.request}, ${t.provenance.retrievedAt}`,
@@ -237,9 +312,62 @@ export function buildBrief(
                 source: `${selected.provenance.request}, ${selected.provenance.retrievedAt}`,
               }
             : null,
-          limitations: research.limitations,
+          limitations:
+            selection && research?.runId !== selection.runId
+              ? [`The venue and its evidence come from an earlier research run, retrieved ${selection.candidate.provenance.retrievedAt}.`]
+              : (research?.limitations ?? []),
         }
       : null,
+    hostTerms: {
+      source: host.source,
+      label: HOST_TERMS_LABEL[host.source],
+      disclaimer: hypotheticalHost
+        ? `${host.venueName} has not seen, stated, or agreed to any term in this brief. Every host value is a fictional placeholder used to explore the method. The venue was suggested by cultural research, which says nothing about its fees, schedule, or interest in partnering.`
+        : null,
+    },
+    venue:
+      selected && selection
+        ? {
+            name: selected.venue.name,
+            qlooEntityId: selected.venue.id,
+            rank: selected.rank,
+            strength: selected.strength,
+            affinity: selected.venue.affinity,
+            address: selected.venue.address,
+            influencedBy: selected.contributions.map((x) => `${x.seed} (${x.score.toFixed(2)})`),
+            evidence: selected.provenance.kind,
+            request: selected.provenance.request,
+            retrievedAt: selected.provenance.retrievedAt,
+            runId: selection.runId,
+          }
+        : null,
+    activation: concept && activationOption ? { ...concept, forOption: activationOption.label } : null,
+    bridge:
+      cross || bridgeCmp
+        ? {
+            guestSide: cross ? { title: cross.title, items: cross.items.map((i) => i.name), source: `${cross.provenance.request}, ${cross.provenance.retrievedAt}` } : null,
+            venueSide: selection?.venueBridge
+              ? {
+                  title: `${selection.venueBridge.noun} linked to ${selection.venueBridge.venueName}`,
+                  items: selection.venueBridge.items.map((i) => i.name),
+                  source: `${selection.venueBridge.provenance.request}, ${selection.venueBridge.provenance.retrievedAt}`,
+                }
+              : null,
+            shared: bridgeCmp?.shared.map((x) => x.name) ?? [],
+            sharedTags: bridgeCmp?.sharedTags ?? [],
+            method: bridgeCmp?.method ?? "Guest-side bridge only: no venue-side evidence was retrieved for this brief.",
+            evidence: evidenceKind,
+          }
+        : null,
+    discoveryComparison:
+      cmp && selection?.baseline
+        ? { outcome: cmp.outcome, findings: cmp.findings, onlyWithSignals: cmp.onlyWithSignals, source: `${selection.baseline.provenance.request}, ${selection.baseline.provenance.retrievedAt}` }
+        : null,
+    decides: {
+      opportunity: "Cultural opportunity, what might be worth trying: suggested by cultural evidence, which picks the venue to approach and the theme to propose.",
+      feasibility: "Operational feasibility, what the stated terms permit: decided only by deterministic checks of both parties' stated terms. Cultural evidence never enters these checks.",
+      commercial: "Commercial success, whether it pays off: unknown. Nothing here forecasts revenue, traffic, or demand.",
+    },
     inputs: [...guestInputs(guest), ...hostInputs(host)],
     unresolved,
     questions,

@@ -1,4 +1,4 @@
-import { SEED_KIND_LABELS, SEED_KIND_TO_QLOO_TYPE, VENUE_CATEGORY_LABELS, type VenueCategory } from "../../shared/constants/vocabulary";
+import { CROSS_DOMAIN_BY_VENUE, SEED_KIND_LABELS, SEED_KIND_TO_QLOO_TYPE, VENUE_CATEGORY_LABELS, type VenueCategory } from "../../shared/constants/vocabulary";
 import type {
   CulturalTheme,
   EvidenceProvenance,
@@ -28,13 +28,6 @@ export const TOOLS = {
   cross_domain: { route: "/v2/insights", purpose: "Find related entities in another domain for a collaboration theme" },
   taste_tags: { route: "/v2/insights", purpose: "Describe the references' audience with taste tags" },
 } as const;
-
-/** Which other domain gives a natural collaboration theme for a host category. */
-const CROSS_DOMAIN: Partial<Record<VenueCategory, { type: string; title: string; noun: string }>> = {
-  bookstore: { type: "urn:entity:book", title: "Co-curated reading list", noun: "books" },
-  record_store: { type: "urn:entity:artist", title: "Listening session pairing", noun: "music artists" },
-  cafe: { type: "urn:entity:podcast", title: "Conversation series pairing", noun: "podcasts" },
-};
 
 /**
  * Authenticated tag searches found no exact Qloo tag for these labels. We search for Qloo's nearest
@@ -120,6 +113,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
   const limitations: string[] = [
     "Qloo affinity describes aggregate taste associations. It does not show foot traffic, sales, rent, permission, or a venue's willingness to partner.",
     "Affinity scores are relative to the query that produced them; compare results by position rather than by small score differences.",
+    "Qloo lists venues of every size, including national chains; check whether each one fits an independent partnership.",
   ];
   if (deps.mode === "fixture") {
     limitations.unshift("Fixture mode: every cultural result in this run is fictional demonstration data. No Qloo request was made.");
@@ -262,6 +256,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
 
   // 3. Rank venues in the market by affinity to the matched references.
   let candidates: PartnershipCandidate[] = [];
+  let venueSearch: ResearchRun["venueSearch"] = null;
   if (!categoryTag) {
     await record({
       id: "find_venues",
@@ -316,6 +311,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
           sharedTags: [],
           provenance: prov,
         }));
+        if (venues.length > 0) venueSearch = { location, categoryTagId: categoryTag.id, categoryName: categoryTag.name, take: request.maxCandidates };
         await record({
           id: stepId,
           tool: "recommend_venues",
@@ -348,6 +344,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
 
   // 4. Cultural bridge: what else the references' audience gravitates to.
   const themes: CulturalTheme[] = [];
+  let bridgeDomain: string | null = null;
   // Tag names observed on bridge results; a venue sharing one of them gives an evidence-linked overlap.
   const bridgeTags = new Set<string>();
   if (signalIds.length === 0) {
@@ -355,7 +352,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
   } else if (budgetReached) {
     await skipForBudget("cultural_bridge", "taste_tags");
   } else {
-    const cross = CROSS_DOMAIN[request.venueCategory];
+    const cross = CROSS_DOMAIN_BY_VENUE[request.venueCategory];
     const seedList = signalSeeds.map((s) => `“${s.input.label}”`).join(", ");
     // Fixture runs must never describe their invented associations as Qloo's.
     const associates = deps.mode === "live" ? "Qloo associates" : "In this fictional fixture run, the demonstration data associates";
@@ -374,12 +371,20 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
         const items = normalizeEntities(payload, 8);
         const prov = provenance("/v2/insights", `${cross.noun} with affinity to ${seedList}`);
         if (items.length) {
+          bridgeDomain = cross.type;
           themes.push({
             id: "cross-domain",
             title: cross.title,
             basis: "cross_domain",
             rationale: `${associates} ${seedList} with these ${cross.noun}. A ${categoryLabel.toLowerCase()} collaboration could be framed around them. This is a creative starting point, not evidence that either business's customers will respond.`,
-            items: items.map((e) => ({ id: e.id, name: e.name, type: e.type, affinity: e.affinity, strength: strengthOf(e.affinity) })),
+            items: items.map((e) => ({
+              id: e.id,
+              name: e.name,
+              type: e.type,
+              affinity: e.affinity,
+              strength: strengthOf(e.affinity),
+              tags: e.tags.filter(isThematicTag).slice(0, 6).map((t) => t.name),
+            })),
             provenance: prov,
             interpretation: "derived_rule",
           });
@@ -487,5 +492,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     callsUsed: deps.transport.callsUsed,
     callBudget: deps.callBudget,
     durationMs: Math.max(0, now() - started),
+    venueSearch,
+    bridgeDomain,
   };
 }

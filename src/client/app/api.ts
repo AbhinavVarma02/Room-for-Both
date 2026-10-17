@@ -1,5 +1,5 @@
 import { CreateHostRequestResponse, HostRequestView, OwnerRequestView, PublicConfig, type SharedSummary } from "@shared/schemas/api";
-import { ResearchEvent, type ResearchRequest } from "@shared/schemas/evidence";
+import { BaselineResult, ResearchEvent, VenueBridge, type BaselineRequest, type ResearchRequest, type VenueBridgeRequest } from "@shared/schemas/evidence";
 import { NarrativeResponse, type NarrativeFacts } from "@shared/schemas/narrative";
 import type { HostProfile } from "@shared/schemas/profiles";
 import type { z } from "zod";
@@ -111,3 +111,7 @@ export async function submitHostResponse(hostToken: string, host: Omit<HostProfi
 
 export const draftNarrative = (facts: NarrativeFacts) =>
   call(NarrativeResponse, "/api/narrative", { method: "POST", body: JSON.stringify({ facts, consent: true }) });
+
+export const runBaseline = (request: BaselineRequest) => call(BaselineResult, "/api/research/baseline", { method: "POST", body: JSON.stringify(request) });
+
+export const fetchVenueBridge = (request: VenueBridgeRequest) => call(VenueBridge, "/api/research/venue-bridge", { method: "POST", body: JSON.stringify(request) });

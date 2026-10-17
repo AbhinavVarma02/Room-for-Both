@@ -9,9 +9,10 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Individual checks passing | 60 / 60 (100.0%) |
 | Generated statements flagged as unsupported claims | 0 / 3157 (0.0%) |
 | Numbers in generated statements traceable to inputs or reported arithmetic | 3019 / 3019 (100.0%) |
-| Decisions identical with and without the cultural layer | 27 / 27 |
+| Decisions identical with and without the cultural layer (venue, bridge, and activation idea attached) | 27 / 27 |
+| Activation-idea and disclaimer statements flagged as unsupported claims | 0 / 188 |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.05 / 0.17 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.05 / 0.16 |
 
 ## Cultural layer versus no-cultural-layer baseline
 
@@ -19,6 +20,13 @@ Both arms use identical scenarios and the identical rules engine. The cultural a
 numbers measure pipeline mechanics only, not the quality of Qloo's data: the cultural arm attached 27 themes and
 162 provenance-labelled evidence items across 27 briefs; the baseline attached none. Decision
 invariance (27/27) confirms cultural data never changes a feasibility verdict.
+
+## Category-only comparison and venue-side bridge (fixture mechanics)
+
+The fixture run was compared with a category-only search of the same category and area (outcome: different_venues).
+5 venues appear in both lists, 0 only in the taste-informed list, and 3 only in the category-only list.
+The venue-side lookup for the first venue returned 6 items: 2 also on the guest side, with 4 shared taste tags.
+Fixture data is fictional, so these figures check the mechanics only. Live figures are recorded in `docs/evaluation.md`.
 
 Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and
 recorded with their date in `docs/evaluation.md`; this generated report stays offline so it is reproducible.

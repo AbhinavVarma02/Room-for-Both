@@ -8,6 +8,8 @@ import { ApiRequestError, getConfig, streamResearch } from "../../app/api";
 import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav, stepHref } from "../../app/Workspace";
 import { Button, Callout, Card, ProvenanceChip, cn } from "../../components/ui/primitives";
+import { DiscoveryComparisonPanel } from "./Comparison";
+import { useSelectVenue } from "./selectVenue";
 
 type StepState = { id: ResearchStepId; label: string; status: "pending" | ResearchStep["status"]; summary?: string };
 
@@ -71,6 +73,7 @@ export function Discovery() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<ResearchError | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const selectVenue = useSelectVenue();
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -130,36 +133,10 @@ export function Discovery() {
   };
 
   const evaluateCandidate = (c: PartnershipCandidate) => {
-    dispatch({ type: "select_candidate", id: c.venue.id });
-    dispatch({
-      type: "set_host",
-      host: {
-        source: "entered_by_guest",
-        venueName: c.venue.name.slice(0, 80),
-        venueCategory: c.category,
-        qlooEntityId: c.venue.id.slice(0, 64),
-        goals: [],
-        allowedFormats: null,
-        availability: null,
-        popupFeePerDayUsd: null,
-        shelfFeePerWeekUsd: null,
-        shelfMinWeeks: null,
-        eventFeePerHourUsd: null,
-        eventMinHours: null,
-        guestFloorSqFt: null,
-        shelfLinearFt: null,
-        eventCapacity: null,
-        staffHoursPerActivation: null,
-        excludedCategories: null,
-        samplingAllowed: null,
-        alcoholOnPremises: null,
-        requiresExclusivity: null,
-        priorities: [],
-        fixedFields: [],
-      },
-    });
-    navigate(stepHref("host"));
+    // In the guided demonstration the visitor explores with labelled hypothetical terms straight away.
+    if (run && selectVenue(run, c.venue.id, { hypothetical: state.guided })) navigate(stepHref("host"));
   };
+  const linked = state.selection && state.host?.qlooEntityId === state.selection.candidate.venue.id.slice(0, 64) ? state.selection : null;
 
   const mode = config.data?.researchMode;
 
@@ -278,7 +255,13 @@ export function Discovery() {
             </div>
           )}
 
-          {run && <ResearchResults run={run} onEvaluate={evaluateCandidate} selectedId={state.selectedCandidateId} />}
+          {run && linked && linked.runId !== run.runId && (
+            <Callout tone="info" title={`Your chosen venue, ${linked.candidate.venue.name}, came from an earlier research run`}>
+              Its evidence is kept with the choice (retrieved {new Date(linked.candidate.provenance.retrievedAt).toLocaleString()}). Choose a venue below to
+              replace it.
+            </Callout>
+          )}
+          {run && <ResearchResults run={run} onEvaluate={evaluateCandidate} selectedId={linked?.runId === run.runId ? linked.candidate.venue.id : null} comparison={<DiscoveryComparisonPanel run={run} auto={state.guided} />} />}
         </div>
       </div>
 
@@ -287,7 +270,17 @@ export function Discovery() {
   );
 }
 
-function ResearchResults({ run, onEvaluate, selectedId }: { run: ResearchRun; onEvaluate: (c: PartnershipCandidate) => void; selectedId: string | null }) {
+function ResearchResults({
+  run,
+  onEvaluate,
+  selectedId,
+  comparison,
+}: {
+  run: ResearchRun;
+  onEvaluate: (c: PartnershipCandidate) => void;
+  selectedId: string | null;
+  comparison: React.ReactNode;
+}) {
   return (
     <div className="space-y-6">
       <Card>
@@ -369,7 +362,9 @@ function ResearchResults({ run, onEvaluate, selectedId }: { run: ResearchRun; on
             {run.candidates.map((c) => (
               <li key={c.venue.id} className={cn("card flex flex-col p-5", selectedId === c.venue.id && "ring-2 ring-common")}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-ink-faint">#{c.rank} in this query</p>
+                  <p className="text-xs text-ink-faint">
+                    #{c.rank} in this query{selectedId === c.venue.id && <span className="ml-2 font-semibold text-common">· Your chosen venue</span>}
+                  </p>
                   <ProvenanceChip kind={c.provenance.kind} />
                 </div>
                 <h3 className="mt-1 font-display text-lg leading-snug font-semibold">{c.venue.name}</h3>
@@ -394,8 +389,8 @@ function ResearchResults({ run, onEvaluate, selectedId }: { run: ResearchRun; on
                 )}
                 <p className="mt-3 text-xs text-ink-faint">Cultural data says nothing about this venue's fees, space, or interest. Those come from the host.</p>
                 <div className="mt-auto pt-4">
-                  <Button variant="secondary" size="sm" onClick={() => onEvaluate(c)}>
-                    Evaluate a partnership with this venue
+                  <Button variant={selectedId === c.venue.id ? "primary" : "secondary"} size="sm" onClick={() => onEvaluate(c)}>
+                    {selectedId === c.venue.id ? "Continue with this venue" : "Evaluate a partnership with this venue"}
                   </Button>
                 </div>
               </li>
@@ -403,6 +398,8 @@ function ResearchResults({ run, onEvaluate, selectedId }: { run: ResearchRun; on
           </ul>
         )}
       </section>
+
+      {comparison}
 
       <Card className="bg-sunken/40">
         <h2 className="text-base font-semibold">What this research does not show</h2>

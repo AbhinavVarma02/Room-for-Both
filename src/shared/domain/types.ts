@@ -132,7 +132,7 @@ export interface FrontierSummary {
   note: string;
 }
 
-export type TwoSidedStatus = "two_sided" | "fictional_two_sided" | "one_sided";
+export type TwoSidedStatus = "two_sided" | "fictional_two_sided" | "hypothetical_host" | "one_sided";
 
 export interface ScenarioEvaluation {
   engineVersion: string;

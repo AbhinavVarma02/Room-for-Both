@@ -35,7 +35,7 @@ function input(overrides: Partial<ConceptInput> = {}): ConceptInput {
   return {
     guestName: "Test Guest Co",
     guestProducts: ["skincare"],
-    host: { venueName: "Synthetic Venue", source: "host_response_link", programmingInterests: null },
+    host: { venueName: "Synthetic Venue", source: "host_response_link", programmingInterests: undefined },
     themes: [cross, tags],
     bridgeDomain: "urn:entity:book",
     venueBridge: venueSide,
@@ -77,7 +77,7 @@ describe("proposal concepts", () => {
   it("marks the first idea with a workable format, and says when every suited format is blocked", () => {
     const blocked = { guest: EXAMPLE_GUEST, host: EXAMPLE_HOST };
     const be = evaluateScenario(blocked);
-    const concepts = proposalConcepts(input({ host: { venueName: "Synthetic Venue", source: "fictional_example", programmingInterests: null } }), be);
+    const concepts = proposalConcepts(input({ host: { venueName: "Synthetic Venue", source: "fictional_example", programmingInterests: undefined } }), be);
     const promising = mostPromising(concepts);
     expect(promising?.lead?.status).not.toBe("no_go");
     const guestSide = concepts.find((c) => c.basis === "guest_side");

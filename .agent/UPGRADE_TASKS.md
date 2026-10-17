@@ -71,7 +71,7 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
 | U7-01 | Business case: initial customer, intermediary buyer, manual workflow, limits | — | `docs/business-case.md` | verified_complete | review | docs/business-case.md (cc90781) |
-| U7-02 | Interview script (private) and case study | U7-01 | `.local/`, `docs/` | pending | files present | — |
+| U7-02 | Interview script (private) and case study | U7-01 | `.local/`, `docs/` | verified_complete | files present | docs/case-study.md; private interview script (no interviews conducted) |
 
 ## U8 — Release validation
 

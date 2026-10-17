@@ -129,6 +129,7 @@ including secrets, migrations, and `npm run verify:public` to check a live URL f
 ## Documentation
 
 - [Business case](docs/business-case.md)
+- [Case study](docs/case-study.md)
 - [Decision method](docs/decision-method.md)
 - [Architecture](docs/architecture.md)
 - [API and Qloo routes](docs/api.md)

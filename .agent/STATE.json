@@ -89,6 +89,7 @@
   "failed_checks": [],
   "blocker_ids": [],
   "last_successful_verifications": [
+    "GitHub Actions 38999856845 (b0cde9f, owner confirmations): success",
     "Owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL recorded (PROGRESS #8)",
     "npm run check on PROGRESS #8 changes: exit 0 (69 unit, 49 integration, eval 60/60 checks, build); scan:secrets clean",
     "Public /api/health: research live, narrative enabled",
@@ -105,8 +106,8 @@
     "GitHub Actions 38995913094 (5bf47ef) and 38997070624 (0e17b50): success",
     "Cloudflare analytics: 183 requests, 0 errors, 0 CPU terminations"
   ],
-  "last_commit_sha": "448b269",
-  "last_remote_sha": "448b269",
+  "last_commit_sha": "b0cde9f",
+  "last_remote_sha": "b0cde9f",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
   "verified_live_qloo": true,

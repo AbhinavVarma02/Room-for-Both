@@ -32,9 +32,9 @@ export interface ActivationInput {
   evidenceMode: "live" | "fixture" | null;
 }
 
-type Nouns = "books" | "music artists" | "podcasts" | "tags";
+export type Nouns = "books" | "music artists" | "podcasts" | "tags";
 
-const TITLES: Record<Nouns, Record<Format, string>> = {
+export const TITLES: Record<Nouns, Record<Format, string>> = {
   books: { cohosted_event: "Reading-list evening", shelf: "Reading-list shelf pairing", popup: "Pop-up beside a themed book table" },
   "music artists": { cohosted_event: "Listening evening", shelf: "Listening-corner shelf pairing", popup: "Pop-up with a listening theme" },
   podcasts: { cohosted_event: "Conversation evening", shelf: "Shelf pairing with a conversation theme", popup: "Pop-up with a conversation theme" },
@@ -47,14 +47,14 @@ const short = (name: string) => {
   return colon > 3 ? name.slice(0, colon) : name;
 };
 
-function list(names: string[]): string {
+export function quotedList(names: string[]): string {
   const quoted = names.map((n) => `“${short(n)}”`);
   if (quoted.length <= 1) return quoted.join("");
   return `${quoted.slice(0, -1).join(", ")} and ${quoted[quoted.length - 1]}`;
 }
 
-function pitchFor(noun: Nouns, format: Format, venue: string, guest: string, products: string, items: string[]): string {
-  const named = list(items);
+export function pitchFor(noun: Nouns, format: Format, venue: string, guest: string, products: string, items: string[]): string {
+  const named = quotedList(items);
   if (noun === "tags") {
     const themes = items.map((i) => i.toLowerCase()).join(", ");
     if (format === "cohosted_event") return `A co-hosted evening at ${venue} on the theme of ${themes}, with ${guest}'s ${products} as part of it.`;
@@ -85,7 +85,7 @@ export function activationConcept(input: ActivationInput): ActivationConcept | n
   const bridge = compareBridge(cross, input.venueBridge, input.bridgeDomain);
   const fixture = input.evidenceMode === "fixture";
   const observedBy = fixture ? "In this fictional demonstration, the data associates" : "Qloo associates";
-  const signals = input.signals.length ? list(input.signals) : "the guest's references";
+  const signals = input.signals.length ? quotedList(input.signals) : "the guest's references";
 
   let noun: Nouns;
   let items: string[];
@@ -97,17 +97,17 @@ export function activationConcept(input: ActivationInput): ActivationConcept | n
     items = bridge.shared.slice(0, 3).map((s) => s.name);
     basis = "shared";
     why.push(
-      `${list(items)} appear in both directions: ${fixture ? "the fictional data associates them" : "Qloo associates them"} with ${signals} and with ${venue} itself (same kind of request, matched by entity ID).`,
+      `${quotedList(items)} appear in both directions: ${fixture ? "the fictional data associates them" : "Qloo associates them"} with ${signals} and with ${venue} itself (same kind of request, matched by entity ID).`,
     );
   } else if (cross && cross.items.length > 0) {
     noun = nounFor(input.bridgeDomain, cross.title);
     items = cross.items.slice(0, 3).map((i) => i.name);
     basis = "guest";
-    why.push(`${observedBy} ${signals} with ${list(items)}.`);
+    why.push(`${observedBy} ${signals} with ${quotedList(items)}.`);
     if (bridge?.comparable) {
       why.push(
         bridge.sharedTags.length
-          ? `None of these titles came back for ${venue} itself, but both lists share the taste tags ${list(bridge.sharedTags.slice(0, 4))}.`
+          ? `None of these titles came back for ${venue} itself, but both lists share the taste tags ${quotedList(bridge.sharedTags.slice(0, 4))}.`
           : `None of them came back in Qloo's results for ${venue} itself, so this theme reflects the guest's side only.`,
       );
     }
@@ -117,7 +117,7 @@ export function activationConcept(input: ActivationInput): ActivationConcept | n
       noun = "tags";
       items = tags.items.slice(0, 3).map((i) => i.name);
       basis = "tags";
-      why.push(`${observedBy} ${signals} with the taste tags ${list(items)}.`);
+      why.push(`${observedBy} ${signals} with the taste tags ${quotedList(items)}.`);
     } else if (host.programmingInterests) {
       noun = "tags";
       items = [host.programmingInterests.slice(0, 60)];
@@ -166,7 +166,7 @@ const NOUN_BY_TYPE = new Map<string, string>(Object.values(CROSS_DOMAIN_BY_VENUE
 const NOUN_BY_TITLE = new Map<string, string>(Object.values(CROSS_DOMAIN_BY_VENUE).map((d) => [d.title, d.noun]));
 
 /** Runs saved before the bridge recorded its domain carry only the theme title, so we accept either. */
-function nounFor(domain: string | null, title: string): Nouns {
+export function nounFor(domain: string | null, title: string): Nouns {
   const noun = (domain ? NOUN_BY_TYPE.get(domain) : undefined) ?? NOUN_BY_TITLE.get(title);
   return noun && noun in TITLES ? (noun as Nouns) : "tags";
 }

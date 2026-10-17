@@ -263,6 +263,30 @@ export function Brief() {
           </>
         )}
 
+        {brief.concepts.length > 1 && (
+          <>
+            <H2>Other ideas the evidence supports</H2>
+            <ul className="mt-3 space-y-3 text-sm">
+              {brief.concepts.map((c) => (
+                <li key={c.basis} className="rounded-xl border border-line p-3">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{c.title}</span>
+                    {c.lead && (
+                      <>
+                        <span className="text-ink-faint">· {c.lead.label}</span>
+                        <StatusBadge status={c.lead.status} short />
+                      </>
+                    )}
+                  </p>
+                  <p className="mt-1 text-ink-soft">{c.observed.join(" ")}</p>
+                  {c.mightNotSuit[0] && <p className="mt-1 text-xs text-ink-faint">Might not suit: {c.mightNotSuit[0]}</p>}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-ink-faint">Statuses come from the same checks as the options below; the evidence only chooses the idea.</p>
+          </>
+        )}
+
         <H2>What decides what</H2>
         <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           {[brief.decides.opportunity, brief.decides.feasibility, brief.decides.commercial].map((d) => (

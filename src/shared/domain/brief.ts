@@ -7,6 +7,7 @@ import type { VenueSelection } from "../schemas/selection";
 import { type ActivationConcept, activationConcept } from "./activation";
 import { affinityLabel, affinityText, influenceText } from "./affinity";
 import { compareBridge, crossDomainTheme } from "./bridge";
+import { type ProposalConcept, proposalConcepts } from "./concepts";
 import { compareDiscovery } from "./comparison";
 import { clock, hours, money, weeks, windowLabel } from "./format";
 import { guestProvenance, hostProvenance } from "./provenance";
@@ -75,6 +76,8 @@ export interface DecisionBrief {
   } | null;
   /** A concrete idea for the proposal, from cultural evidence. Never part of any check. */
   activation: (ActivationConcept & { forOption: string }) | null;
+  /** Every distinct idea the evidence supports, each with the engine's status for the formats it suits. */
+  concepts: ProposalConcept[];
   bridge: {
     guestSide: { title: string; items: string[]; source: string } | null;
     venueSide: { title: string; items: string[]; source: string } | null;
@@ -248,6 +251,7 @@ export function buildBrief(
   }
 
   const selected = selection?.candidate ?? null;
+  const signals = selection?.signals ?? (research?.seeds.filter((x) => x.status === "exact").map((x) => x.input.label) ?? []);
   // The concept is offered for the proposed option, or for the closest blocked one when nothing passes yet.
   const activationOption = proposalOption ?? evaluation.options.find((o) => o.id === evaluation.reversals[0]?.optionId) ?? null;
   const concept =
@@ -260,10 +264,23 @@ export function buildBrief(
           themes,
           bridgeDomain: selection?.bridgeDomain ?? research?.bridgeDomain ?? null,
           venueBridge: selection?.venueBridge ?? null,
-          signals: selection?.signals ?? (research?.seeds.filter((x) => x.status === "exact").map((x) => x.input.label) ?? []),
+          signals,
           evidenceMode,
         })
       : null;
+  const concepts = proposalConcepts(
+    {
+      guestName: guest.businessName,
+      guestProducts: guest.productCategories,
+      host,
+      themes,
+      bridgeDomain: selection?.bridgeDomain ?? research?.bridgeDomain ?? null,
+      venueBridge: selection?.venueBridge ?? null,
+      signals,
+      evidenceMode,
+    },
+    evaluation,
+  );
   const cross = crossDomainTheme(themes);
   const bridgeCmp = selection ? compareBridge(cross, selection.venueBridge, selection.bridgeDomain) : null;
   const cmp =
@@ -361,6 +378,7 @@ export function buildBrief(
           }
         : null,
     activation: concept && activationOption ? { ...concept, forOption: activationOption.label } : null,
+    concepts,
     bridge:
       cross || bridgeCmp
         ? {

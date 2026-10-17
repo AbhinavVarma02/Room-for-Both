@@ -2,14 +2,15 @@ import { ArrowRight, Lightbulb, Scale, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { evaluateScenario } from "@shared/domain";
-import { activationConcept } from "@shared/domain/activation";
 import { linkedSelection } from "@shared/domain/brief";
+import { type ProposalConcept, mostPromising, proposalConcepts } from "@shared/domain/concepts";
 import { money } from "@shared/domain/format";
 import { blockerSummary, closestToWorking, featuredOption } from "@shared/domain/headline";
 import type { ArrangementOption, OptionStatus, ScenarioEvaluation } from "@shared/domain/types";
 import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav } from "../../app/Workspace";
 import { Button, Callout, Card, ProvenanceChip, StatusBadge } from "../../components/ui/primitives";
+import { ProposalConcepts } from "./Concepts";
 import { OptionCard } from "./OptionParts";
 
 const COLORS: Record<OptionStatus, string> = { feasible: "#166534", conditional: "#8a5300", no_go: "#a1232f" };
@@ -120,7 +121,25 @@ export function Frontier() {
   const [, navigate] = useLocation();
   const { guest, host } = state;
   const evaluation = useMemo(() => (guest && host ? evaluateScenario({ guest, host }) : null), [guest, host]);
+  const concepts = useMemo(() => {
+    if (!evaluation || !guest || !host) return [];
+    const selection = linkedSelection(host, state.selection);
+    return proposalConcepts(
+      {
+        guestName: guest.businessName,
+        guestProducts: guest.productCategories,
+        host,
+        themes: selection?.guestThemes ?? state.research?.themes ?? [],
+        bridgeDomain: selection?.bridgeDomain ?? state.research?.bridgeDomain ?? null,
+        venueBridge: selection?.venueBridge ?? null,
+        signals: selection?.signals ?? state.research?.seeds.filter((x) => x.status === "exact").map((x) => x.input.label) ?? [],
+        evidenceMode: selection?.mode ?? state.research?.mode ?? null,
+      },
+      evaluation,
+    );
+  }, [evaluation, guest, host, state.selection, state.research]);
   if (!evaluation) return null;
+  const promising = mostPromising(concepts);
   const nd = new Set(evaluation.frontier.nonDominatedIds);
   const groups: { status: OptionStatus; title: string; options: ArrangementOption[] }[] = [
     { status: "feasible", title: "Feasible on stated requirements", options: evaluation.options.filter((o) => o.status === "feasible") },
@@ -136,7 +155,8 @@ export function Frontier() {
       </StepHeader>
 
       <Headline evaluation={evaluation} onReverse={(id) => navigate(`/workspace/reversal?option=${encodeURIComponent(id)}`)} />
-      <WhatDecides evaluation={evaluation} />
+      <WhatDecides concept={promising ?? concepts[0] ?? null} />
+      <ProposalConcepts concepts={concepts} promising={promising} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(0,24rem)]">
         <Card>
@@ -247,30 +267,7 @@ function Headline({ evaluation, onReverse }: { evaluation: ScenarioEvaluation; o
 }
 
 /** Cultural opportunity, operational feasibility, and commercial success, kept visibly apart. */
-function WhatDecides({ evaluation }: { evaluation: ScenarioEvaluation }) {
-  const { state } = useWorkspace();
-  const host = state.host;
-  const guest = state.guest;
-  if (!host || !guest) return null;
-  const selection = linkedSelection(host, state.selection);
-  const themes = selection?.guestThemes ?? state.research?.themes ?? [];
-  // The same option the brief proposes: the leading viable option, else the closest blocked one.
-  const top = evaluation.options[0];
-  const featured = top && top.status !== "no_go" ? top : (evaluation.options.find((o) => o.id === evaluation.reversals[0]?.optionId) ?? top);
-  const concept =
-    featured && (themes.length > 0 || host.programmingInterests)
-      ? activationConcept({
-          format: featured.format,
-          guestName: guest.businessName,
-          guestProducts: guest.productCategories,
-          host,
-          themes,
-          bridgeDomain: selection?.bridgeDomain ?? state.research?.bridgeDomain ?? null,
-          venueBridge: selection?.venueBridge ?? null,
-          signals: selection?.signals ?? [],
-          evidenceMode: selection?.mode ?? state.research?.mode ?? null,
-        })
-      : null;
+function WhatDecides({ concept }: { concept: ProposalConcept | null }) {
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-3" role="list" aria-label="What decides what">
       <div role="listitem" className="rounded-xl border border-line bg-surface p-4 text-sm">
@@ -279,8 +276,9 @@ function WhatDecides({ evaluation }: { evaluation: ScenarioEvaluation }) {
         </p>
         {concept ? (
           <>
-            <p className="mt-1 font-medium">{concept.title}</p>
+            <p className="mt-1 font-medium">{concept.formatTitle}</p>
             <p className="mt-1 text-ink-soft">{concept.pitch}</p>
+            <p className="mt-1 text-xs text-ink-faint">The ideas below show where this comes from and which formats work.</p>
             <p className="mt-2 flex flex-wrap gap-1.5">
               {concept.sources.map((k) => (
                 <ProvenanceChip key={k} kind={k} />

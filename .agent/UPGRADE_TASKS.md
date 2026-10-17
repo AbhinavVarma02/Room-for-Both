@@ -26,8 +26,8 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 | U2-01 | Bounded baseline request: same category, same resolved location, no taste signal (1 call) | U1-01 | `routes/research.ts`, `orchestration/baseline.ts` | verified_complete | integration | integration 32/32 (b60113a) |
 | U2-02 | Comparison function: overlap, rank shifts, evidence only with signals, no-change cases | U2-01 | `src/shared/domain/comparison.ts` | verified_complete | unit | unit (4 cases) (b60113a) |
 | U2-03 | Comparison panel in discovery | U2-02 | Discovery | verified_complete | e2e | e2e guided journey asserts comparison table (0f8e2bb) |
-| U2-04 | Evaluation cases (offline) and a small live scenario | U2-02 | `tests/evaluation` | in_progress | `npm run eval` | offline eval section added; live scenario pending |
-| U2-05 | LLM-only comparison: feasibility decision | U2-04 | docs | pending | decision recorded | — |
+| U2-04 | Evaluation cases (offline) and a small live scenario | U2-02 | `tests/evaluation` | verified_complete | `npm run eval` | UPGRADE_PROGRESS #8 |
+| U2-05 | LLM-only comparison: feasibility decision | U2-04 | docs | verified_complete | decision recorded | implemented with consent; UPGRADE_PROGRESS #9 |
 
 ## U3 — Two-sided cultural bridge
 
@@ -64,20 +64,20 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 | U6-01 | Profile CPU of research stages | U0-02 | scripts | verified_complete | measurements recorded | UPGRADE_PROGRESS #6 |
 | U6-02 | Split research into independently bounded requests if needed | U6-01 | research route, client | deferred | integration + measured CPU | evidence in UPGRADE_PROGRESS #7: cold start dominates; split not adopted |
 | U6-03 | Measure the candidate on Cloudflare without moving production traffic | U6-02 | — | verified_complete | CPU p50/p90/p99 | candidate 72add54d measured, UPGRADE_PROGRESS #6–#7 |
-| U6-04 | Private quota-increase request draft | — | `.local/` | pending | file present | — |
+| U6-04 | Private quota-increase request draft | — | `.local/` | verified_complete | file present | private draft in .local (not sent) |
 
 ## U7 — Product impact
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U7-01 | Business case: initial customer, intermediary buyer, manual workflow, limits | — | `docs/business-case.md` | pending | review | — |
+| U7-01 | Business case: initial customer, intermediary buyer, manual workflow, limits | — | `docs/business-case.md` | verified_complete | review | docs/business-case.md (cc90781) |
 | U7-02 | Interview script (private) and case study | U7-01 | `.local/`, `docs/` | pending | files present | — |
 
 ## U8 — Release validation
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U8-01 | Full offline suite, eval, secret scan, build | U1–U6 | — | pending | `npm run check`, scan clean | — |
+| U8-01 | Full offline suite, eval, secret scan, build | U1–U6 | — | verified_complete | `npm run check`, scan clean | npm run check exit 0; Playwright 32 passed, 2 skipped; scan clean |
 | U8-02 | Playwright desktop and mobile (fixture), then bounded live checks | U8-01 | — | pending | e2e green | — |
 | U8-03 | Merge to main after green CI | U8-02 | — | pending | CI success | — |
 | U8-04 | Deploy, verify publicly in a fresh session, or roll back | U8-03 | — | pending | verify:public, public e2e | — |
@@ -86,7 +86,7 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U9-01 | README, architecture, evaluation, demo guide, API docs | U8-04 | `docs/`, README | pending | review | — |
+| U9-01 | README, architecture, evaluation, demo guide, API docs | U8-04 | `docs/`, README | verified_complete | review | README and docs (cc90781 and later) |
 | U9-02 | Private submission text, repository About steps, screenshots | U8-04 | `.local/` | pending | files present | — |
 
 ## U10 — Re-evaluation and handoff

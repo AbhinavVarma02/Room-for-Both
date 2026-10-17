@@ -8,35 +8,35 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
 | U0-01 | Verify branch, remote, CI, deployed version, health, rollback target | — | — | verified_complete | HEAD == origin/main, CI success, `/api/health` live | UPGRADE_PROGRESS #1 |
-| U0-02 | Upgrade branch, trackers, CLAUDE.md pointer | U0-01 | `.agent/UPGRADE_*`, `CLAUDE.md` | in_progress | files committed | — |
+| U0-02 | Upgrade branch, trackers, CLAUDE.md pointer | U0-01 | `.agent/UPGRADE_*`, `CLAUDE.md` | verified_complete | files committed | 92720c9 |
 
 ## U1 — Selected-venue journey
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U1-01 | Selection snapshot (venue ID, name, type, evidence, source, retrieval time, run ID) persisted; stale-run handling; reselect updates dependants | U0-02 | `src/client/app/store.tsx`, `src/shared/schemas/selection.ts` | pending | unit + e2e reselect | — |
-| U1-02 | Hypothetical host scenario source: editable fictional terms attached to a real venue, labelled everywhere | U1-01 | `profiles.ts`, `provenance.ts`, HostWorkspace, Brief | pending | unit (provenance), e2e labels | — |
-| U1-03 | Activation concept from the cultural theme per format (pure, no effect on money or schedule) | U1-01 | `src/shared/domain/activation.ts` | pending | unit; decision invariance | — |
-| U1-04 | Brief and JSON export: selected venue, evidence, activation, hypothetical labels, no endorsement wording | U1-02, U1-03 | `brief.ts`, `Brief.tsx` | pending | unit + e2e | — |
+| U1-01 | Selection snapshot (venue ID, name, type, evidence, source, retrieval time, run ID) persisted; stale-run handling; reselect updates dependants | U0-02 | `src/client/app/store.tsx`, `src/shared/schemas/selection.ts` | in_progress | unit + e2e reselect | unit (reducer) pass, b60113a; e2e pending |
+| U1-02 | Hypothetical host scenario source: editable fictional terms attached to a real venue, labelled everywhere | U1-01 | `profiles.ts`, `provenance.ts`, HostWorkspace, Brief | in_progress | unit (provenance), e2e labels | unit pass, browser walkthrough (fixture); e2e pending |
+| U1-03 | Activation concept from the cultural theme per format (pure, no effect on money or schedule) | U1-01 | `src/shared/domain/activation.ts` | verified_complete | unit; decision invariance | unit 22/22, eval invariance 27/27 (b60113a) |
+| U1-04 | Brief and JSON export: selected venue, evidence, activation, hypothetical labels, no endorsement wording | U1-02, U1-03 | `brief.ts`, `Brief.tsx` | in_progress | unit + e2e | unit pass, browser walkthrough; e2e pending |
 
 ## U2 — Category-only comparison
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U2-01 | Bounded baseline request: same category, same resolved location, no taste signal (1 call) | U1-01 | `routes/research.ts`, `orchestration/baseline.ts` | pending | integration | — |
-| U2-02 | Comparison function: overlap, rank shifts, evidence only with signals, no-change cases | U2-01 | `src/shared/domain/comparison.ts` | pending | unit | — |
-| U2-03 | Comparison panel in discovery | U2-02 | Discovery | pending | e2e | — |
-| U2-04 | Evaluation cases (offline) and a small live scenario | U2-02 | `tests/evaluation` | pending | `npm run eval` | — |
+| U2-01 | Bounded baseline request: same category, same resolved location, no taste signal (1 call) | U1-01 | `routes/research.ts`, `orchestration/baseline.ts` | verified_complete | integration | integration 32/32 (b60113a) |
+| U2-02 | Comparison function: overlap, rank shifts, evidence only with signals, no-change cases | U2-01 | `src/shared/domain/comparison.ts` | verified_complete | unit | unit (4 cases) (b60113a) |
+| U2-03 | Comparison panel in discovery | U2-02 | Discovery | in_progress | e2e | browser walkthrough (fixture); e2e pending |
+| U2-04 | Evaluation cases (offline) and a small live scenario | U2-02 | `tests/evaluation` | in_progress | `npm run eval` | offline eval section added; live scenario pending |
 | U2-05 | LLM-only comparison: feasibility decision | U2-04 | docs | pending | decision recorded | — |
 
 ## U3 — Two-sided cultural bridge
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U3-01 | Capability test: venue entity as a Qloo signal (≤4 live calls) | U0-02 | scratch script only | pending | recorded result | — |
-| U3-02 | Venue-side evidence (if supported) or host-entered programming interests (if not) | U3-01 | research route, HostForm | pending | integration | — |
-| U3-03 | Overlap and complement computation; two directions shown separately | U3-02 | `src/shared/domain/bridge.ts` | pending | unit | — |
-| U3-04 | Carry the bridge into arrangement view and brief | U3-03, U1-04 | Frontier, Brief | pending | e2e | — |
+| U3-01 | Capability test: venue entity as a Qloo signal (≤4 live calls) | U0-02 | scratch script only | verified_complete | recorded result | UPGRADE_PROGRESS #2 |
+| U3-02 | Venue-side evidence (if supported) or host-entered programming interests (if not) | U3-01 | research route, HostForm | verified_complete | integration | integration (venue-bridge, 5 cases) (b60113a) |
+| U3-03 | Overlap and complement computation; two directions shown separately | U3-02 | `src/shared/domain/bridge.ts` | verified_complete | unit | unit (2 cases) (b60113a) |
+| U3-04 | Carry the bridge into arrangement view and brief | U3-03, U1-04 | Frontier, Brief | in_progress | e2e | brief + host panel; e2e pending |
 
 ## U4 — Bounded model-assisted research planner
 

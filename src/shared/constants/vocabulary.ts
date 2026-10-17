@@ -224,12 +224,27 @@ export const SEED_KIND_TO_QLOO_TYPE: Record<SeedKind, string> = {
 };
 
 /**
- * Which other cultural domain gives a natural collaboration theme for a venue category. The same
- * domain is queried from both sides (the guest's references and the venue's own Qloo entity), so the
- * two result lists can be compared item by item. Categories without an entry use taste tags.
+ * Cultural domains a collaboration theme can be built from. The same domain is queried from both
+ * sides (the guest's references and the venue's own Qloo entity), so the two result lists can be
+ * compared item by item.
  */
-export const CROSS_DOMAIN_BY_VENUE: Partial<Record<VenueCategory, { type: string; title: string; noun: string }>> = {
-  bookstore: { type: "urn:entity:book", title: "Co-curated reading list", noun: "books" },
-  record_store: { type: "urn:entity:artist", title: "Listening session pairing", noun: "music artists" },
-  cafe: { type: "urn:entity:podcast", title: "Conversation series pairing", noun: "podcasts" },
+export const BRIDGE_DOMAINS = {
+  "urn:entity:book": { title: "Co-curated reading list", noun: "books" },
+  "urn:entity:artist": { title: "Listening session pairing", noun: "music artists" },
+  "urn:entity:podcast": { title: "Conversation series pairing", noun: "podcasts" },
+} as const;
+export type BridgeDomain = keyof typeof BRIDGE_DOMAINS;
+export const BRIDGE_DOMAIN_TYPES = Object.keys(BRIDGE_DOMAINS) as BridgeDomain[];
+
+const domain = (type: BridgeDomain) => ({ type, ...BRIDGE_DOMAINS[type] });
+
+/** The default domain per venue category. Categories without an entry use taste tags. */
+export const CROSS_DOMAIN_BY_VENUE: Partial<Record<VenueCategory, { type: BridgeDomain; title: string; noun: string }>> = {
+  bookstore: domain("urn:entity:book"),
+  record_store: domain("urn:entity:artist"),
+  cafe: domain("urn:entity:podcast"),
 };
+
+export function bridgeDomain(type: string | null | undefined): { type: BridgeDomain; title: string; noun: string } | null {
+  return type && type in BRIDGE_DOMAINS ? domain(type as BridgeDomain) : null;
+}

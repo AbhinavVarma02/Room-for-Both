@@ -15,6 +15,8 @@ export const PublicConfig = z.object({
   callBudget: z.number(),
   maxSeedsPerRun: z.number(),
   hostLinksEnabled: z.boolean(),
+  /** Whether a model may propose research decisions (always with the visitor's consent). */
+  plannerEnabled: z.boolean().optional(),
 });
 export type PublicConfig = z.infer<typeof PublicConfig>;
 

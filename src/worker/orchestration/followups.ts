@@ -1,4 +1,4 @@
-import { CROSS_DOMAIN_BY_VENUE } from "../../shared/constants/vocabulary";
+import { CROSS_DOMAIN_BY_VENUE, bridgeDomain } from "../../shared/constants/vocabulary";
 import type { BaselineRequest, BaselineResult, EvidenceProvenance, VenueBridge, VenueBridgeRequest } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { isThematicTag, normalizeEntities, strengthOf } from "../integrations/qloo/normalize";
@@ -64,7 +64,7 @@ export async function runBaseline(request: BaselineRequest, deps: FollowupDeps):
 export class NoVenueDomainError extends Error {}
 
 export async function runVenueBridge(request: VenueBridgeRequest, deps: FollowupDeps): Promise<VenueBridge> {
-  const cross = CROSS_DOMAIN_BY_VENUE[request.venueCategory];
+  const cross = bridgeDomain(request.domain) ?? CROSS_DOMAIN_BY_VENUE[request.venueCategory];
   if (!cross) throw new NoVenueDomainError("This kind of venue has no cross-domain lookup.");
   const prov = provenanceFor(deps, `${cross.noun} with affinity to the venue “${request.venueName}” itself`);
   const limitations = [

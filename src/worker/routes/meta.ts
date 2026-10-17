@@ -14,6 +14,7 @@ meta.get("/health", (c) => {
     engineVersion: ENGINE_VERSION,
     research: { mode: s.qlooConfigured ? "live" : "fixture" },
     narrative: { enabled: s.geminiConfigured },
+    planner: { modelAvailable: s.geminiConfigured && s.plannerMaxDecisions > 0, maxDecisions: s.plannerMaxDecisions },
     storage: { bound: c.env.DB !== undefined },
   });
 });
@@ -26,5 +27,6 @@ meta.get("/config", (c) => {
     callBudget: s.callBudget,
     maxSeedsPerRun: MAX_SEEDS_PER_RUN,
     hostLinksEnabled: c.env.DB !== undefined,
+    plannerEnabled: s.geminiConfigured && s.plannerMaxDecisions > 0,
   });
 });

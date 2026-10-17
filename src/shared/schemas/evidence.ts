@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { ShortText } from "./common";
+import { BRIDGE_DOMAIN_TYPES } from "../constants/vocabulary";
+import { PlannerDecision, PlannerTrace } from "./planner";
 import { CulturalSeed, ProductCategory, VenueCategory } from "./profiles";
 
 export const EvidenceProvenance = z.object({
@@ -107,6 +109,10 @@ export const ResearchRequest = z.strictObject({
   maxCandidates: z.number().int().min(1).max(8).default(5),
   /** Run the labelled fictional demonstration even when live access is configured. */
   demo: z.literal(true).optional(),
+  /** Ask the model planner to propose decisions. Honoured only with explicit consent below. */
+  planner: z.enum(["deterministic", "model"]).optional(),
+  /** The visitor agreed to send references and the venue category to the model provider. */
+  plannerConsent: z.literal(true).optional(),
 });
 export type ResearchRequest = z.infer<typeof ResearchRequest>;
 
@@ -129,6 +135,8 @@ export const ResearchRun = z.object({
   venueSearch: z.object({ location: z.string(), categoryTagId: z.string(), categoryName: z.string(), take: z.number().int() }).nullable().optional(),
   /** The cross-domain type used for the cultural bridge, when one was used. */
   bridgeDomain: z.string().nullable().optional(),
+  /** Which planner made each decision, what was proposed, and what ran. */
+  planner: PlannerTrace.optional(),
 });
 export type ResearchRun = z.infer<typeof ResearchRun>;
 
@@ -163,6 +171,8 @@ export const VenueBridgeRequest = z.strictObject({
   venueId: EntityId,
   venueName: z.string().trim().min(1).max(200),
   venueCategory: VenueCategory,
+  /** The domain the guest-side bridge used, so both sides stay comparable. Defaults by category. */
+  domain: z.enum(BRIDGE_DOMAIN_TYPES as [string, ...string[]]).optional(),
   demo: z.literal(true).optional(),
 });
 export type VenueBridgeRequest = z.infer<typeof VenueBridgeRequest>;
@@ -184,6 +194,7 @@ export type VenueBridge = z.infer<typeof VenueBridge>;
 export const ResearchEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("plan"), mode: z.enum(["live", "fixture"]), steps: z.array(z.object({ id: ResearchStepId, label: z.string() })) }),
   z.object({ type: z.literal("step"), step: ResearchStep }),
+  z.object({ type: z.literal("decision"), decision: PlannerDecision }),
   z.object({ type: z.literal("result"), run: ResearchRun }),
   z.object({ type: z.literal("error"), code: z.string(), message: z.string(), retryable: z.boolean() }),
 ]);

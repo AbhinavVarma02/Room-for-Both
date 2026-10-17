@@ -8,8 +8,6 @@ import { clientKey } from "../security/crypto";
 
 export const narrative = new Hono<AppEnv>();
 
-const DAILY_NARRATIVE_CEILING = 300;
-
 narrative.post("/narrative", async (c) => {
   const s = settings(c.env);
   if (!s.geminiConfigured) return apiError(c, 501, "not_configured", "Narrative drafting is not enabled on this server.");
@@ -24,7 +22,7 @@ narrative.post("/narrative", async (c) => {
     if (!(await limiter.hit(`narrative:${who}`, 20, 3600, now)).allowed) {
       return apiError(c, 429, "rate_limited", "Too many summaries requested. Please wait before trying again.");
     }
-    if ((await limiter.usage(day, "gemini_calls")) >= DAILY_NARRATIVE_CEILING) {
+    if ((await limiter.usage(day, "gemini_calls")) >= s.geminiDailyCeiling) {
       return apiError(c, 503, "quota_exhausted", "Today's summary allowance is used up. The structured brief is unaffected.");
     }
     await limiter.addUsage(day, "gemini_calls", 1);

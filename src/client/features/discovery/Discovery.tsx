@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleDashed, Loader2, MapPin, MinusCircle, Sparkles, XCircle } from "lucide-react";
+import { Bot, CheckCircle2, CircleDashed, Cog, Loader2, MapPin, MinusCircle, Sparkles, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { SEED_KIND_LABELS, VENUE_CATEGORIES, VENUE_CATEGORY_LABELS, type VenueCategory } from "@shared/constants/vocabulary";
 import type { PartnershipCandidate, ResearchRun, ResearchStep, ResearchStepId, Strength } from "@shared/schemas/evidence";
+import type { PlannerDecision } from "@shared/schemas/planner";
 import { ApiRequestError, getConfig, streamResearch } from "../../app/api";
 import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav, stepHref } from "../../app/Workspace";
@@ -70,6 +71,9 @@ export function Discovery() {
   const config = useQuery({ queryKey: ["config"], queryFn: getConfig });
   const [category, setCategory] = useState<VenueCategory | null>(state.research?.request.venueCategory ?? (state.isExample ? "bookstore" : state.host?.venueCategory ?? null));
   const [steps, setSteps] = useState<StepState[]>([]);
+  const [decisions, setDecisions] = useState<PlannerDecision[]>([]);
+  const [useModel, setUseModel] = useState(false);
+  const [plannerConsent, setPlannerConsent] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<ResearchError | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -88,6 +92,7 @@ export function Discovery() {
     setRunning(true);
     setError(null);
     setSteps([]);
+    setDecisions([]);
     try {
       await streamResearch(
         {
@@ -98,6 +103,7 @@ export function Discovery() {
           guestCategories: guest.productCategories,
           maxCandidates: 5,
           ...(demo ? { demo: true as const } : {}),
+          ...(useModel ? { planner: "model" as const, ...(plannerConsent ? { plannerConsent: true as const } : {}) } : {}),
         },
         (event) => {
           if (event.type === "plan") setSteps(event.steps.map((s) => ({ ...s, status: "pending" })));
@@ -114,6 +120,7 @@ export function Discovery() {
               return next.map((p) => (p.id === event.step.id ? { ...p, status: event.step.status, summary: event.step.summary } : p));
             });
           }
+          if (event.type === "decision") setDecisions((prev) => [...prev, event.decision]);
           if (event.type === "result") dispatch({ type: "set_research", research: event.run });
           if (event.type === "error") setError({ message: event.message, retryable: event.retryable, kind: streamErrorKind(event.code) });
         },
@@ -199,6 +206,32 @@ export function Discovery() {
               ))}
             </div>
           </fieldset>
+          {config.data?.plannerEnabled && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Research planner</legend>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="radio" name="planner" className="mt-1 accent-common" checked={!useModel} onChange={() => setUseModel(false)} />
+                <span>
+                  Rules only <span className="text-ink-faint">· the same inputs always make the same calls</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="radio" name="planner" className="mt-1 accent-common" checked={useModel} onChange={() => setUseModel(true)} />
+                <span>
+                  Let a language model choose research steps <span className="text-ink-faint">· up to two decisions from a fixed list, checked before they run</span>
+                </span>
+              </label>
+              {useModel && (
+                <label className="ml-6 flex items-start gap-2 rounded-lg bg-sunken/60 p-2.5 text-xs text-ink-soft">
+                  <input type="checkbox" className="mt-0.5 size-4 accent-common" checked={plannerConsent} onChange={(e) => setPlannerConsent(e.target.checked)} />
+                  <span>
+                    I agree to send my cultural references, product categories, venue type, and search area to Google's Gemini API, whose free tier may use
+                    submitted content to improve Google's products. Business names, budgets, and terms are never sent. Without consent the rules decide.
+                  </span>
+                </label>
+              )}
+            </fieldset>
+          )}
           <Button className="w-full" disabled={!category || running || !guest.market.city} onClick={() => start()}>
             {running ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
             {running ? "Researching…" : run ? "Run research again" : "Run cultural research"}
@@ -221,6 +254,7 @@ export function Discovery() {
                   </li>
                 ))}
               </ol>
+              {(decisions.length > 0 || run?.planner) && <DecisionTrace decisions={decisions.length ? decisions : (run?.planner?.decisions ?? [])} run={running ? null : run} />}
             </Card>
           )}
 
@@ -409,6 +443,49 @@ function ResearchResults({
           ))}
         </ul>
       </Card>
+    </div>
+  );
+}
+
+/** Which planner made each decision, what was proposed, whether it was accepted, and what ran. */
+function DecisionTrace({ decisions, run }: { decisions: PlannerDecision[]; run: ResearchRun | null }) {
+  const trace = run?.planner;
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      <p className="text-sm font-semibold">
+        Planner decisions{" "}
+        <span className="font-normal text-ink-faint">
+          · {trace ? (trace.requested === "model" ? `model requested, ${trace.modelCalls} of ${trace.maxDecisions} model calls used` : "rules only") : "in progress"}
+        </span>
+      </p>
+      {trace && trace.requested === "model" && <p className="mt-1 text-xs text-ink-faint">{trace.availability}</p>}
+      <ul className="mt-2 space-y-2" aria-live="polite">
+        {decisions.map((d) => (
+          <li key={`${d.point}-${d.executed}`} className="flex gap-2.5 text-sm">
+            {d.planner === "model" ? <Bot className="mt-0.5 size-4 shrink-0 text-host" aria-hidden /> : <Cog className="mt-0.5 size-4 shrink-0 text-ink-faint" aria-hidden />}
+            <span>
+              <span className="font-medium">{d.point === "bridge" ? "How to build the cultural bridge" : "Whether to widen an empty search"}:</span> {d.executed}
+              <span className={cn("ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold", d.planner === "model" ? "bg-host-soft text-host" : "bg-sunken text-ink-soft")}>
+                {d.planner === "model" ? "model, validated" : d.fallback ? "rules, after fallback" : "rules"}
+              </span>
+              {d.proposed && d.planner !== "model" && <span className="block text-xs text-ink-faint">Model proposed: {d.proposed}</span>}
+              <span className="block text-xs text-ink-faint">{d.reason}</span>
+              {d.rationale && (
+                <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
+                  <ProvenanceChip kind="llm_interpretation" /> “{d.rationale}”
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {trace?.clarification && (
+        <Callout tone="warn" className="mt-3" title="Please confirm a reference">
+          {trace.clarification}
+        </Callout>
+      )}
+      {trace?.stopReason && <p className="mt-2 text-sm text-warn">{trace.stopReason}</p>}
+      <p className="mt-2 text-xs text-ink-faint">A model may only choose from a fixed list of research actions. It never decides feasibility, fees, or schedules.</p>
     </div>
   );
 }

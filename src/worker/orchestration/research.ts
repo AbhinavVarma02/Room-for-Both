@@ -1,4 +1,4 @@
-import { CROSS_DOMAIN_BY_VENUE, SEED_KIND_LABELS, SEED_KIND_TO_QLOO_TYPE, VENUE_CATEGORY_LABELS, type VenueCategory } from "../../shared/constants/vocabulary";
+import { SEED_KIND_LABELS, SEED_KIND_TO_QLOO_TYPE, VENUE_CATEGORY_LABELS, bridgeDomain as domainInfo, type VenueCategory } from "../../shared/constants/vocabulary";
 import type {
   CulturalTheme,
   EvidenceProvenance,
@@ -12,11 +12,14 @@ import type {
 } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { contributions, isThematicTag, normalizeEntities, normalizeName, normalizeTags, resolvedLocality, strengthOf } from "../integrations/qloo/normalize";
+import { DETERMINISTIC_ONLY, PlannerSession, type PlannerSetup } from "./planner";
 
 /**
- * Bounded research planner. It is a fixed, typed sequence of tool choices with conditional
- * branches (skip, broaden, fall back), not an open-ended agent: every branch is enumerated here,
- * every call is counted against a per-run budget, and every output carries provenance.
+ * Bounded research run. A typed sequence of tool choices with conditional branches (skip, widen,
+ * fall back). At two decision points (which domain to build the bridge from, and whether to widen
+ * an empty search) a language model may propose an allow-listed action when the visitor consents;
+ * the planner validates it and runs the deterministic choice otherwise. Every branch is enumerated
+ * here, every call is counted against a per-run budget, and every output carries provenance.
  */
 
 export const MAX_SEEDS_PER_RUN = 3;
@@ -78,6 +81,7 @@ export interface ResearchDeps {
   runId: string;
   now?: () => number;
   emit?: (event: ResearchEvent) => void | Promise<void>;
+  planner?: PlannerSetup;
 }
 
 const compact = (s: string) => normalizeName(s).replace(/\s+/g, "");
@@ -203,6 +207,39 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
   const signalIds = signalSeeds.map((s) => s.entity?.id ?? "");
   const seedNames = new Map(signalSeeds.map((s) => [(s.entity?.id ?? "").toLowerCase(), s.input.label]));
 
+  // Decision 1: how to build the cultural bridge (or, for a model with nothing to go on, stop).
+  const planner = new PlannerSession(deps.planner ?? DETERMINISTIC_ONLY("The deterministic planner was requested."), now);
+  const bridgePlan = await planner.decideBridge(request, seeds);
+  await emit({ type: "decision", decision: bridgePlan.decision });
+  if (bridgePlan.choice.kind === "stop") {
+    const why = planner.trace.stopReason ?? "The planner stopped the run.";
+    limitations.push(why);
+    for (const [id, tool] of [
+      ["resolve_category", "resolve_tag"],
+      ["find_venues", "recommend_venues"],
+      ["cultural_bridge", "taste_tags"],
+    ] as const) {
+      await record({ id, tool, status: "skipped", calls: 0, summary: "Skipped: the planner stopped the run.", durationMs: 0 });
+    }
+    return {
+      runId: deps.runId,
+      mode: deps.mode,
+      request,
+      steps,
+      seeds,
+      categoryTag: null,
+      candidates: [],
+      themes: [],
+      limitations,
+      callsUsed: deps.transport.callsUsed,
+      callBudget: deps.callBudget,
+      durationMs: Math.max(0, now() - started),
+      venueSearch: null,
+      bridgeDomain: null,
+      planner: planner.trace,
+    };
+  }
+
   // 2. Resolve the venue category to a Qloo tag (exact matches only).
   const categoryLabel = VENUE_CATEGORY_LABELS[request.venueCategory];
   const categoryQuery = QLOO_CATEGORY_QUERY[request.venueCategory] ?? categoryLabel;
@@ -275,6 +312,15 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     const locations = request.neighborhood ? [request.neighborhood, request.city] : [request.city];
     for (const [i, location] of locations.entries()) {
       const stepId: ResearchStepId = i === 0 ? "find_venues" : "broaden_location";
+      if (i > 0) {
+        // Decision 2: the neighbourhood had nothing, so widen to the city or stop here.
+        const widen = await planner.decideWiden(request, locations[i - 1] ?? request.city, location);
+        await emit({ type: "decision", decision: widen.decision });
+        if (!widen.widen) {
+          limitations.push(planner.trace.stopReason ?? "Venue discovery stopped before widening the search.");
+          break;
+        }
+      }
       const req = `Places tagged “${categoryTag.name}” in ${location}${signalIds.length ? `, ranked by affinity to ${signalSeeds.map((s) => `“${s.input.label}”`).join(", ")}` : ""}`;
       try {
         const r = await timed(() =>
@@ -352,7 +398,8 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
   } else if (budgetReached) {
     await skipForBudget("cultural_bridge", "taste_tags");
   } else {
-    const cross = CROSS_DOMAIN_BY_VENUE[request.venueCategory];
+    const choice = bridgePlan.choice;
+    const cross = choice.kind === "cross_domain" ? domainInfo(choice.domain) : null;
     const seedList = signalSeeds.map((s) => `“${s.input.label}”`).join(", ");
     // Fixture runs must never describe their invented associations as Qloo's.
     const associates = deps.mode === "live" ? "Qloo associates" : "In this fictional fixture run, the demonstration data associates";
@@ -494,5 +541,6 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     durationMs: Math.max(0, now() - started),
     venueSearch,
     bridgeDomain,
+    planner: planner.trace,
   };
 }

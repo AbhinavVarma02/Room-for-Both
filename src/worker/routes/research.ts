@@ -6,6 +6,8 @@ import { type AppContext, type AppEnv, apiError, clientAddress, readJson } from 
 import { QlooClient, QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { FixtureTransport } from "../integrations/qloo/fixture-transport";
 import { runBaseline, runVenueBridge } from "../orchestration/followups";
+import { proposeAction } from "../integrations/gemini/planner";
+import { DETERMINISTIC_ONLY, type PlannerSetup } from "../orchestration/planner";
 import { runResearch } from "../orchestration/research";
 import { limiterFor } from "../persistence/limits";
 import { clientKey, randomToken } from "../security/crypto";
@@ -56,6 +58,8 @@ research.post("/research", async (c) => {
     if (mode === "live") return apiError(c, 503, "limiter_unavailable", "Research is temporarily unavailable. Please try again shortly.");
   }
 
+  const planner = plannerSetup(c, body.data, limiter, new Date(now).toISOString().slice(0, 10));
+
   let transport: QlooTransport;
   try {
     transport =
@@ -85,11 +89,15 @@ research.post("/research", async (c) => {
   const work = (async () => {
     const t0 = Date.now();
     try {
-      const run = await runResearch(body.data, { transport, mode, callBudget: s.callBudget, runId, emit: send });
+      const run = await runResearch(body.data, { transport, mode, callBudget: s.callBudget, runId, emit: send, planner });
       await send({ type: "result", run });
       log.info("research_complete", {
         mode,
         qlooCalls: transport.callsUsed,
+        planner: run.planner?.requested,
+        modelCalls: run.planner?.modelCalls ?? 0,
+        modelAccepted: run.planner?.decisions.filter((d) => d.planner === "model").length ?? 0,
+        fallbacks: run.planner?.decisions.filter((d) => d.fallback).length ?? 0,
         steps: run.steps.length,
         candidates: run.candidates.length,
         themes: run.themes.length,
@@ -128,6 +136,39 @@ research.post("/research", async (c) => {
     },
   });
 });
+
+/**
+ * The model planner is used only when the visitor asked for it, consented to sending references and
+ * the venue category to the provider, and the server has a model configured. Every model call is
+ * reserved against the same daily allowance as summaries; when none is left, the run falls back.
+ */
+function plannerSetup(c: AppContext, request: ResearchRequest, limiter: ReturnType<typeof limiterFor>, day: string): PlannerSetup {
+  const s = settings(c.env);
+  if (request.planner !== "model") return DETERMINISTIC_ONLY("The deterministic planner was requested.");
+  const base = { requested: "model" as const, maxDecisions: s.plannerMaxDecisions };
+  if (request.plannerConsent !== true) return { ...base, port: null, availability: "Not asked: consent to send the references and venue category to the model provider was not given." };
+  if (!s.geminiConfigured) return { ...base, port: null, availability: "Not asked: no model is configured on this server." };
+  if (s.plannerMaxDecisions === 0) return { ...base, port: null, availability: "Not asked: model decisions are switched off on this server." };
+  const fetchImpl = c.get("upstreamFetch");
+  return {
+    ...base,
+    availability: "Asked, with the visitor's consent.",
+    port: {
+      model: (c.env.GEMINI_MODEL ?? "").trim().slice(0, 80),
+      propose: (prompt, schema) => proposeAction(prompt, schema, { apiKey: c.env.GEMINI_API_KEY, model: c.env.GEMINI_MODEL, timeoutMs: s.plannerTimeoutMs, ...(fetchImpl ? { fetchImpl } : {}) }),
+      reserveCall: async () => {
+        try {
+          if ((await limiter.usage(day, "gemini_calls")) >= s.geminiDailyCeiling) return false;
+          await limiter.addUsage(day, "gemini_calls", 1);
+          return true;
+        } catch {
+          // Without a working counter we cannot bound model spend, so the run uses the deterministic planner.
+          return false;
+        }
+      },
+    },
+  };
+}
 
 // A follow-up makes one upstream call; the second slot only covers a single retry after a 429 or 5xx.
 const FOLLOWUP_BUDGET = 2;
@@ -217,7 +258,7 @@ research.post("/research/baseline", async (c) => {
 research.post("/research/venue-bridge", async (c) => {
   const body = await readJson(c, VenueBridgeRequest);
   if (!body.ok) return body.response;
-  if (!CROSS_DOMAIN_BY_VENUE[body.data.venueCategory]) {
+  if (!body.data.domain && !CROSS_DOMAIN_BY_VENUE[body.data.venueCategory]) {
     return apiError(c, 400, "no_venue_domain", "Venue-side cultural evidence is available for bookstores, record stores, and cafes. Add the venue's own programming interests instead.");
   }
   const gate = await followupGate(c, body.data.demo === true, "venue_bridge");

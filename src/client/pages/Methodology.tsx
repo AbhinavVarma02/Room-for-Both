@@ -143,7 +143,7 @@ export function Methodology() {
           scores a tie, and says when Qloo's explanation and the removal test disagree. A failed repeat is reported as not measured.
         </p>
         <p className="mt-3">
-          <span className="font-medium text-ink">Ideas worth proposing.</span> Up to five ideas, each from a different slice of the evidence: titles
+          <span className="font-medium text-ink">Collaboration ideas.</span> Up to five ideas, each from a different slice of the evidence: titles
           both sides share, the venue's own side, the guest's side, taste tags, and the venue's stated interests. A fixed rule says which formats each
           idea suits; whether a format works comes only from the checks above. The first idea with a workable format is marked to discuss first.
         </p>

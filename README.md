@@ -56,12 +56,12 @@ arrangement both can accept.
   <img src="docs/images/host.png" alt="A chosen venue with the guest's side and the venue's own side of the cultural bridge" width="49%" />
 </p>
 <p>
-  <img src="docs/images/frontier.png" alt="Agreement Frontier headline: why the obvious event fails and the closest verified change" width="49%" />
-  <img src="docs/images/ideas.png" alt="Ideas worth proposing, each with the rules engine's status for the formats it suits" width="49%" />
+  <img src="docs/images/frontier.png" alt="Agreement Frontier: the answer in three counts, then the arrangement closest to agreement before and after one change" width="49%" />
+  <img src="docs/images/ideas.png" alt="The recommended collaboration idea with its best format's status, other ideas one tab away" width="49%" />
 </p>
 <p>
-  <img src="docs/images/reversal.png" alt="Decision Reversal after applying one change, with the before and after status" width="49%" />
-  <img src="docs/images/brief.png" alt="Decision brief with the hypothetical-terms warning and the activation idea" width="49%" />
+  <img src="docs/images/reversal.png" alt="Decision Reversal: entered terms, the what-if change, and the re-checked status side by side" width="49%" />
+  <img src="docs/images/brief.png" alt="Decision brief at a glance: proposed collaboration, feasibility, cultural rationale, confirmations, and the next conversation" width="49%" />
 </p>
 
 *Screenshots show the guided example in fixture mode: every business, venue, and cultural result in them is

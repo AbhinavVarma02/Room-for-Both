@@ -9,6 +9,11 @@ import { chromium } from "@playwright/test";
 const base = process.argv[2] ?? "http://localhost:5173";
 mkdirSync("docs/images", { recursive: true });
 
+/** Scrolls so an element starts just below the top edge, framing the section that follows it. */
+async function frame(selector: string) {
+  await page.locator(selector).first().evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 24));
+}
+
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
 await page.setExtraHTTPHeaders({ "cf-connecting-ip": "10.20.30.40" });
@@ -32,18 +37,21 @@ await page.screenshot({ path: "docs/images/host.png" });
 
 await guide.getByRole("button", { name: "See which arrangements work" }).click();
 await page.getByRole("heading", { name: "Agreement Frontier", level: 1 }).waitFor();
+await frame('[aria-labelledby="decision-title"]');
 await page.screenshot({ path: "docs/images/frontier.png" });
 
-await page.getByRole("heading", { name: "Ideas worth proposing" }).scrollIntoViewIfNeeded();
+await frame('[aria-labelledby="concepts-title"]');
 await page.screenshot({ path: "docs/images/ideas.png" });
 
-await guide.getByRole("button", { name: "Find the smallest change" }).click();
+await page.getByRole("button", { name: /Explore the change/ }).click();
 await page.getByRole("button", { name: /Apply this change/ }).click();
 await page.getByRole("status").filter({ hasText: "You applied" }).waitFor();
+await frame('[aria-labelledby="shift-title"]');
 await page.screenshot({ path: "docs/images/reversal.png" });
 
 await guide.getByRole("button", { name: "Build the decision brief" }).click();
-await page.getByRole("heading", { name: "Activation idea" }).scrollIntoViewIfNeeded();
+await page.getByRole("heading", { name: "At a glance" }).waitFor();
+await frame('[aria-labelledby="glance-title"]');
 await page.screenshot({ path: "docs/images/brief.png" });
 
 await browser.close();

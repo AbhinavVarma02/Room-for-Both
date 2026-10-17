@@ -1,7 +1,6 @@
 # UI refinement: next action
 
-Restart: read `CLAUDE.md`, this file, `UI_STATE.json`, `UI_TASKS.md`, then `git status` / `git log`.
-
-Continue the first task in `UI_TASKS.md` that is not `verified_complete`. Private screenshots and the capture
-scripts are in `.local/ui-shots/` (`npx tsx .local/ui-shots/capture.ts <label>` and `guided.ts <label>` against a
-fixture preview on port 4173). Production is untouched until U7; rollback target is in `UI_STATE.json`.
+The cycle is complete and released (production a601afbd; see `UI_STATE.json` and `UI_PROGRESS.md` #4). Do not
+restart it. Scope is frozen again: follow `.agent/NEXT.md` for routine checks, defect fixes, and the Qloo credential
+transition. Optional later refinements noted in the private review (`.local/ui-final-review.md`): group the
+Reversal controls by party on phones, and condense the taste-signal comparison.

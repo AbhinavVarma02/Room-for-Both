@@ -142,7 +142,7 @@
     "P6-09"
   ],
   "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; issuing email reviewed by the owner: access information only, no extra terms (EXT-QLOO-EMAIL resolved); programme-only use; guide and Terms of Use remain the authority",
-  "deployed_version": "61619c8f-c880-4981-8967-4c9b81af9081",
+  "deployed_version": "a601afbd-9889-4d77-b43b-507cd1f02a65",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
     "EXT-CF-AUTH",
@@ -166,7 +166,7 @@
   "optional_task_ids": [
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Final-cycle release from main 12cab6c (code from 9c31152). Rollback target: 2c5d1b4f (upgrade release); older 1c4b8f19. Details in .agent/FINAL_STATE.json.",
+  "deployed_version_note": "UI refinement release from main 997b891 (code from 0458101). Rollback target: 61619c8f (final-cycle release); older 2c5d1b4f. Details in .agent/UI_STATE.json.",
   "freeze": {
     "status": "frozen",
     "scope": "Upgrade complete and deployed. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."

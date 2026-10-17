@@ -43,3 +43,21 @@
   ("Please wait before researching again") after the session's earlier runs from one address; not a code defect,
   and the same code passed them locally in fixture mode.
 - Live calls this cycle (approximate): Qloo about 18 (two live guided runs), Gemini about 2.
+
+## #4 Release (U7) and review (U8)
+
+- `main` fast-forwarded to 997b891 (adds a typing fix to the screenshot script found by a final `npm run check`;
+  check exit 0 afterwards) and pushed; GitHub Actions 39061194454 on 997b891: success.
+- `npx wrangler versions deploy a601afbd…@100%` (candidate from 0458101; later commits are ledger and script only).
+  Rollback: `npx wrangler rollback 61619c8f-c880-4981-8967-4c9b81af9081`.
+- Production, fresh browser sessions at 1440 and 375 px: counts 0 / 2 / 7, answer "Not yet, but 2 could work.",
+  closest arrangement "Curated shelf placement · 2 weeks", brief "At a glance" present, no console errors, no
+  horizontal scroll. The first `verify:public` returned 9/10 (research HTTP 429, this app's own per-client hourly
+  limit, spent by the candidate runs); after the UTC hour reset: 10/10 with a live research stream.
+- Live mobile journeys on production: the live guided journey and the fictional-research ideas/brief journey passed;
+  the live complete journey was refused with `quota_exhausted` because the app's daily Qloo counter for the day
+  reached 299 of its 300-call ceiling (read-only D1 query). Visitors get the labelled fictional demonstration until
+  the UTC day changes, as designed (RISK-QLOO-QUOTA). The ceiling was not raised.
+- Private review: `.local/ui-final-review.md` (28.5 → 38.5 of 50 on observable criteria; weak points listed:
+  long Reversal control column on phones, dense taste-signal comparison, forms not restructured).
+- Live calls this cycle (approximate): Qloo about 40, Gemini about 2.

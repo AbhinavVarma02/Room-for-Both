@@ -23,9 +23,11 @@ when it ends, follow `.agent/NEXT.md`. Owner confirmations (Cloudflare Free plan
 recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never assumed. Open: the
 RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`.
 
-History: the initial build (`.agent/PROGRESS.md` #1–#8), the upgrade release (#9), and the final improvement
+History: the initial build (`.agent/PROGRESS.md` #1–#8), the upgrade release (#9), the final improvement
 cycle (`.agent/FINAL_PROGRESS.md`), which added proposal ideas, reference sensitivity, what-if counterproposals,
-security fixes, and the documentation rewrite. Detailed historical plans are archived privately in `.local/`.
+security fixes, and the documentation rewrite, and the UI refinement cycle (`.agent/UI_PROGRESS.md`), which made the
+Frontier decision-first and moved detail behind disclosures without changing any verdict. Detailed historical plans
+are archived privately in `.local/`.
 
 ## Final improvement cycle
 

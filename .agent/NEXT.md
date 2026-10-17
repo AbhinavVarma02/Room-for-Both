@@ -6,10 +6,10 @@ Restart: open the repository root and follow "Start of every session" in `CLAUDE
 
 Live Qloo discovery and the optional Gemini summary are verified locally and on the public deployment
 (PROGRESS #7). Scope is frozen: only monitoring, defect fixes, and the credential transition below are in scope.
-Do not add features, redesign the client, add frameworks or paid infrastructure, or recreate Cloudflare resources.
+Do not add features, redesign the client again, add frameworks or paid infrastructure, or recreate Cloudflare resources.
 
-Production: https://room-for-both.room-for-both.workers.dev (final-cycle release, version 61619c8f; rollback
-target 2c5d1b4f, older 1c4b8f19; see `.agent/FINAL_STATE.json`). Worker secrets (names only): `CLIENT_KEY_SALT`,
+Production: https://room-for-both.room-for-both.workers.dev (UI refinement release, version a601afbd; rollback
+target 61619c8f, older 2c5d1b4f; see `.agent/UI_STATE.json`). Worker secrets (names only): `CLIENT_KEY_SALT`,
 `QLOO_API_KEY`, `QLOO_BASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL`. The deployed Worker version and Git SHA are
 in `STATE.json`.
 

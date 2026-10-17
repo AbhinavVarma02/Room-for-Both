@@ -11,5 +11,5 @@ Scope: visual hierarchy, progressive disclosure, and copy. No change to the doma
 | U4 | Decision Brief: executive summary first, detail in sections; print and JSON unchanged | verified_complete |
 | U5 | Discovery and Host: Qloo role, one primary action, provenance distinctions | verified_complete |
 | U6 | Tests: unit, integration, eval, Playwright (fixture), axe, 320–414 px, keyboard | verified_complete |
-| U7 | Release: candidate upload, minimal live check, CI, merge, deploy, fresh-session production check | in_progress |
-| U8 | Private review in `.local/ui-final-review.md`; one refinement pass if needed | pending |
+| U7 | Release: candidate upload, minimal live check, CI, merge, deploy, fresh-session production check | verified_complete |
+| U8 | Private review in `.local/ui-final-review.md`; one refinement pass if needed | verified_complete |

@@ -89,6 +89,7 @@
   "failed_checks": [],
   "blocker_ids": [],
   "last_successful_verifications": [
+    "Final-cycle release 61619c8f: CI 39054706505 success; candidate verify:public 10/10 live; candidate desktop e2e 18/18 live",
     "Upgrade release 2c5d1b4f: verify:public 10/10, public pages 5/5, public live guided journey 1/1; CI 39037549524 success",
     "GitHub Actions 38999856845 (b0cde9f, owner confirmations): success",
     "Owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL recorded (PROGRESS #8)",
@@ -141,7 +142,7 @@
     "P6-09"
   ],
   "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; issuing email reviewed by the owner: access information only, no extra terms (EXT-QLOO-EMAIL resolved); programme-only use; guide and Terms of Use remain the authority",
-  "deployed_version": "2c5d1b4f-e2a3-4ceb-a772-36a290746d40",
+  "deployed_version": "61619c8f-c880-4981-8967-4c9b81af9081",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
     "EXT-CF-AUTH",
@@ -165,7 +166,7 @@
   "optional_task_ids": [
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Upgrade release from main a97defa (code from e964395). Rollback target: 1c4b8f19 (pre-upgrade, source 1a8d36a). The final cycle's release and rollback are in .agent/FINAL_STATE.json.",
+  "deployed_version_note": "Final-cycle release from main 12cab6c (code from 9c31152). Rollback target: 2c5d1b4f (upgrade release); older 1c4b8f19. Details in .agent/FINAL_STATE.json.",
   "freeze": {
     "status": "frozen",
     "scope": "Upgrade complete and deployed. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."
@@ -180,7 +181,7 @@
     "per_month": 10000,
     "app_daily_ceiling": 300,
     "calls_per_run": 7,
-    "calls_per_guided_run": "up to 9 (7 research, 1 category-only comparison, 1 venue side)"
+    "calls_per_guided_run": "up to 9 (7 research, 1 category-only comparison, 1 venue side), plus 2–3 for the optional sensitivity check"
   },
   "gemini": {
     "model": "gemini-3.5-flash-lite",

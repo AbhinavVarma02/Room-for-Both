@@ -1,7 +1,8 @@
 # Final improvement cycle: next action
 
-Recover with `CLAUDE.md`, then this file, `FINAL_STATE.json`, `FINAL_TASKS.md`, `FINAL_PROGRESS.md`, and the real
-Git and deployment state. Work happens on branch `final/product-excellence`; production stays on 2c5d1b4f until a
-verified candidate exists.
+The cycle is complete and released (production 61619c8f; see `FINAL_STATE.json` and `FINAL_PROGRESS.md` #5). Do not
+restart it. Scope is frozen again: follow `.agent/NEXT.md` for routine checks, defect fixes, and the Qloo credential
+transition.
 
-Next: F5 outreach packet (private), F7 README and docs consolidation, then F10 candidate deploy with live checks.
+Owner actions: fill the GitHub About section (private instructions in `.local/`), and run the interviews in the
+private outreach packet before any public claim of user evidence.

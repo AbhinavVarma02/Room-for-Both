@@ -162,6 +162,12 @@ and version from Cloudflare's analytics (n = 3–5 per route, so treat these as 
 | `POST /api/research/baseline` | 2.2 / 3.0 | 10.3 / 31.6 |
 | `POST /api/research/venue-bridge` | 3.0 / 5.7 | 6.1 / 9.2 |
 
+**Final-cycle candidate (17 October 2026, version 61619c8f, fictional demonstration, n = 2–5 per route).** Health
+p50 2.3 ms, evaluate 4.0, research 25.4, category-only comparison 2.9, venue side 2.2, and the new sensitivity check
+6.1 (max 12.8). The fictional research median is higher than the upgrade candidate's 10.8 ms although no code on
+that path changed materially; with three samples on fresh isolates this is within the cold-start spread seen before,
+but it is recorded as measured. Every request succeeded; there were no CPU terminations.
+
 Every request succeeded. Over the same day Cloudflare's analytics showed only successful invocations and 0
 errors for every version, including requests above 60 ms CPU. Buffering the research events into one write
 instead of streaming them (a discarded experiment) changed the demonstration's median from 8.2 to 6.2 ms, within

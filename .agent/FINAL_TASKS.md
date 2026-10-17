@@ -14,10 +14,10 @@ Evidence for each `verified_complete` item is in `FINAL_PROGRESS.md`.
 | F3-02 | Product | Reference sensitivity (leave-one-out), opt-in, bounded calls | verified_complete |
 | F2-03 | Defects | What-if brief lists edited values as unconfirmed proposals | verified_complete |
 | F4-01 | Security | Threat model, findings, fixes with regression tests | verified_complete |
-| F5-01 | Evaluation | Extend offline evaluation for any new capability; private outreach packet | in_progress |
-| F6-01 | Design | First-time-owner review of the live product; clarity fixes | pending |
-| F7-01 | Repository | README rewrite, docs consolidation, ledger slimming, About metadata | pending |
-| F8-01 | Performance | CPU and request measurements of the candidate | pending |
-| F9-01 | Review | Independent re-evaluation (private) | pending |
-| F10-01 | Release | Full validation, candidate upload, verification, merge, deploy | pending |
-| F11-01 | Handoff | Clean checkout build, final cleanup, report | pending |
+| F5-01 | Evaluation | Extend offline evaluation for any new capability; private outreach packet | verified_complete |
+| F6-01 | Design | First-time-owner review of the live product; clarity fixes | verified_complete |
+| F7-01 | Repository | README rewrite, docs consolidation, ledger slimming (About metadata: owner action) | verified_complete |
+| F8-01 | Performance | CPU and request measurements of the candidate | verified_complete |
+| F9-01 | Review | Independent re-evaluation (private) | verified_complete |
+| F10-01 | Release | Full validation, candidate upload, verification, merge, deploy | verified_complete |
+| F11-01 | Handoff | Clean checkout build, final cleanup, report | verified_complete |

@@ -56,3 +56,19 @@
   61619c8f over that traffic: 28 requests, 0 errors, CPU p50 3.5, p90 27.5, p99 54.1 ms, no terminations.
 - Ledger consolidated (1b75b87): superseded task, checklist, and upgrade files archived privately.
 - Live calls spent so far this cycle (approximate): Qloo about 36, Gemini 1.
+
+## #5 Release (F10, F11)
+
+- `main` fast-forwarded to 12cab6c and pushed; GitHub Actions 39054706505 success.
+- `npx wrangler versions deploy 61619c8f…@100%` at 2026-10-17T17:44Z: production serves 61619c8f (code from 9c31152;
+  later commits are docs, ledger, and scripts only). Rollback: `npx wrangler rollback 2c5d1b4f-e2a3-4ceb-a772-36a290746d40`.
+- Production checks: `/api/health` live, narrative enabled; `/respond` single `no-referrer`; a fresh tab loads the
+  new methodology text with no console errors. The first `verify:public` run returned 9/10: the research check hit
+  HTTP 429, this app's own 12-runs-per-hour limit, spent by the candidate checks from the same address. After the
+  UTC hour reset: `verify:public` 10/10 (live research stream) and live mobile guided and complete journeys 2/2.
+- Per-route CPU on the candidate (fictional, n = 2–5): health 2.3, evaluate 4.0, research 25.4, comparison 2.9,
+  venue side 2.2, sensitivity 6.1 ms p50; no errors, no terminations. RISK-CPU stays open.
+- Clean checkout of `main` (fresh clone, `npm ci`, `npm run check`): exit 0 (unit 139, integration 81, eval 73/73).
+- Private deliverables in `.local/`: code audit, security review, design decisions, independent review
+  (27.75/40; 35 not supported), outreach packet, demo script, updated submission draft and About instructions.
+- Still manual for the owner: GitHub About description, website, and topics (no authenticated GitHub tool here).

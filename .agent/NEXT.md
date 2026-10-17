@@ -8,8 +8,8 @@ Live Qloo discovery and the optional Gemini summary are verified locally and on 
 (PROGRESS #7). Scope is frozen: only monitoring, defect fixes, and the credential transition below are in scope.
 Do not add features, redesign the client, add frameworks or paid infrastructure, or recreate Cloudflare resources.
 
-Production: https://room-for-both.room-for-both.workers.dev (upgrade release, version 2c5d1b4f; pre-upgrade
-rollback target 1c4b8f19; see `.agent/FINAL_STATE.json` for the current release and rollback). Worker secrets (names only): `CLIENT_KEY_SALT`,
+Production: https://room-for-both.room-for-both.workers.dev (final-cycle release, version 61619c8f; rollback
+target 2c5d1b4f, older 1c4b8f19; see `.agent/FINAL_STATE.json`). Worker secrets (names only): `CLIENT_KEY_SALT`,
 `QLOO_API_KEY`, `QLOO_BASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL`. The deployed Worker version and Git SHA are
 in `STATE.json`.
 
@@ -18,7 +18,8 @@ in `STATE.json`.
 1. `git status`, `git log --oneline -5`, GitHub Actions for the latest SHA (public API).
 2. `curl -s <url>/api/health`: expect `research.mode` `live` and `narrative.enabled` `true`.
 3. `npm run verify:public -- <url>` (one live research run, about 7 Qloo calls). A full guided run in the browser
-   spends up to 9 Qloo calls; `npm run smoke:planner` spends 2 model calls and no Qloo calls.
+   spends up to 9 Qloo calls, plus 2–3 if the visitor runs the optional sensitivity check;
+   `npm run smoke:planner` spends 2 model calls and no Qloo calls.
 4. Only if code changed: `npm run check`, `npx playwright test`, then `E2E_BASE_URL=<url> npx playwright test`
    (two live runs and two summaries). The per-client research limit is 12 runs an hour; on HTTP 429
    `rate_limited`, wait for the next UTC hour.

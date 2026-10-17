@@ -1,4 +1,4 @@
-import { ArrowRight, History, Lock, RotateCcw, Wand2 } from "lucide-react";
+import { ArrowRight, History, Lock, MousePointerClick, RotateCcw, Wand2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { DAYS, DAY_LABELS, type Day } from "@shared/constants/vocabulary";
@@ -99,6 +99,13 @@ export function Reversal() {
     commit("host", "availability", has ? `open ${DAY_LABELS[day]}` : `closed ${DAY_LABELS[day]}`, has ? `closed ${DAY_LABELS[day]}` : `open ${DAY_LABELS[day]}`, next);
   };
 
+  const applySuggested = () => {
+    const next = applyChanges(whatIf, reversal?.minimalChange?.changes ?? []);
+    update(next);
+    commit("host", "suggested changes", "current", reversal?.minimalChange?.changes.map((c) => c.description).join(" ") ?? "", next);
+  };
+  const last = state.trace[state.trace.length - 1];
+
   const setBool = (field: "samplingAllowed" | "requiresExclusivity", value: boolean | null) => {
     const next = { ...whatIf, host: { ...whatIf.host, [field]: value } };
     update(next);
@@ -112,13 +119,62 @@ export function Reversal() {
         decision recomputes instantly from the same rules, without calling any outside service.
       </StepHeader>
 
+      {!changed && option && reversal?.minimalChange?.verified && (
+        <div className="mb-6 rounded-xl border-2 border-common bg-common-soft/60 p-4 sm:p-5" aria-labelledby="try-it">
+          <p id="try-it" className="flex items-center gap-2 font-semibold">
+            <MousePointerClick className="size-5 text-common" aria-hidden /> Try it: change one condition and watch “{option.label}” re-check
+          </p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {reversal.minimalChange.changes.map((c) => (
+              <li key={`${c.party}.${c.field}`} className="flex items-start gap-2">
+                <PartyTag party={c.party} /> {c.description}
+              </li>
+            ))}
+          </ul>
+          <Button className="mt-3" onClick={applySuggested}>
+            Apply this change <ArrowRight className="size-4" aria-hidden />
+          </Button>
+          <p className="mt-2 text-xs text-ink-soft">Hypothetical: nothing is sent to anyone, and you can reset at any time. You can also move any control on the right.</p>
+        </div>
+      )}
+
       {changed && (
         <Callout tone="warn" className="mb-6" title="What-if mode: these values are hypothetical">
           They are nobody's actual terms until the parties agree. Reset to return to the entered values.
         </Callout>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+      {last && (
+        <div className="mb-6 rounded-xl border border-line bg-surface p-4 sm:p-5" role="status" aria-live="polite">
+          <p className="text-sm text-ink-soft">
+            {last.change.field === "suggested changes" ? (
+              <>
+                You applied: <span className="font-medium text-ink">{String(last.change.to)}</span>
+              </>
+            ) : (
+              <>
+                Your last change: <span className="font-medium text-ink">{last.change.field}</span> {String(last.change.from ?? "unknown")} → {String(last.change.to ?? "unknown")}
+              </>
+            )}
+          </p>
+          {last.flips.length === 0 ? (
+            <p className="mt-2 font-medium">No decision changed.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {last.flips.map((f) => (
+                <li key={f.optionId}>
+                  <p className="flex flex-wrap items-center gap-2 text-base font-semibold">
+                    {f.label}: <StatusBadge status={f.before} short /> <ArrowRight className="size-4" aria-label="became" /> <StatusBadge status={f.after} short />
+                  </p>
+                  <p className="text-sm text-ink-soft">{f.reason}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div className="space-y-6">
           <Card>
             <label htmlFor="option-select" className="eyebrow">
@@ -189,15 +245,7 @@ export function Reversal() {
                   <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
                     Re-checked with the same rules: the option becomes <StatusBadge status={reversal.minimalChange.statusAfter} short />
                   </p>
-                  <Button
-                    className="mt-4"
-                    variant="secondary"
-                    onClick={() => {
-                      const next = applyChanges(whatIf, reversal.minimalChange?.changes ?? []);
-                      update(next);
-                      commit("host", "suggested changes", "current", reversal.minimalChange?.changes.map((c) => c.description).join(" ") ?? "", next);
-                    }}
-                  >
+                  <Button className="mt-4" variant="secondary" onClick={applySuggested}>
                     Try these changes in the what-if
                   </Button>
                 </>

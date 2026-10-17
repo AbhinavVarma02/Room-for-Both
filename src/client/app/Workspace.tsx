@@ -6,6 +6,7 @@ import { Discovery } from "../features/discovery/Discovery";
 import { Frontier } from "../features/frontier/Frontier";
 import { GuestIntake } from "../features/intake/GuestIntake";
 import { Reversal } from "../features/reversal/Reversal";
+import { GuideBanner } from "../features/guide/GuideBanner";
 import { HostWorkspace } from "../features/two-sided/HostWorkspace";
 import { Button, Callout, cn } from "../components/ui/primitives";
 import { useWorkspace, type WorkspaceState } from "./store";
@@ -110,6 +111,8 @@ export function Workspace() {
           guest identifies with. Edit anything, or start your own scenario from the home page.
         </Callout>
       )}
+
+      {!gate && <GuideBanner step={step} />}
 
       <div className="mt-8">
         {gate ? (

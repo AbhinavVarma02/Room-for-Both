@@ -1,13 +1,37 @@
-import { ArrowRight, Compass, Handshake, Scale, Sparkles, Undo2 } from "lucide-react";
+import { ArrowRight, Compass, Handshake, PlayCircle, Scale, Sparkles, Undo2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useWorkspace } from "../app/store";
 import { Button, Card, StatusBadge } from "../components/ui/primitives";
 
 const STEPS = [
   { title: "Describe your business", body: "Budget, schedule, space, team, formats you would consider, and the cultural references your customers share." },
-  { title: "Discover a cultural bridge", body: "Qloo's taste data suggests venues and themes your audience already connects with, with every signal traceable to its source." },
-  { title: "Hear from the other side", body: "The host states their own fees, days, space, and rules. Nothing about the host is guessed or inferred." },
+  {
+    title: "Find the cultural reason",
+    body: "Qloo's taste graph ranks real venues by how strongly their audiences share that taste, compares against a category-only search, and looks at the venue's own audience too.",
+  },
+  { title: "Hear from the other side", body: "The venue states its own fees, days, space, and rules through a private link. Nothing about the host is guessed or inferred." },
   { title: "See where the deal can land", body: "Every arrangement is checked against both sides' terms, with the smallest change that would turn a no into a maybe." },
+];
+
+const STORY = [
+  {
+    eyebrow: "1 · Cultural reason, from Qloo",
+    title: "Venues ranked by shared taste",
+    body: "The brand's references point to bookstores whose audiences share them, and to books both audiences connect with.",
+    tone: "border-guest/30 bg-guest-soft/50",
+  },
+  {
+    eyebrow: "2 · Why the obvious deal fails",
+    title: "Co-hosted event · 2 hours",
+    body: "No-go: the brand is free on weekends, the venue only on weeknights.",
+    tone: "border-bad/25 bg-bad-soft/50",
+  },
+  {
+    eyebrow: "3 · What is worth discussing",
+    title: "One change, re-checked",
+    body: "Add one Tuesday evening on the brand's side and the same event becomes conditional, still waiting on the venue's own answers.",
+    tone: "border-common/30 bg-common-soft/50",
+  },
 ];
 
 export function Landing() {
@@ -17,6 +41,10 @@ export function Landing() {
   const tryExample = () => {
     dispatch({ type: "load_example" });
     navigate("/workspace/guest");
+  };
+  const guided = () => {
+    dispatch({ type: "load_example", guided: true });
+    navigate("/workspace/discovery");
   };
   const startCustom = () => {
     dispatch({ type: "start_custom" });
@@ -34,41 +62,39 @@ export function Landing() {
             <span className="text-common">Build a better deal.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-ink-soft">
-            Room for Both helps a brand and a venue work out a collaboration that works for both of them: grounded in real cultural signals, checked
-            against each side's actual terms, and honest about what is still unknown.
+            A small brand and an independent venue want to work together, but each has its own fees, days, space, and rules. Room for Both uses Qloo's
+            taste intelligence to find which venue to approach and what to build the collaboration around, then checks every arrangement against both
+            sides' stated terms and shows the smallest change that would turn a no into a maybe.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" onClick={tryExample}>
+            <Button size="lg" onClick={guided}>
+              <PlayCircle className="size-5" aria-hidden /> See it in 90 seconds
+            </Button>
+            <Button size="lg" variant="secondary" onClick={tryExample}>
               Try the fictional example <ArrowRight className="size-4" aria-hidden />
             </Button>
-            <Button size="lg" variant="secondary" onClick={startCustom}>
+            <Button size="lg" variant="ghost" onClick={startCustom}>
               Start your own scenario
             </Button>
           </div>
           <p className="mt-4 text-sm text-ink-faint">The example uses two invented businesses. No account or sign-up needed.</p>
         </div>
 
-        <figure aria-label="Illustration of an Agreement Frontier" className="relative">
-          <div className="card space-y-3 p-5">
-            <div className="flex items-center justify-between">
-              <p className="eyebrow">Agreement Frontier · illustration</p>
-              <span className="text-xs text-ink-faint">9 options checked</span>
-            </div>
-            {[
-              { label: "Curated shelf placement · 4 weeks", status: "conditional" as const, note: "Waiting on one host answer: exclusivity" },
-              { label: "Co-hosted event · 2 hours", status: "no_go" as const, note: "No shared day. Smallest fix: one weekday evening" },
-              { label: "Co-hosted event · 3 hours", status: "no_go" as const, note: "$250 over budget, and needs 3 host staff hours" },
-            ].map((o) => (
-              <div key={o.label} className="rounded-xl border border-line bg-paper/60 p-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium">{o.label}</p>
-                  <StatusBadge status={o.status} short />
+        <figure aria-label="The example journey in three steps" className="relative">
+          <ol className="card space-y-3 p-5">
+            {STORY.map((s, i) => (
+              <li key={s.title} className={`rounded-xl border p-3.5 ${s.tone}`}>
+                <p className="eyebrow">{s.eyebrow}</p>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">{s.title}</p>
+                  {i === 1 && <StatusBadge status="no_go" short />}
+                  {i === 2 && <StatusBadge status="conditional" short />}
                 </div>
-                <p className="mt-1 text-sm text-ink-soft">{o.note}</p>
-              </div>
+                <p className="mt-1 text-sm text-ink-soft">{s.body}</p>
+              </li>
             ))}
-          </div>
-          <figcaption className="mt-3 text-center text-xs text-ink-faint">Values from the fictional example scenario.</figcaption>
+          </ol>
+          <figcaption className="mt-3 text-center text-xs text-ink-faint">From the fictional example. Live cultural results come from Qloo when you run it.</figcaption>
         </figure>
       </section>
 

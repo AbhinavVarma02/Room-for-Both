@@ -12,7 +12,7 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Decisions identical with and without the cultural layer (venue, bridge, and activation idea attached) | 27 / 27 |
 | Activation-idea and disclaimer statements flagged as unsupported claims | 0 / 188 |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.15 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.07 / 0.20 |
 
 ## Cultural layer versus no-cultural-layer baseline
 

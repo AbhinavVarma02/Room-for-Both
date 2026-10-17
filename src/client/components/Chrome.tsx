@@ -19,18 +19,18 @@ export function Header() {
   ];
   return (
     <header className="no-print border-b border-line/80 bg-paper/90 backdrop-blur supports-[backdrop-filter]:bg-paper/75">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 rounded-md">
-          <Logo className="size-8" />
-          <span className="font-display text-lg font-semibold tracking-tight whitespace-nowrap text-ink">Room for Both</span>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-2 rounded-md sm:gap-2.5">
+          <Logo className="size-8 shrink-0" />
+          <span className="font-display text-lg font-semibold tracking-tight whitespace-nowrap text-ink max-[359px]:sr-only">Room for Both</span>
         </Link>
-        <nav aria-label="Main" className="flex items-center gap-1 text-sm">
+        <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 text-sm sm:gap-1">
           {nav.map((n) => (
             <Link
               key={n.href}
               href={n.href}
               aria-current={n.active ? "page" : undefined}
-              className={cn("rounded-md px-3 py-2 font-medium text-ink-soft hover:bg-sunken hover:text-ink", n.active && "text-ink")}
+              className={cn("rounded-md px-2 py-2 font-medium text-ink-soft hover:bg-sunken hover:text-ink sm:px-3", n.active && "text-ink")}
             >
               <span className="hidden sm:inline">{n.label}</span>
               <span className="sm:hidden">{n.short}</span>

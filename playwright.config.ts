@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4173;
+// Local runs use the labelled fictional demonstration (`--mode fixture`), so they spend no live quota.
+// Set E2E_LIVE=1 to run the local build with the credentials in `.dev.vars` instead.
+const MODE = process.env.E2E_LIVE ? "" : " --mode fixture";
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -22,7 +25,7 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `npm run build && npx wrangler d1 migrations apply room-for-both --local && npx vite preview --port ${PORT} --strictPort`,
+        command: `npx vite build${MODE} && npx wrangler d1 migrations apply room-for-both --local && npx vite preview${MODE} --port ${PORT} --strictPort`,
         url: `http://localhost:${PORT}/api/health`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

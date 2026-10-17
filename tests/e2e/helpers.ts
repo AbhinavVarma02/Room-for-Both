@@ -28,3 +28,14 @@ export async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 }
+
+/**
+ * Sends every research request as the labelled fictional demonstration, so tests that only need some
+ * results to work with spend no live quota on a deployment with live access.
+ */
+export async function useFictionalResearch(page: Page) {
+  await page.route(/\/api\/research(\/baseline|\/venue-bridge)?$/, async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    await route.continue({ postData: JSON.stringify({ ...body, demo: true }) });
+  });
+}

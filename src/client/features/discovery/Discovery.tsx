@@ -172,7 +172,8 @@ export function Discovery() {
         </Callout>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
+      <AutoStart when={state.guided && !run && category !== null} onStart={start} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
         <Card className="h-fit space-y-5">
           <div>
             <p className="eyebrow">Searching for</p>
@@ -488,4 +489,19 @@ function DecisionTrace({ decisions, run }: { decisions: PlannerDecision[]; run: 
       <p className="mt-2 text-xs text-ink-faint">A model may only choose from a fixed list of research actions. It never decides feasibility, fees, or schedules.</p>
     </div>
   );
+}
+
+/** The guided example starts research itself, once, so the visitor reaches results without a form. */
+function AutoStart({ when, onStart }: { when: boolean; onStart: () => Promise<void> }) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (!when || done.current) return;
+    // Deferred so a development double-mount cancels the first attempt instead of aborting its request.
+    const timer = setTimeout(() => {
+      done.current = true;
+      void onStart();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [when, onStart]);
+  return null;
 }

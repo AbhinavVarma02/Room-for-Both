@@ -79,7 +79,7 @@ describe("what-if brief as a counterproposal", () => {
     expect(fee?.proposedChange).toEqual({ from: "$900", confirmBy: "host" });
     // Values nobody touched keep the party's own provenance.
     expect(brief.inputs.find((i) => i.label === "Pop-up day rate")?.provenance).toBe("party_supplied");
-    expect(brief.summary).toMatch(/If the proposed changes listed below are accepted/);
+    expect(brief.summary).toMatch(/If the proposed changes listed below are accepted, the suggested starting point/);
   });
 
   it("reports the status changes the edits cause, from the same rules", () => {

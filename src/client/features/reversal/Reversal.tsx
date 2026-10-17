@@ -459,7 +459,7 @@ export function Reversal() {
 
           {changed && (
             <Button variant="secondary" className="w-full" onClick={() => navigate("/workspace/brief?whatif=1")}>
-              Draft a brief from this what-if
+              Draft a brief proposing these changes
             </Button>
           )}
         </aside>

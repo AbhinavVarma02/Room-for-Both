@@ -302,9 +302,9 @@ export function buildBrief(
   const { inputs, counterproposal } = withProposals(scenario, evaluation, options.hypothetical ? options.stated : undefined);
   const c = evaluation.counts;
   const lead = `Of ${evaluation.options.length} arrangements checked, ${c.feasible} ${c.feasible === 1 ? "is" : "are"} feasible on stated requirements, ${c.conditional} conditional, and ${c.no_go} no-go.`;
-  const ifAccepted = counterproposal ? " If the proposed changes listed below are accepted," : "";
+  const opening = counterproposal ? " If the proposed changes listed below are accepted, the suggested starting point" : " The suggested starting point";
   const proposalText = proposalOption
-    ? `${ifAccepted} The suggested starting point is ${proposalOption.label} (${proposalOption.status}): guest outlay ${proposalOption.metrics.guestOutlayUsd === null ? "unknown" : money(proposalOption.metrics.guestOutlayUsd)}, host fee ${proposalOption.metrics.hostFeeUsd === null ? "unknown" : money(proposalOption.metrics.hostFeeUsd)}.${unresolved.length ? ` It still depends on: ${unresolved.join(" ")}` : ""}`
+    ? `${opening} is ${proposalOption.label} (${proposalOption.status}): guest outlay ${proposalOption.metrics.guestOutlayUsd === null ? "unknown" : money(proposalOption.metrics.guestOutlayUsd)}, host fee ${proposalOption.metrics.hostFeeUsd === null ? "unknown" : money(proposalOption.metrics.hostFeeUsd)}.${unresolved.length ? ` It still depends on: ${unresolved.join(" ")}` : ""}`
     : " No option is currently feasible or conditional.";
   const closestText = closest[0] && closest[0].changes.length ? ` The closest blocked option, ${closest[0].label}, would need: ${closest[0].changes.join(" ")}` : "";
 

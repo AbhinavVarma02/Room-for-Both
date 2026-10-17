@@ -67,11 +67,17 @@ against the allow-list and the run's own state; anything else, or any timeout, q
 rule's choice. Each decision is streamed as a `decision` event and kept in the run's `planner` trace. There is no
 loop and no model-chosen URL, endpoint, or parameter.
 
-**Follow-ups (one upstream call each).** `POST /api/research/baseline` repeats the run's venue search with no taste
-signal, deeper (10 venues) so taste-ranked venues can be located in it. `POST /api/research/venue-bridge` uses the
-chosen venue's own entity as the signal in the bridge's domain. Each is its own request with its own budget, the
-same limiter family, and the same daily ceiling, and accepts only identifiers matching strict patterns and the
-run's mode.
+**Follow-ups.** `POST /api/research/baseline` repeats the run's venue search with no taste signal, deeper (10
+venues) so taste-ranked venues can be located in it. `POST /api/research/venue-bridge` uses the chosen venue's own
+entity as the signal in the bridge's domain. Both make one upstream call. `POST /api/research/sensitivity` repeats
+the taste-informed search once per matched reference, each time without it (two or three calls), and is opt-in.
+Each follow-up is its own request with its own budget and the same daily ceiling, and accepts only identifiers
+matching strict patterns and the run's mode. The comparisons themselves (`compareDiscovery`, `compareSensitivity`)
+are pure functions in `src/shared/domain`, so they run in the browser on the returned lists.
+
+**Proposal ideas (no network).** `proposalConcepts` builds up to five ideas from distinct slices of the evidence
+already in the workspace and reads each suited format's status from the same evaluation the frontier shows. It never
+changes the evaluation.
 
 **Venue selection.** Choosing a venue freezes it in the browser with the run ID, signals, guest-side bridge, and,
 when fetched, the venue side and the comparison. A later research run never changes that snapshot; the brief cites
@@ -97,6 +103,17 @@ Referer headers) and is forwarded only as a bearer header. The server sets the a
 
 See `.agent/DECISIONS.md` for the full records. In short:
 
+| Decision | Why | Evidence |
+|----------|-----|----------|
+| Feasibility is a pure function in shared TypeScript | Same answer in the browser and the Worker; instant what-if edits; reproducible | 27 of 27 evaluation cases give identical decisions with or without cultural data attached |
+| Missing host terms stay unknown | A venue's fees and willingness cannot be inferred from taste | Options with unknown host terms are conditional, never feasible |
+| Show the counterfactual in the product | "Qloo helps" should be visible, not asserted | Category-only comparison on every run; in four live scenarios the taste signal swapped one to four of five venues, and once only reordered them |
+| Use the venue's own Qloo entity as a second signal | Make the bridge two-sided instead of guest-only | Live venue-side lists shared taste tags but no titles with the guest side, and the product says so |
+| Ideas come from distinct evidence and read their status from the engine | Several genuinely different proposals, without letting culture touch feasibility | 216 of 216 idea format statuses identical to the engine; no item repeated across ideas in 27 briefs |
+| A model may choose, never decide | Agency without unpredictability or invented facts | Allow-listed actions, validation before execution, rules as fallback; nine failure modes tested |
+| Fictional terms on a real venue are labelled everywhere, and edits are proposals | Exploring the method must not imply a real business agreed | Hypothetical labels on every screen and in the JSON export; edited values in a what-if brief carry unknown provenance |
+| Measure CPU on an undeployed version | The Free plan's CPU limit is release-critical | Per-route CPU from Cloudflare analytics on a preview URL; cold start dominates the tail, so splitting research was rejected on evidence |
+
 - **One Worker, same origin.** No CORS, one deploy, fits Workers Free.
 - **Engine in `src/shared`.** Reproducible decisions everywhere, instant what-if edits.
 - **Streaming research.** Truthful step-by-step progress without polling or fake percentages.
@@ -118,5 +135,5 @@ See `.agent/DECISIONS.md` for the full records. In short:
 | D1 unavailable | Live research fails closed (cannot bound spend); evaluation and fixture research still work |
 | Gemini absent or output rejected | Rule-based summary is always shown |
 | Model planner unavailable, not consented, over its allowance, slow, or answering outside the allow-list | The rule's decision runs; the trace says why |
-| Category-only comparison or venue-side lookup fails | The taste-informed results and the brief are unaffected; the panel says the lookup is unavailable |
+| Category-only comparison, venue-side lookup, or sensitivity check fails | The taste-informed results and the brief are unaffected; the panel says the lookup is unavailable, and a failed sensitivity variant is reported as not measured |
 | A category with no cross-domain type (for example a plant shop) | No venue-side lookup; the venue's own stated programming interests shape the activation idea instead |

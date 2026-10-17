@@ -14,7 +14,7 @@ expires, so start over on a shared computer.
 | Action | Data sent | Kept on the server? |
 |--------|-----------|---------------------|
 | Evaluate (API use only; the app evaluates locally) | The scenario | No |
-| Cultural research | Up to three cultural references, city, neighbourhood, venue category, product categories (product categories stay on our server and are not sent to Qloo) | No. Counts only, for rate limits |
+| Cultural research | Up to three cultural references, city, neighbourhood, venue category, product categories (product categories stay on the server and are not sent to Qloo) | No. Counts only, for rate limits |
 | Create a host link | Only the summary you choose to share: business name, product categories, proposed formats, the venue's public name, optional theme and message | Yes, until expiry (7 days) or withdrawal |
 | Host answers | The host's terms | Yes, until expiry or withdrawal |
 | Reference sensitivity check (optional) | The run's matched reference IDs and names, category, and area, to repeat the venue search without each reference | No. Counts only |
@@ -27,8 +27,8 @@ Your budget, own costs, notes, and priorities are never shared with a host and n
 
 ## Third parties
 
-- **Qloo** receives the cultural references, location, and venue category from research requests, sent by our
-  server. Under Qloo's Terms of Use, Qloo may use anonymised input signals to improve its service, so we send
+- **Qloo** receives the cultural references, location, and venue category from research requests, sent by the
+  Room for Both server. Under Qloo's Terms of Use, Qloo may use anonymised input signals to improve its service, so the app sends
   nothing else: no business names, terms, budgets, notes, or contact details. Qloo describes its data as
   aggregate and free of personal information. Qloo results are shown to you and kept in your browser; the
   server does not retain them (see [data sources and licensing](data-licensing.md)).

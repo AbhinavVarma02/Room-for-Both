@@ -32,7 +32,7 @@ are explicitly fictional. Host values typed in by the guest are labelled one-sid
 | Curated shelf placement | 2, 4, 8 weeks | weekly fee × weeks | weeks ≥ host minimum; guest shelf need ≤ host shelf space |
 | Co-hosted event | 1, 2, 3 hours | hourly fee × hours | shared window ≥ length; hours ≥ host minimum; host staff hours ≥ length; ≥1 guest staff; audience minimum ≤ capacity; sampling rule |
 
-Templates hold no prices or capacities of their own. The lengths are the options we compare, not facts.
+Templates hold no prices or capacities of their own. The lengths are the options compared, not facts.
 Their structural assumptions (for example, "a co-hosted event needs host staff for its full length") are
 shown in the UI and the brief as `derived_rule` items to confirm.
 
@@ -56,8 +56,8 @@ Each party may rank priorities: the guest from lower outlay, fewer guest staff h
 hours; the host from a higher fee and fewer host staff hours. Among options that are not no-go, an option is
 on the frontier if no other option is at least as good on every stated criterion and strictly better on one.
 
-This is Pareto dominance over the parties' own **ordinal** rankings. We never add one party's gain to the
-other's or invent a common utility scale, so we do not claim economic optimality. Unknown metrics make a pair
+This is Pareto dominance over the parties' own **ordinal** rankings. It never adds one party's gain to the
+other's or invents a common utility scale, so it does not claim economic optimality. Unknown metrics make a pair
 incomparable, ties are not dominance, and with no stated priorities the frontier is simply every viable option.
 
 ## Decision Reversal
@@ -96,6 +96,6 @@ named unknowns, not folded into a score.
 
 - The model covers only the constraints above. Payment terms, restocking, insurance, and contracts are out of scope.
 - Weekly windows cannot express specific dates, holidays, or one-off closures.
-- Minimal changes are minimal within the candidate changes we generate per check (one per lever), not a global
+- Minimal changes are minimal within the candidate changes generated per check (one per lever), not a global
   optimum over all possible edits.
 - Value statements in the brief are hypotheses tied to stated goals, never forecasts.

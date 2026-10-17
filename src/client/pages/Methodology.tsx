@@ -138,6 +138,16 @@ export function Methodology() {
           never combined. The strongest shared or guest-side items become an activation idea for the proposed format, which never enters a check.
         </p>
         <p className="mt-3">
+          <span className="font-medium text-ink">How much each reference matters.</span> An optional check repeats the taste-informed search once per
+          matched reference, each time without it. It reports whether the first choice, the list, or only the order changed, calls near-equal top
+          scores a tie, and says when Qloo's explanation and the removal test disagree. A failed repeat is reported as not measured.
+        </p>
+        <p className="mt-3">
+          <span className="font-medium text-ink">Ideas worth proposing.</span> Up to five ideas, each from a different slice of the evidence: titles
+          both sides share, the venue's own side, the guest's side, taste tags, and the venue's stated interests. A fixed rule says which formats each
+          idea suits; whether a format works comes only from the checks above. The first idea with a workable format is marked to discuss first.
+        </p>
+        <p className="mt-3">
           <span className="font-medium text-ink">Who plans the research.</span> Rules decide by default. With your consent, a language model may
           propose one action from a fixed list at two points: which domain to build the theme from, and whether to widen an empty search. The server
           checks every proposal against the list and the run's own facts before acting, and uses the rule's choice otherwise. Each decision shows who

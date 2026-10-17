@@ -49,12 +49,12 @@ the route can also answer `429 rate_limited` (this app's per-client limit) or `5
 ## Qloo routes used
 
 Routes and parameters follow Qloo's public documentation (docs.qloo.com, including its entity-type parameter
-guide). Field names below were then confirmed against authenticated responses; we recorded field lists only,
+guide). Field names below were then confirmed against authenticated responses; I recorded field lists only,
 never values. Authentication is the `X-Api-Key` header; list parameters are comma-separated. The host is
 `QLOO_BASE_URL`, restricted to `https` on `qloo.com` hosts; an issued credential may only work on the host
 named in its instructions, so `npm run smoke:live` confirms the host with one call before anything else.
 
-| Step | Route | Parameters we send | Fields we read (observed in authenticated responses) |
+| Step | Route | Parameters sent | Fields read (observed in authenticated responses) |
 |------|-------|--------------------|----------------|
 | Match a cultural reference | `GET /search` | `query`, `types` (entity URN), `take=5` | `results[]`: `entity_id`, `name`, `types[]`, `popularity` |
 | Match a venue category | `GET /v2/tags` | `filter.query`, `take=10` | `results.tags[]`: `id`, `name`, `type` |
@@ -70,7 +70,7 @@ What authenticated responses showed, and how the app handles it:
 |-------------|----------|
 | Names can be HTML-escaped (`&amp;`) | Decoded before display; React escapes again on render |
 | Book titles include subtitles (`Title: Subtitle`) | An exact match on the main title before the colon counts as exact, only if the visitor typed no subtitle |
-| Optional fields are often `null`, and responses carry many fields we do not use (hours, prices, images, descriptions) | Fields are read with type checks; wrong-typed fields count as absent; unused fields are dropped |
+| Optional fields are often `null`, and responses carry many fields the app does not use (hours, prices, images, descriptions) | Fields are read with type checks; wrong-typed fields count as absent; unused fields are dropped |
 | Entities carry 80–125 tags mixing themes with formats, age brackets, and payment or price metadata | Only thematic tags count as recurring signals or venue overlaps (rule in `isThematicTag`) |
 | Unscoped taste-tag queries mix unrelated domains | Taste tags are scoped with `filter.parents.types` |
 | A brand-only reference can make a cross-domain request fail with `400` ("all signal.interests.entities were invalid") | The bridge falls back to scoped taste tags and says so |
@@ -80,7 +80,7 @@ What authenticated responses showed, and how the app handles it:
 | Places carry `properties.is_closed` | Closed venues are left out and counted in the run's limitations |
 | Rate limits are reported in headers: `x-second-ratelimit-*` (5 per second) and `x-month-ratelimit-*` (10,000 per month) | Calls are paced; a `429` waits for the reported reset before one retry; an exhausted monthly allowance stops without retrying |
 
-Documented behaviours we rely on: `404` means no results (treated as empty), `400` for an unknown locality or
+Documented behaviours the client relies on: `404` means no results (treated as empty), `400` for an unknown locality or
 invalid signals, `401`/`403` for a rejected credential, `429` for rate limits. Affinity scores are 0–1 and
 relative to the query that produced them; Qloo's published reading is above 0.8 very high, 0.6–0.8 high,
 lower values weaker. Scores from different queries, and the direction of an affinity, are not treated as

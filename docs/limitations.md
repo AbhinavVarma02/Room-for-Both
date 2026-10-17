@@ -48,6 +48,11 @@ Room for Both is decision support. Its answers are only as good as the inputs an
   agrees with the rules; its choice matters most for categories without a default domain. Its decisions are not
   deterministic, which is why the rules stay the default.
 - The language-model baseline is one answer from one model with no live data; it is a comparison, not a benchmark.
+- The sensitivity check leaves out one reference at a time. It does not test combinations, other references the
+  brand might have chosen, or other areas, and each variant is a single query, so small differences can reflect
+  Qloo's ranking noise as much as the reference.
+- Which formats an idea suits is a fixed rule (for example, titles both audiences share suit an event or a shelf).
+  It is a reasonable default, not something measured.
 
 ## Operations
 
@@ -61,13 +66,14 @@ Room for Both is decision support. Its answers are only as good as the inputs an
   [evaluation](evaluation.md#worker-cpu-on-the-free-plan)); sustained public traffic could still trigger
   termination, and the response would be to reduce work per request, never a paid plan.
 - The live Qloo allowance is 10,000 calls a month. At up to 7 calls per run and a 300-call daily ceiling,
-  about 40 live runs a day are possible; after that, visitors are offered the fictional demonstration.
+  about 40 live runs a day are possible (fewer when visitors also run the optional follow-ups); after that,
+  visitors are offered the fictional demonstration.
 - Rate limits are per Cloudflare location and fixed windows; they are approximate, not exact accounting.
 - Host links are bearer links: anyone who has one can answer as the host until it expires or is withdrawn.
 
 ## Evaluation
 
-- The evaluation cases were written by the same team that wrote the engine. They show the rules behave as
+- The evaluation cases were written by the same person who wrote the engine. They show the rules behave as
   documented; they are not independent validation of business value.
 - The cultural-layer comparison in `docs/evaluation-results.md` uses fixture data and measures pipeline
   mechanics only. The live sample in `docs/evaluation.md` is five fixed scenarios: it shows the integration

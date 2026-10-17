@@ -34,6 +34,9 @@ await guide.getByRole("button", { name: "See which arrangements work" }).click()
 await page.getByRole("heading", { name: "Agreement Frontier", level: 1 }).waitFor();
 await page.screenshot({ path: "docs/images/frontier.png" });
 
+await page.getByRole("heading", { name: "Ideas worth proposing" }).scrollIntoViewIfNeeded();
+await page.screenshot({ path: "docs/images/ideas.png" });
+
 await guide.getByRole("button", { name: "Find the smallest change" }).click();
 await page.getByRole("button", { name: /Apply this change/ }).click();
 await page.getByRole("status").filter({ hasText: "You applied" }).waitFor();
@@ -44,4 +47,4 @@ await page.getByRole("heading", { name: "Activation idea" }).scrollIntoViewIfNee
 await page.screenshot({ path: "docs/images/brief.png" });
 
 await browser.close();
-console.log("Saved docs/images/{landing,discovery,host,frontier,reversal,brief}.png");
+console.log("Saved docs/images/{landing,discovery,host,frontier,ideas,reversal,brief}.png");

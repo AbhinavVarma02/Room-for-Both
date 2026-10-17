@@ -15,11 +15,11 @@ hours, and evenings to give, and their own rules about what they carry.
 **A plausible paying customer: an intermediary that arranges many small partnerships.** Market organisers,
 business improvement districts, pop-up marketplaces, makers' collectives, and activation coordinators broker
 dozens of brand-and-venue pairings a season. For them the cost of a stalled conversation is multiplied across a
-programme, and they already hold both sides' contacts. This is the buyer we would test first; it is untested.
+programme, and they already hold both sides' contacts. This is the buyer I would test first; it is untested.
 
 ## The manual workflow today
 
-As we understand it from how such collaborations are commonly arranged (not from our own research):
+As I understand it from how such collaborations are commonly arranged (not from my own research):
 
 1. The brand picks venues it already knows, or searches a map by category, with no evidence that the venue's
    audience shares its customers' taste.
@@ -33,10 +33,10 @@ As we understand it from how such collaborations are commonly arranged (not from
 | Step | Manual | With Room for Both | What decides it |
 |------|--------|--------------------|-----------------|
 | Whom to approach | Known venues or a category search | Venues ranked by shared taste, with the category-only list beside it so the difference is visible | Qloo data |
-| What to propose | A generic pop-up | An activation idea built from what both audiences connect with, with what is still unverified | Qloo data and a stated rule |
+| What to propose | A generic pop-up | Several ideas, each from a different slice of the evidence, shown with the formats that actually work on both sides' terms and what is still unverified | Qloo data, a stated rule, and the rules engine |
 | Whose terms count | Discovered one email at a time | Both sides' terms side by side; the venue can answer privately through a link | Each party |
 | Whether it fits | Found out late | Every arrangement checked at once: feasible, conditional, or no-go, with reasons | Deterministic rules |
-| What to try instead | Guesswork | The smallest verified change and the first three questions | Deterministic rules |
+| What to try instead | Guesswork | The smallest verified change, the first three questions, and a brief that lists each proposed change as needing the other side's confirmation | Deterministic rules |
 
 ## Why two-sided constraints and Decision Reversal matter
 
@@ -52,7 +52,7 @@ specific, verified "this would work if…". That is the moment a conversation us
 - **Fairer proposals:** each side sees the other's constraints and its own priorities side by side.
 - **Better-grounded outreach:** the first message names a cultural reason the venue's audience might care.
 
-How we would test them: run the interview script with five brands, five venues, and two intermediaries; then a
+How I would test them: run the interview script with five brands, five venues, and two intermediaries; then a
 pilot with one intermediary on real pairings, measuring how many first proposals reach a second meeting with and
 without the brief. None of this has been done.
 

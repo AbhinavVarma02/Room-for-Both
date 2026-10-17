@@ -33,9 +33,12 @@ Metrics reported:
 | Decision invariance | Whether attaching cultural research changes any feasibility verdict (it must not) |
 | Upstream calls per research run | Calls counted by the transport, including retries |
 | Engine latency | Wall time of `evaluateScenario`, 25 repetitions per engine case |
+| Proposal ideas | For every engine case in the cultural arm: whether each idea's format statuses equal the engine's, whether any item repeats across ideas, and unsupported-claim matches in idea text |
+| What-if provenance | For every engine case with a verified change: whether each edited value in the what-if brief carries unknown provenance and names the party that must confirm it |
+| Reference sensitivity (fixture) | The leave-one-out check on the fictional example's three references, to exercise both a decisive and an inert reference |
 
 The latest offline results are in [`evaluation-results.md`](evaluation-results.md). To show the checks can
-fail, we changed the budget rule from `≤` to `<` locally: the suite reported 38 of 40 cases passing (the
+fail, I changed the budget rule from `≤` to `<` locally: the suite reported 38 of 40 cases passing (the
 threshold edit case and the verified-reversal case failed). The change was reverted.
 
 ## Cultural layer versus a no-cultural-layer baseline
@@ -45,6 +48,16 @@ cultural arm attaches one research run, a chosen venue with its venue-side evide
 and the activation idea. Offline, that run uses fixture data, so the comparison only shows that the pipeline
 attaches labelled evidence and never moves a decision (27 of 27 identical), and that no activation or disclaimer
 sentence matches the unsupported-claim patterns. It says nothing about the quality of Qloo's data.
+
+## Proposal ideas, what-if briefs, and reference sensitivity
+
+These are mechanics checks, offline. Every idea's format status matched the engine (216 of 216), no item appeared
+in two ideas of the same brief (108 ideas across 27 briefs), and no idea sentence matched the unsupported-claim
+patterns (0 of 561). In the 13 cases with a verified change, every edited value in the what-if brief was labelled as
+an unconfirmed proposal (13 of 13). Adding this check found a real gap first: two suggested changes touched the
+guest's minimum audience and dealbreakers, which the brief did not list, so those proposals were silent. The brief
+now lists every decision-relevant input. The fixture builds in one dependence on purpose, so the sensitivity check
+on the fictional example reports one reference that changes the first choice and two that change nothing.
 
 ## What the taste signal changes: live comparison
 

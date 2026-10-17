@@ -5,6 +5,7 @@ import type { ProvenanceKind } from "../schemas/common";
 import type { GuestProfile, HostProfile, HostSource, Scenario } from "../schemas/profiles";
 import type { VenueSelection } from "../schemas/selection";
 import { type ActivationConcept, activationConcept } from "./activation";
+import { affinityLabel, affinityText, influenceText } from "./affinity";
 import { compareBridge, crossDomainTheme } from "./bridge";
 import { compareDiscovery } from "./comparison";
 import { clock, hours, money, weeks, windowLabel } from "./format";
@@ -16,6 +17,16 @@ export interface BriefInput {
   label: string;
   value: string;
   provenance: ProvenanceKind;
+  /** Set when a what-if brief changed this value: the party has not stated it, so it needs their confirmation. */
+  proposedChange?: { from: string; confirmBy: "guest" | "host" };
+}
+
+/** A what-if value set against what the party actually stated. */
+export interface ProposedChange {
+  party: "guest" | "host";
+  label: string;
+  from: string;
+  to: string;
 }
 
 export interface DecisionBrief {
@@ -42,7 +53,7 @@ export interface DecisionBrief {
   cultural: {
     mode: ResearchRun["mode"];
     themes: { title: string; items: string[]; source: string; provenance: ProvenanceKind }[];
-    selectedVenue: { name: string; strength: string; affinity: number | null; source: string } | null;
+    selectedVenue: { name: string; affinityLabel: string; affinity: number | null; source: string } | null;
     limitations: string[];
   } | null;
   /** How the host's terms were obtained. A hypothetical scenario always carries a disclaimer. */
@@ -52,7 +63,8 @@ export interface DecisionBrief {
     name: string;
     qlooEntityId: string;
     rank: number;
-    strength: string;
+    /** Same wording as discovery, for example "High affinity · 0.78". */
+    affinityLabel: string;
     affinity: number | null;
     address: string | null;
     influencedBy: string[];
@@ -75,6 +87,11 @@ export interface DecisionBrief {
   /** What each kind of evidence can and cannot decide. */
   decides: { opportunity: string; feasibility: string; commercial: string };
   inputs: BriefInput[];
+  /**
+   * Present only when the brief was built from what-if values: each change still needs the named
+   * party's confirmation, and `effects` lists the status changes the edits cause together.
+   */
+  counterproposal: { changes: ProposedChange[]; effects: string[] } | null;
   unresolved: string[];
   questions: { text: string; detail: string }[];
   method: string;
@@ -194,7 +211,7 @@ export function buildBrief(
   scenario: Scenario,
   evaluation: ScenarioEvaluation,
   research: ResearchRun | null,
-  options: { hypothetical: boolean; selection: VenueSelection | null; now?: Date },
+  options: { hypothetical: boolean; selection: VenueSelection | null; now?: Date; stated?: { scenario: Scenario; evaluation: ScenarioEvaluation } },
 ): DecisionBrief {
   const { guest, host } = scenario;
   const selection = linkedSelection(host, options.selection);
@@ -252,10 +269,12 @@ export function buildBrief(
   const cmp =
     selection?.baseline && research?.runId === selection.runId ? compareDiscovery(research.candidates, selection.baseline.candidates, selection.baseline.depth) : null;
   const hypotheticalHost = host.source === "hypothetical_scenario";
+  const { inputs, counterproposal } = withProposals(scenario, evaluation, options.hypothetical ? options.stated : undefined);
   const c = evaluation.counts;
   const lead = `Of ${evaluation.options.length} arrangements checked, ${c.feasible} ${c.feasible === 1 ? "is" : "are"} feasible on stated requirements, ${c.conditional} conditional, and ${c.no_go} no-go.`;
+  const ifAccepted = counterproposal ? " If the proposed changes listed below are accepted," : "";
   const proposalText = proposalOption
-    ? ` The suggested starting point is ${proposalOption.label} (${proposalOption.status}): guest outlay ${proposalOption.metrics.guestOutlayUsd === null ? "unknown" : money(proposalOption.metrics.guestOutlayUsd)}, host fee ${proposalOption.metrics.hostFeeUsd === null ? "unknown" : money(proposalOption.metrics.hostFeeUsd)}.${unresolved.length ? ` It still depends on: ${unresolved.join(" ")}` : ""}`
+    ? `${ifAccepted} The suggested starting point is ${proposalOption.label} (${proposalOption.status}): guest outlay ${proposalOption.metrics.guestOutlayUsd === null ? "unknown" : money(proposalOption.metrics.guestOutlayUsd)}, host fee ${proposalOption.metrics.hostFeeUsd === null ? "unknown" : money(proposalOption.metrics.hostFeeUsd)}.${unresolved.length ? ` It still depends on: ${unresolved.join(" ")}` : ""}`
     : " No option is currently feasible or conditional.";
   const closestText = closest[0] && closest[0].changes.length ? ` The closest blocked option, ${closest[0].label}, would need: ${closest[0].changes.join(" ")}` : "";
 
@@ -300,14 +319,14 @@ export function buildBrief(
           mode: evidenceMode ?? "fixture",
           themes: themes.map((t) => ({
             title: t.title,
-            items: t.items.map((i) => (i.affinity === null ? i.name : `${i.name} (${i.affinity.toFixed(2)})`)),
+            items: t.items.map((i) => (i.affinity === null ? i.name : `${i.name} (${affinityText(i.affinity)})`)),
             source: `${t.provenance.request}, ${t.provenance.retrievedAt}`,
             provenance: t.provenance.kind,
           })),
           selectedVenue: selected
             ? {
                 name: selected.venue.name,
-                strength: selected.strength,
+                affinityLabel: affinityLabel(selected.strength, selected.venue.affinity),
                 affinity: selected.venue.affinity,
                 source: `${selected.provenance.request}, ${selected.provenance.retrievedAt}`,
               }
@@ -331,10 +350,10 @@ export function buildBrief(
             name: selected.venue.name,
             qlooEntityId: selected.venue.id,
             rank: selected.rank,
-            strength: selected.strength,
+            affinityLabel: affinityLabel(selected.strength, selected.venue.affinity),
             affinity: selected.venue.affinity,
             address: selected.venue.address,
-            influencedBy: selected.contributions.map((x) => `${x.seed} (${x.score.toFixed(2)})`),
+            influencedBy: influenceText(selected.contributions),
             evidence: selected.provenance.kind,
             request: selected.provenance.request,
             retrievedAt: selected.provenance.retrievedAt,
@@ -368,7 +387,8 @@ export function buildBrief(
       feasibility: "Operational feasibility, what the stated terms permit: decided only by deterministic checks of both parties' stated terms. Cultural evidence never enters these checks.",
       commercial: "Commercial success, whether it pays off: unknown. Nothing here forecasts revenue, traffic, or demand.",
     },
-    inputs: [...guestInputs(guest), ...hostInputs(host)],
+    inputs,
+    counterproposal,
     unresolved,
     questions,
     method:
@@ -380,6 +400,34 @@ export function buildBrief(
     ],
   };
 }
+
+/**
+ * Compares what-if values with the parties' stated ones. A changed value is a proposal, not a
+ * statement, so its provenance becomes unknown until the party that owns it confirms it.
+ */
+function withProposals(
+  scenario: Scenario,
+  evaluation: ScenarioEvaluation,
+  stated: { scenario: Scenario; evaluation: ScenarioEvaluation } | undefined,
+): { inputs: BriefInput[]; counterproposal: DecisionBrief["counterproposal"] } {
+  const current = [...guestInputs(scenario.guest), ...hostInputs(scenario.host)];
+  if (!stated) return { inputs: current, counterproposal: null };
+  const before = new Map([...guestInputs(stated.scenario.guest), ...hostInputs(stated.scenario.host)].map((i) => [`${i.party}.${i.label}`, i]));
+  const effects = evaluation.options.flatMap((a) => {
+    const b = stated.evaluation.options.find((o) => o.id === a.id);
+    return b && b.status !== a.status ? [`${a.label}: ${STATUS_WORDS[b.status]} → ${STATUS_WORDS[a.status]}`] : [];
+  });
+  const proposedChanges: ProposedChange[] = [];
+  const inputs = current.map((i) => {
+    const was = before.get(`${i.party}.${i.label}`);
+    if (!was || was.value === i.value) return i;
+    proposedChanges.push({ party: i.party, label: i.label, from: was.value, to: i.value });
+    return { ...i, provenance: "unknown" as const, proposedChange: { from: was.value, confirmBy: i.party } };
+  });
+  return { inputs, counterproposal: proposedChanges.length ? { changes: proposedChanges, effects } : null };
+}
+
+const STATUS_WORDS: Record<OptionStatus, string> = { feasible: "feasible", conditional: "conditional", no_go: "no-go" };
 
 export function narrativeFacts(brief: DecisionBrief, guestName: string, hostName: string): NarrativeFacts {
   return {

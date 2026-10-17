@@ -1,4 +1,5 @@
 import { MapPin, Sparkles } from "lucide-react";
+import { influenceText } from "@shared/domain/affinity";
 import { compareBridge, crossDomainTheme } from "@shared/domain/bridge";
 import type { VenueSelection } from "@shared/schemas/selection";
 import { Card, ProvenanceChip, cn } from "../../components/ui/primitives";
@@ -37,7 +38,7 @@ export function SelectedVenuePanel({ selection, compact = false }: { selection: 
       )}
       <p className="mt-2 text-sm text-ink-soft">
         #{c.rank} for {selection.signals.length ? selection.signals.map((s) => `“${s}”`).join(", ") : "the guest's search"}
-        {c.contributions.length > 0 && <> · most influenced by {c.contributions.map((x) => `${x.seed} (${x.score.toFixed(2)})`).join(", ")}</>}
+        {c.contributions.length > 0 && <> · most influenced by {influenceText(c.contributions).join(", ")}</>}
       </p>
       <p className="mt-1 text-xs text-ink-faint">
         Source: {c.provenance.request} · {new Date(c.provenance.retrievedAt).toLocaleString()}

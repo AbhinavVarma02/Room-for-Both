@@ -1,7 +1,8 @@
 import { CROSS_DOMAIN_BY_VENUE, bridgeDomain } from "../../shared/constants/vocabulary";
 import type { BaselineRequest, BaselineResult, EvidenceProvenance, VenueBridge, VenueBridgeRequest } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
-import { isThematicTag, normalizeEntities, strengthOf } from "../integrations/qloo/normalize";
+import { strengthOf } from "../../shared/domain/affinity";
+import { isThematicTag, normalizeEntities } from "../integrations/qloo/normalize";
 
 /**
  * Single-call follow-ups to a research run. Each is its own request so it carries its own CPU and

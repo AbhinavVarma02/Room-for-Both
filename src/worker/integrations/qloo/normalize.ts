@@ -1,4 +1,4 @@
-import type { QlooEntity, QlooTag, Strength } from "../../../shared/schemas/evidence";
+import type { QlooEntity, QlooTag } from "../../../shared/schemas/evidence";
 
 /**
  * Upstream payloads are untrusted input. We validate item by item, keep only the fields we
@@ -145,17 +145,6 @@ export function normalizeTags(payload: unknown, limit: number): (QlooTag & { aff
     if (tag) out.push(tag);
   }
   return out;
-}
-
-/**
- * Qloo's documented interpretation: above 0.8 is very high, 0.6–0.8 high, around 0.5 medium,
- * below that low, and scores are relative to the query that produced them.
- */
-export function strengthOf(affinity: number | null): Strength {
-  if (affinity === null) return "unscored";
-  if (affinity > 0.8) return "strong";
-  if (affinity >= 0.6) return "moderate";
-  return "weak";
 }
 
 /**

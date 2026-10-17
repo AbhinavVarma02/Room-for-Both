@@ -26,8 +26,10 @@ export function Brief() {
 
   const brief = useMemo(() => {
     if (!scenario) return null;
-    return buildBrief(scenario, evaluateScenario(scenario), state.research, { hypothetical: useWhatIf, selection: state.selection });
-  }, [scenario, state.research, state.selection, useWhatIf]);
+    // A what-if brief is compared with the stated terms so every edited value reads as a proposal.
+    const stated = useWhatIf && guest && host ? { scenario: { guest, host }, evaluation: evaluateScenario({ guest, host }) } : undefined;
+    return buildBrief(scenario, evaluateScenario(scenario), state.research, { hypothetical: useWhatIf, selection: state.selection, ...(stated ? { stated } : {}) });
+  }, [scenario, state.research, state.selection, useWhatIf, guest, host]);
 
   const narrative = useMutation({
     mutationFn: () => {
@@ -49,7 +51,7 @@ export function Brief() {
   };
 
   const byProvenance = brief.inputs.reduce<Record<string, BriefInput[]>>((acc, i) => {
-    (acc[i.provenance] ??= []).push(i);
+    if (!i.proposedChange) (acc[i.provenance] ??= []).push(i);
     return acc;
   }, {});
 
@@ -99,6 +101,7 @@ export function Brief() {
             {brief.hypothetical && (
               <Callout tone="warn" title="What-if values">
                 Built from hypothetical values explored in Decision Reversal, not the parties' entered terms.
+                {brief.counterproposal ? " Each changed value is listed below as a proposal that the named party still has to confirm." : ""}
               </Callout>
             )}
             <Callout tone={brief.twoSided.status === "two_sided" ? "ok" : "info"} title="Whose inputs these are">
@@ -142,6 +145,41 @@ export function Brief() {
               </div>
             )}
           </div>
+        )}
+
+        {brief.counterproposal && (
+          <>
+            <H2>Proposed changes to discuss</H2>
+            <p className="mt-3 text-sm text-ink-soft">
+              Nobody has agreed to these. They are the values tried in Decision Reversal, set against what each side stated, and each one needs the
+              named party's confirmation before anything below holds.
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {brief.counterproposal.changes.map((c) => (
+                <li key={`${c.party}-${c.label}`} className="flex flex-wrap items-baseline gap-2 rounded-xl border border-line p-3">
+                  <PartyTag party={c.party} />
+                  <span className="font-medium">{c.label}:</span>
+                  <span className="text-ink-soft line-through">{c.from}</span>
+                  <span aria-hidden>→</span>
+                  <span className="sr-only">proposed</span>
+                  <span className="font-medium">{c.to}</span>
+                  <span className="text-xs text-ink-faint">needs confirmation by the {c.party}</span>
+                </li>
+              ))}
+            </ul>
+            {brief.counterproposal.effects.length > 0 ? (
+              <div className="mt-3 text-sm">
+                <p className="font-medium">What these changes would do, re-checked by the same rules</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+                  {brief.counterproposal.effects.map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-ink-soft">These changes do not change any option's status.</p>
+            )}
+          </>
         )}
 
         <H2>Proposed starting point</H2>
@@ -321,8 +359,7 @@ export function Brief() {
                   Venue chosen from research: <span className="font-semibold">{brief.venue.name}</span> <ProvenanceChip kind={brief.venue.evidence} />
                 </p>
                 <p className="mt-1 text-ink-soft">
-                  #{brief.venue.rank} in its research run · {brief.venue.strength}
-                  {brief.venue.affinity !== null ? `, affinity ${brief.venue.affinity.toFixed(2)}` : ""}
+                  #{brief.venue.rank} in its research run · {brief.venue.affinityLabel}
                   {brief.venue.influencedBy.length > 0 ? ` · most influenced by ${brief.venue.influencedBy.join(", ")}` : ""}
                   {brief.venue.address ? ` · ${brief.venue.address}` : ""}
                 </p>
@@ -387,6 +424,22 @@ export function Brief() {
 
         <H2>Inputs and where they came from</H2>
         <div className="mt-3 space-y-5">
+          {brief.counterproposal && (
+            <div>
+              <h3 className="text-sm font-semibold">Proposed in this what-if, not stated by the party</h3>
+              <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                {brief.inputs
+                  .filter((i) => i.proposedChange)
+                  .map((i) => (
+                    <li key={`${i.party}-${i.label}`} className="flex items-baseline gap-2">
+                      <PartyTag party={i.party} />
+                      <span className="text-ink-soft">{i.label}:</span> <span>{i.value}</span>
+                      <span className="text-xs text-ink-faint">(stated: {i.proposedChange?.from})</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
           {(Object.keys(byProvenance) as ProvenanceKind[]).map((k) => (
             <div key={k}>
               <h3 className="text-sm font-semibold">

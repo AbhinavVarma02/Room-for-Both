@@ -11,7 +11,8 @@ import type {
   ResolvedSeed,
 } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
-import { contributions, isThematicTag, normalizeEntities, normalizeName, normalizeTags, resolvedLocality, strengthOf } from "../integrations/qloo/normalize";
+import { strengthOf } from "../../shared/domain/affinity";
+import { contributions, isThematicTag, normalizeEntities, normalizeName, normalizeTags, resolvedLocality } from "../integrations/qloo/normalize";
 import { DETERMINISTIC_ONLY, PlannerSession, type PlannerSetup } from "./planner";
 
 /**
@@ -23,14 +24,6 @@ import { DETERMINISTIC_ONLY, PlannerSession, type PlannerSetup } from "./planner
  */
 
 export const MAX_SEEDS_PER_RUN = 3;
-
-export const TOOLS = {
-  resolve_entity: { route: "/search", purpose: "Match a cultural reference to a Qloo entity" },
-  resolve_tag: { route: "/v2/tags", purpose: "Match a venue category to a Qloo tag" },
-  recommend_venues: { route: "/v2/insights", purpose: "Rank venues in a location by affinity to the references" },
-  cross_domain: { route: "/v2/insights", purpose: "Find related entities in another domain for a collaboration theme" },
-  taste_tags: { route: "/v2/insights", purpose: "Describe the references' audience with taste tags" },
-} as const;
 
 /**
  * Authenticated tag searches found no exact Qloo tag for these labels. We search for Qloo's nearest

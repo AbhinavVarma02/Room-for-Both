@@ -3,6 +3,7 @@ import { Bot, CheckCircle2, CircleDashed, Cog, Loader2, MapPin, MinusCircle, Spa
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { SEED_KIND_LABELS, VENUE_CATEGORIES, VENUE_CATEGORY_LABELS, type VenueCategory } from "@shared/constants/vocabulary";
+import { STRENGTH_LABELS, affinityText, influenceText } from "@shared/domain/affinity";
 import type { PartnershipCandidate, ResearchRun, ResearchStep, ResearchStepId, Strength } from "@shared/schemas/evidence";
 import type { PlannerDecision } from "@shared/schemas/planner";
 import { ApiRequestError, getConfig, streamResearch } from "../../app/api";
@@ -40,19 +41,21 @@ function httpErrorKind(code: string): ErrorKind {
   return "other";
 }
 
-const STRENGTH: Record<Strength, { label: string; className: string }> = {
-  strong: { label: "Very high affinity", className: "bg-common text-white" },
-  moderate: { label: "High affinity", className: "bg-common-soft text-common" },
-  weak: { label: "Lower affinity", className: "bg-sunken text-ink-soft" },
-  unscored: { label: "No affinity score", className: "border border-dashed border-line-strong text-ink-faint" },
+const STRENGTH_STYLE: Record<Strength, string> = {
+  strong: "bg-common text-white",
+  moderate: "bg-common-soft text-common",
+  weak: "bg-sunken text-ink-soft",
+  unscored: "border border-dashed border-line-strong text-ink-faint",
 };
 
 export function StrengthPill({ strength, affinity }: { strength: Strength; affinity: number | null }) {
-  const s = STRENGTH[strength];
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", s.className)} title="Relative to this query, per Qloo's published score ranges">
-      {s.label}
-      {affinity !== null && <span className="font-mono font-normal tabular-nums">· {affinity.toFixed(2)}</span>}
+    <span
+      className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", STRENGTH_STYLE[strength])}
+      title="Relative to this query, per Qloo's published score ranges"
+    >
+      {STRENGTH_LABELS[strength]}
+      {affinity !== null && strength !== "unscored" && <span className="font-mono font-normal tabular-nums">· {affinityText(affinity)}</span>}
     </span>
   );
 }
@@ -413,7 +416,7 @@ function ResearchResults({
                 )}
                 {c.contributions.length > 0 && (
                   <p className="mt-2 text-sm text-ink-soft">
-                    Most influenced by: {c.contributions.map((x) => `${x.seed} (${x.score.toFixed(2)})`).join(", ")}
+                    Most influenced by: {influenceText(c.contributions).join(", ")}
                   </p>
                 )}
                 {c.sharedTags.length > 0 && (

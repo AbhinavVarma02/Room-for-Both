@@ -109,3 +109,28 @@ test("a rejected live credential falls back to a labelled fictional demonstratio
   if (mode === "live") await expect(page.getByText("Showing the fictional demonstration")).toBeVisible();
   await expect(page.getByText("Observed in Qloo")).toHaveCount(0);
 });
+
+test("the optional language-model summary needs consent and never replaces the rule-based brief", async ({ page }) => {
+  const config = (await (await page.request.get("/api/config")).json()) as { narrativeEnabled: boolean };
+  test.skip(!config.narrativeEnabled, "Narrative drafting is not configured on this server.");
+  await startExample(page);
+  await page.goto("/workspace/brief");
+  await expect(page.getByText("Rule-based summary assembled from the checks below.")).toBeVisible();
+  const draft = page.getByRole("button", { name: "Draft a summary" });
+  await expect(draft).toBeDisabled();
+
+  // First a simulated provider failure: the brief must stay usable and say so.
+  await page.route("**/api/narrative", (route) =>
+    route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: { code: "narrative_unavailable", message: "The summary could not be drafted." } }) }),
+  );
+  await page.getByRole("checkbox", { name: /send the summary facts/ }).check();
+  await draft.click();
+  await expect(page.getByRole("alert")).toContainText("The rule-based summary is unaffected.");
+  await expect(page.getByText("Rule-based summary assembled from the checks below.")).toBeVisible();
+
+  // Then one real draft, labelled as a model interpretation.
+  await page.unroute("**/api/narrative");
+  await draft.click();
+  await expect(page.getByText("Plain-language draft")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Language-model draft").first()).toBeVisible();
+});

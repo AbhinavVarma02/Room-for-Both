@@ -212,6 +212,14 @@ describe("live mode against a synthetic upstream", () => {
     expect(run.limitations).toContain("1 venue that Qloo marks as closed was left out.");
   });
 
+  it("searches Qloo's nearest category when it has no tag for the label, and says so", async () => {
+    const run = result((await h.request("/api/research", jsonInit("POST", { ...request, venueCategory: "plant_shop", guestCategories: ["plants"] }), live)).text);
+    const tagCall = fake.calls.find((c) => c.url.pathname === "/v2/tags");
+    expect(tagCall?.url.searchParams.get("filter.query")).toBe("Plant nursery");
+    expect(run.categoryTag?.id).toBe("urn:tag:synthetic:place:plant_nursery");
+    expect(run.limitations).toContain("Qloo has no “Plant shop” tag, so venues are searched as “Plant nursery”, its nearest category.");
+  });
+
   it("reuses the venue-category tag within an isolate", async () => {
     await h.request("/api/research", jsonInit("POST", request), live);
     const first = fake.calls.filter((c) => c.url.pathname === "/v2/tags").length;

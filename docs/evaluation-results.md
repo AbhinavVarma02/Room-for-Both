@@ -11,7 +11,7 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Numbers in generated statements traceable to inputs or reported arithmetic | 3019 / 3019 (100.0%) |
 | Decisions identical with and without the cultural layer | 27 / 27 |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.05 / 0.13 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.05 / 0.17 |
 
 ## Cultural layer versus no-cultural-layer baseline
 
@@ -20,7 +20,8 @@ numbers measure pipeline mechanics only, not the quality of Qloo's data: the cul
 162 provenance-labelled evidence items across 27 briefs; the baseline attached none. Decision
 invariance (27/27) confirms cultural data never changes a feasibility verdict.
 
-Live Qloo comparison: **not run** (requires an authorised Qloo key; see BLOCKERS EXT-QLOO-KEY).
+Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and
+recorded with their date in `docs/evaluation.md`; this generated report stays offline so it is reproducible.
 
 ## Cases
 

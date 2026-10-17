@@ -14,6 +14,7 @@ import type { Scenario } from "../../src/shared/schemas/profiles";
 import { checkDraft } from "../../src/worker/integrations/gemini/client";
 import { QlooClient, QlooError, type QlooPath, type QlooTransport, type QueryValue } from "../../src/worker/integrations/qloo/client";
 import { FixtureTransport } from "../../src/worker/integrations/qloo/fixture-transport";
+import { normalizeEntity, normalizeTag, resultItems } from "../../src/worker/integrations/qloo/normalize";
 import { runResearch } from "../../src/worker/orchestration/research";
 import { localVar } from "../../scripts/lib";
 import { CASES, NARRATIVE_FACTS, type ResearchCase } from "./cases";
@@ -100,39 +101,77 @@ function quantile(xs: number[], q: number): number {
   return s[Math.min(s.length - 1, Math.floor(q * s.length))] ?? 0;
 }
 
+/**
+ * Fixed live scenarios. They reuse the product's example references and cover each bridge path:
+ * cross-domain books, cross-domain podcasts, a brand-only reference where the cross-domain lookup
+ * may be rejected (taste-tag fallback), an unresolvable small-business name, and no references.
+ */
+const LIVE_SCENARIOS: { id: string; request: ResearchRequest }[] = [
+  { id: "L1 example: 3 references, Greenpoint then Brooklyn, bookstore", request: { seeds: [{ label: "Aesop", kind: "brand" }, { label: "Patagonia", kind: "brand" }, { label: "Braiding Sweetgrass", kind: "book" }], city: "Brooklyn", neighborhood: "Greenpoint", venueCategory: "bookstore", guestCategories: ["skincare"], maxCandidates: 5 } },
+  { id: "L2 brand reference, Portland, cafe", request: { seeds: [{ label: "Patagonia", kind: "brand" }], city: "Portland", venueCategory: "cafe", guestCategories: ["apparel"], maxCandidates: 5 } },
+  { id: "L3 brand-only reference, Brooklyn, bookstore", request: { seeds: [{ label: "Aesop", kind: "brand" }], city: "Brooklyn", venueCategory: "bookstore", guestCategories: ["skincare"], maxCandidates: 5 } },
+  { id: "L4 unresolvable business name plus artist, Chicago, record store", request: { seeds: [{ label: "Fernleaf Botanics", kind: "brand" }, { label: "Khruangbin", kind: "artist" }], city: "Chicago", venueCategory: "record_store", guestCategories: ["art_prints"], maxCandidates: 5 } },
+  { id: "L5 no references, Austin, plant shop", request: { seeds: [], city: "Austin", venueCategory: "plant_shop", guestCategories: ["plants"], maxCandidates: 5 } },
+];
+
 async function runLive() {
   const apiKey = localVar("QLOO_API_KEY");
   if (!apiKey) {
-    console.log("Live evaluation skipped: QLOO_API_KEY is not set (blocker EXT-QLOO-KEY).");
+    console.log("Live evaluation skipped: QLOO_API_KEY is not set. No request was made.");
     return null;
   }
-  const requests: ResearchRequest[] = [
-    { seeds: [{ label: "Aesop", kind: "brand" }, { label: "Braiding Sweetgrass", kind: "book" }], city: "Brooklyn", venueCategory: "bookstore", guestCategories: ["skincare"], maxCandidates: 5 },
-    { seeds: [{ label: "Patagonia", kind: "brand" }], city: "Portland", venueCategory: "cafe", guestCategories: ["apparel"], maxCandidates: 5 },
-    { seeds: [], city: "Chicago", venueCategory: "record_store", guestCategories: ["art_prints"], maxCandidates: 5 },
-  ];
   const results = [];
-  for (const request of requests) {
-    const transport = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 7 });
+  for (const { id, request } of LIVE_SCENARIOS) {
+    const inner = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 7 });
+    let rawItems = 0;
+    let dropped = 0;
+    // Counts items the normaliser rejects; payloads themselves are never stored.
+    const transport: QlooTransport = {
+      get callsUsed() {
+        return inner.callsUsed;
+      },
+      async get(path: QlooPath, query: Record<string, QueryValue>) {
+        const payload = await inner.get(path, query);
+        const tags = path === "/v2/tags" || query["filter.type"] === "urn:tag";
+        const items = resultItems(payload, tags ? "tags" : "entities");
+        rawItems += items.length;
+        dropped += items.filter((i) => (tags ? normalizeTag(i) : normalizeEntity(i)) === null).length;
+        return payload;
+      },
+    };
     const t0 = performance.now();
     try {
       const run = await runResearch(request, { transport, mode: "live", callBudget: 7, runId: "eval" });
+      const evidence = [...run.seeds.map((x) => x.provenance), ...run.candidates.map((c) => c.provenance), ...run.themes.map((t) => t.provenance)];
+      const text = [...run.limitations, ...run.themes.map((t) => t.rationale), ...run.steps.map((x) => x.summary)];
+      const bridge = run.steps.find((x) => x.id === "cultural_bridge");
       results.push({
-        venueCategory: request.venueCategory,
-        seeds: request.seeds.length,
-        exactSeeds: run.seeds.filter((s) => s.status === "exact").length,
+        id,
+        references: request.seeds.length,
+        exact: run.seeds.filter((x) => x.status === "exact").length,
+        uncertain: run.seeds.filter((x) => x.status === "uncertain").length,
+        unresolved: run.seeds.filter((x) => x.status === "unresolved").length,
+        categoryMatched: run.categoryTag !== null,
+        widened: run.steps.some((x) => x.id === "broaden_location"),
         candidates: run.candidates.length,
+        scored: run.candidates.filter((c) => c.venue.affinity !== null).length,
+        explained: run.candidates.filter((c) => c.contributions.length > 0).length,
         themes: run.themes.length,
-        strengths: run.candidates.map((c) => c.strength),
+        bridge: bridge ? `${bridge.tool}:${bridge.status}` : "none",
+        provenanceObserved: `${evidence.filter((p) => p.kind === "qloo_observed").length}/${evidence.length}`,
+        unsupportedStatements: text.filter((x) => UNSUPPORTED.test(x)).length,
+        normalisationDropped: `${dropped}/${rawItems}`,
         callsUsed: run.callsUsed,
         ms: Math.round(performance.now() - t0),
       });
     } catch (error) {
-      results.push({ venueCategory: request.venueCategory, error: error instanceof QlooError ? error.code : "INTERNAL", callsUsed: transport.callsUsed, ms: Math.round(performance.now() - t0) });
+      results.push({ id, error: error instanceof QlooError ? error.code : "INTERNAL", callsUsed: inner.callsUsed, ms: Math.round(performance.now() - t0) });
     }
   }
   mkdirSync("tests/evaluation/output", { recursive: true });
-  writeFileSync("tests/evaluation/output/live-results.json", `${JSON.stringify(results, null, 2)}\n`);
+  writeFileSync("tests/evaluation/output/live-results.json", `${JSON.stringify(results, null, 2)}
+`);
+  console.table(results);
   return results;
 }
 
@@ -222,7 +261,7 @@ async function main() {
   const totalChecks = rows.reduce((s, r) => s + r.checks, 0);
   const passedChecks = rows.reduce((s, r) => s + r.passed, 0);
   const casesPassed = rows.filter((r) => r.failures.length === 0).length;
-  const live = process.argv.includes("--live") ? await runLive() : null;
+  if (process.argv.includes("--live")) await runLive();
 
   const results = {
     cases: rows.length,
@@ -235,7 +274,6 @@ async function main() {
     culturalLayer: { mode: "fixture", ...withQloo },
     researchCalls: { runs: researchCalls.length, max: Math.max(...researchCalls), mean: researchCalls.reduce((a, b) => a + b, 0) / researchCalls.length },
     engineLatencyMs: { samples: latencies.length, median: quantile(latencies, 0.5), p95: quantile(latencies, 0.95) },
-    live,
     rows,
   };
 
@@ -262,9 +300,8 @@ async function main() {
     `${withQloo.evidence} provenance-labelled evidence items across ${invariantTotal} briefs; the baseline attached none. Decision`,
     `invariance (${invariant}/${invariantTotal}) confirms cultural data never changes a feasibility verdict.`,
     "",
-    live
-      ? `Live Qloo sample: ${JSON.stringify(live)}`
-      : "Live Qloo comparison: **not run** (requires an authorised Qloo key; see BLOCKERS EXT-QLOO-KEY).",
+    "Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and",
+    "recorded with their date in `docs/evaluation.md`; this generated report stays offline so it is reproducible.",
     "",
     "## Cases",
     "",

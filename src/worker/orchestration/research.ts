@@ -36,6 +36,27 @@ const CROSS_DOMAIN: Partial<Record<VenueCategory, { type: string; title: string;
   cafe: { type: "urn:entity:podcast", title: "Conversation series pairing", noun: "podcasts" },
 };
 
+/**
+ * Authenticated tag searches found no exact Qloo tag for these labels. We search for Qloo's nearest
+ * established category instead and disclose the substitution in the run's limitations.
+ */
+const QLOO_CATEGORY_QUERY: Partial<Record<VenueCategory, string>> = {
+  clothing_boutique: "Clothing store",
+  plant_shop: "Plant nursery",
+};
+
+/**
+ * Live tag searches return several tags with the same name (for example a cafe category, a
+ * restaurant genre, and a hotel amenity). We prefer the plain place category, then a plain place
+ * genre, then any other place tag.
+ */
+function placeTagRank(t: { id: string; type?: string }): number {
+  if (/:category:place:[a-z0-9_]+$/.test(t.id)) return 0;
+  if (/:genre:place:[a-z0-9_]+$/.test(t.id)) return 1;
+  if (/(^|:)place(:|$)/.test(t.type ?? "") || t.id.includes(":place:")) return 2;
+  return 3;
+}
+
 const STEP_LABELS: Record<ResearchStepId, string> = {
   resolve_seeds: "Matching your cultural references",
   resolve_category: "Matching the venue category",
@@ -190,6 +211,8 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
 
   // 2. Resolve the venue category to a Qloo tag (exact matches only).
   const categoryLabel = VENUE_CATEGORY_LABELS[request.venueCategory];
+  const categoryQuery = QLOO_CATEGORY_QUERY[request.venueCategory] ?? categoryLabel;
+  const proxyNote = categoryQuery !== categoryLabel ? ` Qloo has no “${categoryLabel}” tag, so venues are searched as “${categoryQuery}”, its nearest category.` : "";
   let categoryTag: ResearchRun["categoryTag"] = null;
   const cacheKey = `${deps.mode}:${request.venueCategory}`;
   const cached = deps.mode === "live" ? categoryCache.get(cacheKey) : undefined;
@@ -198,30 +221,31 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
       id: cached.id,
       name: cached.name,
       status: "exact",
-      provenance: { ...provenance("/v2/tags", `Tag search for “${categoryLabel}”`), retrievedAt: cached.at, note: "Reused from a recent identical lookup." },
+      provenance: { ...provenance("/v2/tags", `Tag search for “${categoryQuery}”`), retrievedAt: cached.at, note: "Reused from a recent identical lookup." },
     };
-    await record({ id: "resolve_category", tool: "resolve_tag", status: "done", calls: 0, summary: `Matched “${categoryLabel}” (cached).`, durationMs: 0 });
+    if (proxyNote) limitations.push(proxyNote.trim());
+    await record({ id: "resolve_category", tool: "resolve_tag", status: "done", calls: 0, summary: `Matched “${categoryQuery}” (cached).`, durationMs: 0 });
   } else if (budgetReached) {
     await skipForBudget("resolve_category", "resolve_tag");
   } else {
     try {
-      const r = await timed(() => deps.transport.get("/v2/tags", { "filter.query": categoryLabel, take: 10 }));
+      const r = await timed(() => deps.transport.get("/v2/tags", { "filter.query": categoryQuery, take: 10 }));
       const tags = normalizeTags(r.value, 10);
-      const matches = tags.filter((t) => sameName(t.name, categoryLabel));
-      const isPlace = (t: { id: string; type?: string }) => /(^|:)place(:|$)/.test(t.type ?? "") || t.id.includes(":place:");
-      const chosen = matches.find(isPlace) ?? matches[0] ?? null;
+      const matches = tags.filter((t) => sameName(t.name, categoryQuery)).sort((a, b) => placeTagRank(a) - placeTagRank(b));
+      const chosen = matches[0] ?? null;
       if (chosen) {
-        categoryTag = { id: chosen.id, name: chosen.name, status: "exact", provenance: provenance("/v2/tags", `Tag search for “${categoryLabel}”`) };
+        categoryTag = { id: chosen.id, name: chosen.name, status: "exact", provenance: provenance("/v2/tags", `Tag search for “${categoryQuery}”`) };
         if (deps.mode === "live") categoryCache.set(cacheKey, { id: chosen.id, name: chosen.name, at: iso(), expires: now() + CATEGORY_TTL_MS });
+        if (proxyNote) limitations.push(proxyNote.trim());
       } else {
-        limitations.push(`No Qloo tag exactly matched “${categoryLabel}”, so venue discovery was skipped rather than guessing a category.`);
+        limitations.push(`No Qloo tag exactly matched “${categoryQuery}”, so venue discovery was skipped rather than guessing a category.`);
       }
       await record({
         id: "resolve_category",
         tool: "resolve_tag",
         status: chosen ? "done" : "failed",
         calls: r.calls,
-        summary: chosen ? `Matched “${categoryLabel}” to a Qloo tag.` : `No exact tag for “${categoryLabel}”.`,
+        summary: chosen ? `Matched “${categoryQuery}” to a Qloo tag.` : `No exact tag for “${categoryQuery}”.`,
         durationMs: r.ms,
       });
     } catch (error) {

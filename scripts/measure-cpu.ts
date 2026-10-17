@@ -1,13 +1,16 @@
 /**
  * Measures CPU and wall time per route on a deployed Worker using `wrangler tail`.
- * Usage: npm run measure:cpu -- https://<worker>.workers.dev
+ * Usage: npm run measure:cpu -- https://<worker>.workers.dev [--demo]
+ * `--demo` runs research as the fictional demonstration (no upstream calls), which separates the cost
+ * of handling upstream responses from the rest of the research pipeline.
  * Sends 5 evaluations, 3 research runs (three references, widened search), and 3 health checks.
  * In live mode the research runs spend real upstream quota (at most 21 calls).
  */
 import { spawn } from "node:child_process";
 import { EXAMPLE_SCENARIO } from "../src/shared/fixtures/example-scenario";
 
-const base = (process.argv[2] ?? "").replace(/\/$/, "");
+const base = (process.argv.slice(2).find((a) => a.startsWith("http")) ?? "").replace(/\/$/, "");
+const demo = process.argv.includes("--demo");
 if (!base) {
   console.log("Usage: npm run measure:cpu -- https://<worker>.workers.dev");
   process.exit(0);
@@ -33,11 +36,14 @@ for (let i = 0; i < 3; i += 1) {
     venueCategory: "bookstore",
     guestCategories: ["skincare"],
     maxCandidates: 5,
+    ...(demo ? { demo: true } : {}),
   });
 }
 for (let i = 0; i < 3; i += 1) await fetch(`${base}/api/health`).then((r) => r.text());
 await new Promise((r) => setTimeout(r, 15_000));
-tail.kill();
+// With a shell on Windows, kill() only stops the shell and leaves `wrangler tail` running.
+if (process.platform === "win32" && tail.pid) spawn("taskkill", ["/pid", String(tail.pid), "/T", "/F"], { stdio: "ignore" });
+else tail.kill();
 
 // The tail stream is a sequence of JSON objects; split it by brace depth, ignoring braces inside strings.
 const events: { cpuTime?: number; wallTime?: number; outcome?: string; event?: { request?: { url?: string; method?: string } } }[] = [];
@@ -89,3 +95,4 @@ for (const [key, r] of rows) {
 }
 const worst = Math.max(...[...rows.values()].flatMap((r) => r.cpu));
 console.log(worst <= 10 ? `Highest CPU ${worst} ms: within the Workers Free 10 ms limit.` : `Highest CPU ${worst} ms exceeds the Workers Free 10 ms limit.`);
+process.exit(0);

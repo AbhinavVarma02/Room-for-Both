@@ -1,61 +1,19 @@
-import { z } from "zod";
 import type { QlooEntity, QlooTag, Strength } from "../../../shared/schemas/evidence";
 
 /**
  * Upstream payloads are untrusted input. We validate item by item, keep only the fields we
  * display, cap string lengths and list sizes, and drop anything malformed instead of failing
- * the whole run. Field names follow Qloo's documented responses: results may be an array
+ * the whole run. We read fields with direct type checks rather than a schema library: one live
+ * run carries about 30 entities with 1,500 nested tags, and validating each through a schema cost
+ * more CPU than the Workers Free allowance on a fresh isolate. Fields of the wrong type count as absent. Field names follow Qloo's documented responses: results may be an array
  * (search) or an object keyed by `entities` / `tags` (insights), entities carry `entity_id`,
  * tags carry `id` or `tag_id`, and scores live under `query.affinity` when present.
  */
 
-const RawTag = z.object({
-  id: z.string().nullish(),
-  tag_id: z.string().nullish(),
-  name: z.string(),
-  type: z.string().nullish(),
-  subtype: z.string().nullish(),
-  query: z.object({ affinity: z.number().nullish() }).passthrough().nullish(),
-  affinity: z.number().nullish(),
-}).passthrough();
-
-const RawLocation = z
-  .object({
-    lat: z.number().nullish(),
-    lon: z.number().nullish(),
-    latitude: z.number().nullish(),
-    longitude: z.number().nullish(),
-  })
-  .passthrough();
-
-const RawEntity = z
-  .object({
-    entity_id: z.string().nullish(),
-    id: z.string().nullish(),
-    name: z.string(),
-    type: z.string().nullish(),
-    subtype: z.string().nullish(),
-    types: z.array(z.string()).nullish(),
-    popularity: z.number().nullish(),
-    affinity: z.number().nullish(),
-    properties: z
-      .object({
-        address: z.string().nullish(),
-        is_closed: z.boolean().nullish(),
-      })
-      .passthrough()
-      .nullish(),
-    location: RawLocation.nullish(),
-    tags: z.array(z.unknown()).nullish(),
-    query: z
-      .object({
-        affinity: z.number().nullish(),
-        explainability: z.unknown().optional(),
-      })
-      .passthrough()
-      .nullish(),
-  })
-  .passthrough();
+type Obj = Record<string, unknown>;
+const obj = (v: unknown): Obj | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Obj) : null);
+const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -83,16 +41,16 @@ export function resultItems(payload: unknown, key: "entities" | "tags"): unknown
 }
 
 export function normalizeTag(raw: unknown): (QlooTag & { affinity: number | null }) | null {
-  const parsed = RawTag.safeParse(raw);
-  if (!parsed.success) return null;
-  const t = parsed.data;
-  const id = t.id ?? t.tag_id;
-  if (!id) return null;
+  const t = obj(raw);
+  const name = str(t?.name);
+  const id = str(t?.id) ?? str(t?.tag_id);
+  if (!t || name === undefined || !id) return null;
+  const type = str(t.type) ?? str(t.subtype);
   return {
     id: clip(id, 200),
-    name: clip(decodeEntities(t.name), 120),
-    ...(t.type ?? t.subtype ? { type: clip((t.type ?? t.subtype) as string, 120) } : {}),
-    affinity: finite01(t.affinity ?? t.query?.affinity),
+    name: clip(decodeEntities(name), 120),
+    ...(type ? { type: clip(type, 120) } : {}),
+    affinity: finite01(num(t.affinity) ?? num(obj(t.query)?.affinity)),
   };
 }
 
@@ -102,11 +60,11 @@ function finite01(value: number | null | undefined): number | null {
   return value >= 0 && value <= 1 ? value : null;
 }
 
-function coordinates(loc: z.infer<typeof RawLocation> | null | undefined): { lat: number; lon: number } | null {
+function coordinates(loc: Obj | null): { lat: number; lon: number } | null {
   if (!loc) return null;
-  const lat = loc.lat ?? loc.latitude;
-  const lon = loc.lon ?? loc.longitude;
-  if (lat === undefined || lon === undefined || lat === null || lon === null) return null;
+  const lat = num(loc.lat) ?? num(loc.latitude);
+  const lon = num(loc.lon) ?? num(loc.longitude);
+  if (lat === undefined || lon === undefined) return null;
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   if (lat === 0 && lon === 0) return null;
   return { lat, lon };
@@ -119,36 +77,45 @@ export interface NormalizedEntity extends QlooEntity {
 }
 
 export function normalizeEntity(raw: unknown): NormalizedEntity | null {
-  const parsed = RawEntity.safeParse(raw);
-  if (!parsed.success) return null;
-  const e = parsed.data;
-  const id = e.entity_id ?? e.id;
-  if (!id) return null;
-  const tags = (e.tags ?? [])
-    .map(normalizeTag)
-    .filter((t): t is NonNullable<ReturnType<typeof normalizeTag>> => t !== null && isThematicTag(t))
-    // Live entities carry 80+ tags; we keep a bounded set of thematic ones for overlap checks.
-    .slice(0, 12)
-    .map(({ affinity: _affinity, ...tag }) => tag);
+  const e = obj(raw);
+  const name = str(e?.name);
+  const id = str(e?.entity_id) ?? str(e?.id);
+  if (!e || name === undefined || !id) return null;
+  // Live entities carry 80+ tags; we stop once we have a bounded set of thematic ones.
+  const tags: QlooTag[] = [];
+  if (Array.isArray(e.tags)) {
+    for (const rawTag of e.tags) {
+      if (tags.length >= 12) break;
+      const tag = normalizeTag(rawTag);
+      if (tag && isThematicTag(tag)) tags.push({ id: tag.id, name: tag.name, ...(tag.type ? { type: tag.type } : {}) });
+    }
+  }
+  const properties = obj(e.properties);
+  const query = obj(e.query);
+  const types = Array.isArray(e.types) ? str(e.types[0]) : undefined;
+  const address = str(properties?.address);
   return {
     id: clip(id, 80),
-    name: clip(decodeEntities(e.name), 200),
-    type: clip(e.subtype ?? e.type ?? e.types?.[0] ?? "urn:entity", 80),
-    popularity: finite01(e.popularity),
-    affinity: finite01(e.affinity ?? e.query?.affinity),
+    name: clip(decodeEntities(name), 200),
+    type: clip(str(e.subtype) ?? str(e.type) ?? types ?? "urn:entity", 80),
+    popularity: finite01(num(e.popularity)),
+    affinity: finite01(num(e.affinity) ?? num(query?.affinity)),
     tags,
-    address: e.properties?.address ? clip(e.properties.address, 240) : null,
-    location: coordinates(e.location),
-    explainability: e.query?.explainability,
-    closed: e.properties?.is_closed === true,
+    address: address ? clip(address, 240) : null,
+    location: coordinates(obj(e.location)),
+    explainability: query?.explainability,
+    closed: properties?.is_closed === true,
   };
 }
 
 export function normalizeEntities(payload: unknown, limit: number): NormalizedEntity[] {
-  return resultItems(payload, "entities")
-    .map(normalizeEntity)
-    .filter((e): e is NormalizedEntity => e !== null)
-    .slice(0, limit);
+  const out: NormalizedEntity[] = [];
+  for (const item of resultItems(payload, "entities")) {
+    if (out.length >= limit) break;
+    const entity = normalizeEntity(item);
+    if (entity) out.push(entity);
+  }
+  return out;
 }
 
 // Live entity tags mix themes with formats, age brackets, narrative voice, and payment or price
@@ -171,10 +138,13 @@ export function resolvedLocality(payload: unknown): string | null {
 }
 
 export function normalizeTags(payload: unknown, limit: number): (QlooTag & { affinity: number | null })[] {
-  return resultItems(payload, "tags")
-    .map(normalizeTag)
-    .filter((t): t is NonNullable<ReturnType<typeof normalizeTag>> => t !== null)
-    .slice(0, limit);
+  const out: (QlooTag & { affinity: number | null })[] = [];
+  for (const item of resultItems(payload, "tags")) {
+    if (out.length >= limit) break;
+    const tag = normalizeTag(item);
+    if (tag) out.push(tag);
+  }
+  return out;
 }
 
 /**

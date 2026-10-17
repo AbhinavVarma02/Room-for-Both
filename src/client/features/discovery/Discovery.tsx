@@ -11,6 +11,7 @@ import { useWorkspace } from "../../app/store";
 import { StepHeader, StepNav, stepHref } from "../../app/Workspace";
 import { Button, Callout, Card, ProvenanceChip, cn } from "../../components/ui/primitives";
 import { DiscoveryComparisonPanel } from "./Comparison";
+import { SensitivityPanel } from "./Sensitivity";
 import { useSelectVenue } from "./selectVenue";
 
 type StepState = { id: ResearchStepId; label: string; status: "pending" | ResearchStep["status"]; summary?: string };
@@ -299,7 +300,12 @@ export function Discovery() {
               replace it.
             </Callout>
           )}
-          {run && <ResearchResults run={run} onEvaluate={evaluateCandidate} selectedId={linked?.runId === run.runId ? linked.candidate.venue.id : null} comparison={<DiscoveryComparisonPanel run={run} auto={state.guided} />} />}
+          {run && <ResearchResults run={run} onEvaluate={evaluateCandidate} selectedId={linked?.runId === run.runId ? linked.candidate.venue.id : null} comparison={
+                <>
+                  <DiscoveryComparisonPanel run={run} auto={state.guided} />
+                  <SensitivityPanel run={run} />
+                </>
+              } />}
         </div>
       </div>
 

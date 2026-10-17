@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { CROSS_DOMAIN_BY_VENUE } from "../../shared/constants/vocabulary";
-import { BaselineRequest, LlmBaselineRequest, ResearchRequest, VenueBridgeRequest, type ResearchEvent } from "../../shared/schemas/evidence";
+import { BaselineRequest, LlmBaselineRequest, ResearchRequest, SensitivityRequest, VenueBridgeRequest, type ResearchEvent } from "../../shared/schemas/evidence";
 import { settings } from "../env";
 import { type AppContext, type AppEnv, apiError, clientAddress, readJson } from "../http";
 import { QlooClient, QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { FixtureTransport } from "../integrations/qloo/fixture-transport";
-import { runBaseline, runVenueBridge } from "../orchestration/followups";
+import { runBaseline, runSensitivity, runVenueBridge } from "../orchestration/followups";
 import { PlannerCallError, proposeAction } from "../integrations/gemini/planner";
 import { LLM_BASELINE_SCHEMA, LLM_BASELINE_SYSTEM, interpretLlmBaseline, llmBaselinePrompt } from "../orchestration/llm-baseline";
 import { DETERMINISTIC_ONLY, type PlannerSetup } from "../orchestration/planner";
@@ -178,7 +178,7 @@ const FOLLOWUP_BUDGET = 2;
  * Shared gate for the single-call follow-ups: same per-visitor limit family as research, the same
  * daily ceiling, and the same fail-closed rule when the counter is unavailable.
  */
-async function followupGate(c: AppContext, demo: boolean, kind: string): Promise<{ ok: false; response: Response } | { ok: true; mode: "live" | "fixture"; transport: QlooTransport; finish: () => Promise<void> }> {
+async function followupGate(c: AppContext, demo: boolean, kind: string, budget = FOLLOWUP_BUDGET): Promise<{ ok: false; response: Response } | { ok: true; mode: "live" | "fixture"; transport: QlooTransport; finish: () => Promise<void> }> {
   const s = settings(c.env);
   const log = c.get("log");
   const now = Date.now();
@@ -187,12 +187,12 @@ async function followupGate(c: AppContext, demo: boolean, kind: string): Promise
   const mode = s.qlooConfigured && !demo ? "live" : "fixture";
   try {
     const who = await clientKey(clientAddress(c), c.env.CLIENT_KEY_SALT, now);
-    // Two follow-ups per research run at most (comparison and venue side), so twice the run limit.
-    if (!(await limiter.hit(`followup:${who}`, s.runsPerHour * 2, 3600, now)).allowed) {
+    // Three follow-ups per research run at most (comparison, venue side, sensitivity), so three times the run limit.
+    if (!(await limiter.hit(`followup:${who}`, s.runsPerHour * 3, 3600, now)).allowed) {
       log.warn("followup_throttled", { kind, mode });
       return { ok: false, response: apiError(c, 429, "rate_limited", "You have run several lookups recently. Please wait before starting another.") };
     }
-    if (mode === "live" && (await limiter.usage(day, "qloo_calls")) + FOLLOWUP_BUDGET > s.dailyCeiling) {
+    if (mode === "live" && (await limiter.usage(day, "qloo_calls")) + budget > s.dailyCeiling) {
       log.warn("followup_quota_exhausted", { kind });
       return { ok: false, response: apiError(c, 503, "quota_exhausted", "Today's cultural research allowance is used up. Everything else keeps working.") };
     }
@@ -208,10 +208,10 @@ async function followupGate(c: AppContext, demo: boolean, kind: string): Promise
             apiKey: c.env.QLOO_API_KEY,
             baseUrl: c.env.QLOO_BASE_URL,
             timeoutMs: s.timeoutMs,
-            callBudget: FOLLOWUP_BUDGET,
+            callBudget: budget,
             ...(c.get("upstreamFetch") ? { fetchImpl: c.get("upstreamFetch"), sleep: async () => {} } : {}),
           })
-        : new FixtureTransport(FOLLOWUP_BUDGET);
+        : new FixtureTransport(budget);
   } catch (error) {
     const code = error instanceof QlooError ? error.code : "UPSTREAM";
     return { ok: false, response: apiError(c, 503, "research_unavailable", PUBLIC_MESSAGES[code] ?? "Research is unavailable.") };
@@ -270,6 +270,29 @@ research.post("/research/venue-bridge", async (c) => {
   try {
     const result = await runVenueBridge(body.data, { transport: gate.transport, mode: gate.mode });
     c.get("log").info("venue_bridge_complete", { mode: gate.mode, qlooCalls: gate.transport.callsUsed, items: result.items.length });
+    return c.json(result);
+  } catch (error) {
+    return upstreamFailure(c, error);
+  } finally {
+    await gate.finish();
+  }
+});
+
+research.post("/research/sensitivity", async (c) => {
+  const body = await readJson(c, SensitivityRequest);
+  if (!body.ok) return body.response;
+  const ids = body.data.signals.map((x) => x.id);
+  if (new Set(ids).size !== ids.length) return apiError(c, 400, "invalid_request", "Each reference may appear only once.");
+  // One call per variant, plus one slot for a single retry after a 429 or 5xx.
+  const gate = await followupGate(c, body.data.demo === true, "sensitivity", ids.length + 1);
+  if (!gate.ok) return gate.response;
+  const fixture = gate.mode === "fixture";
+  if (fictionalId(body.data.categoryTagId) !== fixture || ids.some((id) => fictionalId(id) !== fixture)) {
+    return apiError(c, 409, "mode_mismatch", "This check belongs to a research run in a different mode. Run research again first.");
+  }
+  try {
+    const result = await runSensitivity(body.data, { transport: gate.transport, mode: gate.mode });
+    c.get("log").info("sensitivity_complete", { mode: gate.mode, qlooCalls: gate.transport.callsUsed, variants: result.variants.length, failed: result.variants.filter((v) => v.status === "failed").length });
     return c.json(result);
   } catch (error) {
     return upstreamFailure(c, error);

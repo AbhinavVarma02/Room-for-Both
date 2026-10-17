@@ -1,5 +1,5 @@
 import { DAY_LABELS, FORMAT_LABELS, HOST_GOAL_LABELS, OBJECTIVE_LABELS, PRODUCT_CATEGORY_LABELS } from "../constants/vocabulary";
-import type { CulturalTheme, ResearchRun } from "../schemas/evidence";
+import type { CulturalTheme, ResearchRun, SensitivityResult } from "../schemas/evidence";
 import type { NarrativeFacts } from "../schemas/narrative";
 import type { ProvenanceKind } from "../schemas/common";
 import type { GuestProfile, HostProfile, HostSource, Scenario } from "../schemas/profiles";
@@ -8,6 +8,7 @@ import { type ActivationConcept, activationConcept } from "./activation";
 import { affinityLabel, affinityText, influenceText } from "./affinity";
 import { compareBridge, crossDomainTheme } from "./bridge";
 import { type ProposalConcept, proposalConcepts } from "./concepts";
+import { compareSensitivity } from "./sensitivity";
 import { compareDiscovery } from "./comparison";
 import { clock, hours, money, weeks, windowLabel } from "./format";
 import { guestProvenance, hostProvenance } from "./provenance";
@@ -87,6 +88,8 @@ export interface DecisionBrief {
     evidence: ProvenanceKind;
   } | null;
   discoveryComparison: { outcome: string; findings: string[]; onlyWithSignals: string[]; source: string } | null;
+  /** The leave-one-out reference check, when the visitor ran it for the run this brief cites. */
+  sensitivity: { findings: string[]; references: { omitted: string; effect: string; finding: string }[] } | null;
   /** What each kind of evidence can and cannot decide. */
   decides: { opportunity: string; feasibility: string; commercial: string };
   inputs: BriefInput[];
@@ -214,7 +217,13 @@ export function buildBrief(
   scenario: Scenario,
   evaluation: ScenarioEvaluation,
   research: ResearchRun | null,
-  options: { hypothetical: boolean; selection: VenueSelection | null; now?: Date; stated?: { scenario: Scenario; evaluation: ScenarioEvaluation } },
+  options: {
+    hypothetical: boolean;
+    selection: VenueSelection | null;
+    now?: Date;
+    stated?: { scenario: Scenario; evaluation: ScenarioEvaluation };
+    sensitivity?: { runId: string; result: SensitivityResult } | null;
+  },
 ): DecisionBrief {
   const { guest, host } = scenario;
   const selection = linkedSelection(host, options.selection);
@@ -285,6 +294,10 @@ export function buildBrief(
   const bridgeCmp = selection ? compareBridge(cross, selection.venueBridge, selection.bridgeDomain) : null;
   const cmp =
     selection?.baseline && research?.runId === selection.runId ? compareDiscovery(research.candidates, selection.baseline.candidates, selection.baseline.depth) : null;
+  const sens =
+    research && options.sensitivity?.runId === research.runId && (!selection || selection.runId === research.runId)
+      ? compareSensitivity(research.candidates, options.sensitivity.result)
+      : null;
   const hypotheticalHost = host.source === "hypothetical_scenario";
   const { inputs, counterproposal } = withProposals(scenario, evaluation, options.hypothetical ? options.stated : undefined);
   const c = evaluation.counts;
@@ -400,6 +413,7 @@ export function buildBrief(
       cmp && selection?.baseline
         ? { outcome: cmp.outcome, findings: cmp.findings, onlyWithSignals: cmp.onlyWithSignals, source: `${selection.baseline.provenance.request}, ${selection.baseline.provenance.retrievedAt}` }
         : null,
+    sensitivity: sens ? { findings: sens.findings, references: sens.references.map((r) => ({ omitted: r.omitted, effect: r.effect, finding: r.finding })) } : null,
     decides: {
       opportunity: "Cultural opportunity, what might be worth trying: suggested by cultural evidence, which picks the venue to approach and the theme to propose.",
       feasibility: "Operational feasibility, what the stated terms permit: decided only by deterministic checks of both parties' stated terms. Cultural evidence never enters these checks.",

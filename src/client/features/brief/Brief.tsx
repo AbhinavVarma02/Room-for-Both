@@ -28,8 +28,13 @@ export function Brief() {
     if (!scenario) return null;
     // A what-if brief is compared with the stated terms so every edited value reads as a proposal.
     const stated = useWhatIf && guest && host ? { scenario: { guest, host }, evaluation: evaluateScenario({ guest, host }) } : undefined;
-    return buildBrief(scenario, evaluateScenario(scenario), state.research, { hypothetical: useWhatIf, selection: state.selection, ...(stated ? { stated } : {}) });
-  }, [scenario, state.research, state.selection, useWhatIf, guest, host]);
+    return buildBrief(scenario, evaluateScenario(scenario), state.research, {
+      hypothetical: useWhatIf,
+      selection: state.selection,
+      sensitivity: state.sensitivity,
+      ...(stated ? { stated } : {}),
+    });
+  }, [scenario, state.research, state.selection, state.sensitivity, useWhatIf, guest, host]);
 
   const narrative = useMutation({
     mutationFn: () => {
@@ -424,6 +429,21 @@ export function Brief() {
                   ))}
                 </ul>
                 <p className="text-xs text-ink-faint">Category-only source: {brief.discoveryComparison.source}</p>
+              </div>
+            )}
+            {brief.sensitivity && (
+              <div className="text-sm">
+                <p className="font-medium">How much each reference matters</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+                  {brief.sensitivity.findings.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                  {brief.sensitivity.references.map((r) => (
+                    <li key={r.omitted}>
+                      Without “{r.omitted}”: {r.finding}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {brief.cultural.themes.map((t) => (

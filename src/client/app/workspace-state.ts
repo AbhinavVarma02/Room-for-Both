@@ -1,7 +1,7 @@
 import type { TraceEntry } from "@shared/domain/types";
 import { EXAMPLE_GUEST, EXAMPLE_HOST } from "@shared/fixtures/example-scenario";
 import { hypotheticalHostFor, unknownHostFor } from "@shared/fixtures/hypothetical";
-import type { BaselineResult, ResearchRun, VenueBridge } from "@shared/schemas/evidence";
+import type { BaselineResult, ResearchRun, SensitivityResult, VenueBridge } from "@shared/schemas/evidence";
 import type { GuestProfile, HostProfile, Scenario } from "@shared/schemas/profiles";
 import type { VenueSelection } from "@shared/schemas/selection";
 
@@ -23,6 +23,8 @@ export interface WorkspaceState {
   selection: VenueSelection | null;
   /** The category-only comparison for the current research run. */
   baseline: { runId: string; result: BaselineResult } | null;
+  /** The leave-one-out reference check for the current research run. */
+  sensitivity: { runId: string; result: SensitivityResult } | null;
   hostLink: HostLink | null;
   whatIf: Scenario | null;
   trace: TraceEntry[];
@@ -37,6 +39,7 @@ export const EMPTY: WorkspaceState = {
   research: null,
   selection: null,
   baseline: null,
+  sensitivity: null,
   hostLink: null,
   whatIf: null,
   trace: [],
@@ -54,6 +57,7 @@ export type Action =
   | { type: "use_hypothetical_terms" }
   | { type: "set_venue_bridge"; venueId: string; bridge: VenueBridge | null; note?: string }
   | { type: "set_baseline"; runId: string; baseline: BaselineResult }
+  | { type: "set_sensitivity"; runId: string; result: SensitivityResult }
   | { type: "set_host_link"; link: HostLink | null }
   | { type: "set_what_if"; scenario: Scenario | null }
   | { type: "push_trace"; entry: TraceEntry }
@@ -76,7 +80,7 @@ export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
       return { ...state, host: action.host, whatIf: null, trace: [] };
     case "set_research":
       // The selection keeps its own snapshot and run ID, so a new run never silently changes its evidence.
-      return { ...state, research: action.research, baseline: null };
+      return { ...state, research: action.research, baseline: null, sensitivity: null };
     case "select_venue": {
       // Terms typed for one venue say nothing about another, so a new venue starts unknown, unless the
       // visitor is exploring with hypothetical terms, which are placeholders for any venue.
@@ -104,6 +108,9 @@ export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
         baseline: { runId: action.runId, result: action.baseline },
         selection: state.selection?.runId === action.runId ? { ...state.selection, baseline: action.baseline } : state.selection,
       };
+    case "set_sensitivity":
+      if (state.research?.runId !== action.runId) return state;
+      return { ...state, sensitivity: { runId: action.runId, result: action.result } };
     case "set_host_link":
       return { ...state, hostLink: action.link };
     case "set_what_if":

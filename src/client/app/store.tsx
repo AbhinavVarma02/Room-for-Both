@@ -1,6 +1,6 @@
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import { z } from "zod";
-import { BaselineResult, ResearchRun } from "@shared/schemas/evidence";
+import { BaselineResult, ResearchRun, SensitivityResult } from "@shared/schemas/evidence";
 import { GuestProfile, HostProfile } from "@shared/schemas/profiles";
 import { VenueSelection } from "@shared/schemas/selection";
 import { type Action, EMPTY, reducer, type WorkspaceState } from "./workspace-state";
@@ -18,6 +18,7 @@ const Persisted = z.object({
   research: ResearchRun.nullable(),
   selection: VenueSelection.nullable().optional(),
   baseline: z.object({ runId: z.string(), result: BaselineResult }).nullable().optional(),
+  sensitivity: z.object({ runId: z.string(), result: SensitivityResult }).nullable().optional(),
   hostLink: z
     .object({ requestId: z.string(), ownerToken: z.string(), hostUrl: z.string(), expiresAt: z.number(), venueName: z.string() })
     .nullable(),
@@ -31,7 +32,7 @@ function load(): WorkspaceState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
     const parsed = Persisted.safeParse(JSON.parse(raw));
-    return parsed.success ? { ...EMPTY, ...parsed.data, selection: parsed.data.selection ?? null, baseline: parsed.data.baseline ?? null, guided: parsed.data.guided ?? false } : EMPTY;
+    return parsed.success ? { ...EMPTY, ...parsed.data, selection: parsed.data.selection ?? null, baseline: parsed.data.baseline ?? null, sensitivity: parsed.data.sensitivity ?? null, guided: parsed.data.guided ?? false } : EMPTY;
   } catch {
     return EMPTY;
   }

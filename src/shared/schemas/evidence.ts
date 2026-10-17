@@ -167,6 +167,39 @@ export const BaselineResult = z.object({
 export type BaselineResult = z.infer<typeof BaselineResult>;
 
 /**
+ * Reference sensitivity: the same taste-informed venue search repeated once per reference, each time
+ * without that reference, so the visitor can see how much the list depends on it. One call per variant.
+ */
+export const SensitivityRequest = z.strictObject({
+  categoryTagId: TagId,
+  categoryName: z.string().trim().min(1).max(120),
+  location: z.string().trim().min(1).max(60),
+  venueCategory: VenueCategory,
+  /** The exactly matched references of the original run, in its order. With one, the category-only comparison already answers this. */
+  signals: z.array(z.strictObject({ id: EntityId, label: z.string().trim().min(1).max(80) })).min(2).max(3),
+  take: z.number().int().min(1).max(8),
+  demo: z.literal(true).optional(),
+});
+export type SensitivityRequest = z.infer<typeof SensitivityRequest>;
+
+export const SensitivityVariant = z.object({
+  omitted: z.string().max(80),
+  status: z.enum(["done", "failed"]),
+  candidates: z.array(PartnershipCandidate).max(8),
+  provenance: EvidenceProvenance,
+});
+export type SensitivityVariant = z.infer<typeof SensitivityVariant>;
+
+export const SensitivityResult = z.object({
+  mode: z.enum(["live", "fixture"]),
+  request: SensitivityRequest,
+  variants: z.array(SensitivityVariant).max(3),
+  callsUsed: z.number().int(),
+  limitations: z.array(z.string()),
+});
+export type SensitivityResult = z.infer<typeof SensitivityResult>;
+
+/**
  * The same question asked of a language model with no Qloo data, as a baseline. Explicit consent is
  * required because the references and area go to the model provider.
  */

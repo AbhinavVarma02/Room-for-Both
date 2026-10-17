@@ -303,8 +303,8 @@ describe("follow-ups: category-only comparison and venue side", () => {
 
   it("throttles repeated follow-ups from one client", async () => {
     const env = { ...live, RESEARCH_RUNS_PER_HOUR_PER_CLIENT: "1" };
-    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
-    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
+    // Three follow-ups per allowed run: comparison, venue side, and reference sensitivity.
+    for (let i = 0; i < 3; i += 1) expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
     expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(429);
   });
 
@@ -320,5 +320,80 @@ describe("follow-ups: category-only comparison and venue side", () => {
     expect(run.venueSearch).toMatchObject({ location: "Greenpoint", categoryTagId: "urn:tag:synthetic:place:bookstore", take: 4 });
     expect(run.bridgeDomain).toBe("urn:entity:book");
     expect(run.themes[0]?.items[0]?.tags).toEqual(["Nature Writing"]);
+  });
+});
+
+describe("follow-up: reference sensitivity", () => {
+  const live = { QLOO_API_KEY: KEY };
+  const body = {
+    categoryTagId: "urn:tag:synthetic:place:bookstore",
+    categoryName: "Bookstore",
+    location: "Brooklyn",
+    venueCategory: "bookstore",
+    signals: [
+      { id: "SYN-AESOP-1", label: "Aesop" },
+      { id: "SYN-BRAIDINGSWEETGRASS-1", label: "Braiding Sweetgrass" },
+    ],
+    take: 4,
+  };
+
+  it("repeats the search once per reference, each time without it, and counts every call", async () => {
+    const res = await h.request("/api/research/sensitivity", jsonInit("POST", body), live);
+    expect(res.status).toBe(200);
+    const out = res.json() as { variants: { omitted: string; status: string; provenance: { kind: string; request: string } }[] };
+    expect(fake.calls.map((c) => c.url.searchParams.get("signal.interests.entities"))).toEqual(["SYN-BRAIDINGSWEETGRASS-1", "SYN-AESOP-1"]);
+    expect(fake.calls.every((c) => c.url.searchParams.get("filter.tags") === body.categoryTagId && c.url.searchParams.get("take") === "4")).toBe(true);
+    expect(out.variants.map((v) => [v.omitted, v.status])).toEqual([
+      ["Aesop", "done"],
+      ["Braiding Sweetgrass", "done"],
+    ]);
+    expect(out.variants[0]?.provenance.kind).toBe("qloo_observed");
+    expect(out.variants[0]?.provenance.request).toMatch(/without “Aesop”/);
+    const row = await h.db.prepare("SELECT count FROM usage_counters WHERE name = 'qloo_calls'").first<{ count: number }>();
+    expect(row?.count).toBe(2);
+  });
+
+  it("needs at least two distinct references", async () => {
+    expect((await h.request("/api/research/sensitivity", jsonInit("POST", { ...body, signals: body.signals.slice(0, 1) }), live)).status).toBe(400);
+    expect((await h.request("/api/research/sensitivity", jsonInit("POST", { ...body, signals: [body.signals[0], body.signals[0]] }), live)).status).toBe(400);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("reserves the whole check against the daily ceiling before calling", async () => {
+    const res = await h.request("/api/research/sensitivity", jsonInit("POST", body), { ...live, QLOO_DAILY_CALL_CEILING: "2" });
+    expect(res.status).toBe(503);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("reports a failed variant as failed instead of inventing a list", async () => {
+    fake = createQlooFake({ statusFor: { "/v2/insights": 500 } });
+    const res = await h.request("/api/research/sensitivity", jsonInit("POST", body), live);
+    expect(res.status).toBe(200);
+    const out = res.json() as { variants: { status: string; candidates: unknown[] }[] };
+    expect(out.variants.every((v) => v.status === "failed" && v.candidates.length === 0)).toBe(true);
+  });
+
+  it("never mixes fictional and live identifiers", async () => {
+    const res = await h.request("/api/research/sensitivity", jsonInit("POST", { ...body, signals: [{ id: "fixture-seed-aesop", label: "Aesop" }, body.signals[1]] }), live);
+    expect(res.status).toBe(409);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("shows a fictional dependence in fixture mode without calling Qloo", async () => {
+    const fixtureBody = {
+      ...body,
+      categoryTagId: "fixture:tag:bookstore",
+      signals: [
+        { id: "fixture-seed-aesop", label: "Aesop" },
+        { id: "fixture-seed-patagonia", label: "Patagonia" },
+        { id: "fixture-seed-braiding-sweetgrass", label: "Braiding Sweetgrass" },
+      ],
+    };
+    const res = await h.request("/api/research/sensitivity", jsonInit("POST", fixtureBody));
+    expect(res.status).toBe(200);
+    const out = res.json() as { mode: string; variants: { candidates: { venue: { id: string } }[] }[] };
+    expect(out.mode).toBe("fixture");
+    expect(out.variants.map((v) => v.candidates[0]?.venue.id)).toEqual(["fixture-venue-3", "fixture-venue-1", "fixture-venue-1"]);
+    expect(fake.calls).toHaveLength(0);
   });
 });

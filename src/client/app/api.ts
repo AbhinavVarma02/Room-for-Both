@@ -1,5 +1,16 @@
 import { CreateHostRequestResponse, HostRequestView, OwnerRequestView, PublicConfig, type SharedSummary } from "@shared/schemas/api";
-import { BaselineResult, LlmBaselineResult, ResearchEvent, VenueBridge, type BaselineRequest, type LlmBaselineRequest, type ResearchRequest, type VenueBridgeRequest } from "@shared/schemas/evidence";
+import {
+  BaselineResult,
+  LlmBaselineResult,
+  ResearchEvent,
+  SensitivityResult,
+  VenueBridge,
+  type BaselineRequest,
+  type LlmBaselineRequest,
+  type ResearchRequest,
+  type SensitivityRequest,
+  type VenueBridgeRequest,
+} from "@shared/schemas/evidence";
 import { NarrativeResponse, type NarrativeFacts } from "@shared/schemas/narrative";
 import type { HostProfile } from "@shared/schemas/profiles";
 import type { z } from "zod";
@@ -117,3 +128,5 @@ export const runBaseline = (request: BaselineRequest) => call(BaselineResult, "/
 export const fetchVenueBridge = (request: VenueBridgeRequest) => call(VenueBridge, "/api/research/venue-bridge", { method: "POST", body: JSON.stringify(request) });
 
 export const runLlmBaseline = (request: LlmBaselineRequest) => call(LlmBaselineResult, "/api/research/llm-baseline", { method: "POST", body: JSON.stringify(request) });
+
+export const runSensitivity = (request: SensitivityRequest) => call(SensitivityResult, "/api/research/sensitivity", { method: "POST", body: JSON.stringify(request) });

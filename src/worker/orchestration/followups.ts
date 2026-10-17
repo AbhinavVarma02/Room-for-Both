@@ -1,8 +1,8 @@
 import { CROSS_DOMAIN_BY_VENUE, bridgeDomain } from "../../shared/constants/vocabulary";
-import type { BaselineRequest, BaselineResult, EvidenceProvenance, VenueBridge, VenueBridgeRequest } from "../../shared/schemas/evidence";
+import type { BaselineRequest, BaselineResult, EvidenceProvenance, SensitivityRequest, SensitivityResult, SensitivityVariant, VenueBridge, VenueBridgeRequest } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { strengthOf } from "../../shared/domain/affinity";
-import { isThematicTag, normalizeEntities } from "../integrations/qloo/normalize";
+import { contributions, isThematicTag, normalizeEntities } from "../integrations/qloo/normalize";
 
 /**
  * Single-call follow-ups to a research run. Each is its own request so it carries its own CPU and
@@ -100,4 +100,58 @@ export async function runVenueBridge(request: VenueBridgeRequest, deps: Followup
     callsUsed: deps.transport.callsUsed,
     limitations,
   };
+}
+
+// Credential and quota failures end the whole check; anything else (including a spent retry budget) fails one variant.
+const FATAL_SENSITIVITY = new Set(["AUTH", "NOT_CONFIGURED", "QUOTA_EXHAUSTED", "UNTRUSTED_BASE_URL"]);
+
+/**
+ * Repeats the taste-informed venue search once per reference, each time without it. Every variant
+ * keeps the original category, area, depth, and reference order, so any difference comes from the
+ * missing reference alone. A failed variant is reported as failed, never filled in.
+ */
+export async function runSensitivity(request: SensitivityRequest, deps: FollowupDeps): Promise<SensitivityResult> {
+  const variants: SensitivityVariant[] = [];
+  for (const omitted of request.signals) {
+    const kept = request.signals.filter((s) => s.id !== omitted.id);
+    const seedNames = new Map(kept.map((s) => [s.id.toLowerCase(), s.label]));
+    const provenance = provenanceFor(
+      deps,
+      `Places tagged “${request.categoryName}” in ${request.location}, ranked by affinity to ${kept.map((s) => `“${s.label}”`).join(", ")} (without “${omitted.label}”)`,
+    );
+    try {
+      const payload = await deps.transport.get("/v2/insights", {
+        "filter.type": "urn:entity:place",
+        "filter.tags": request.categoryTagId,
+        "filter.location.query": request.location,
+        "signal.interests.entities": kept.map((s) => s.id),
+        "feature.explainability": true,
+        take: request.take,
+      });
+      const venues = normalizeEntities(payload, request.take).filter((v) => !v.closed);
+      variants.push({
+        omitted: omitted.label,
+        status: "done",
+        provenance,
+        candidates: venues.map((v, i) => ({
+          venue: { id: v.id, name: v.name, type: v.type, popularity: v.popularity, affinity: v.affinity, tags: v.tags, address: v.address, location: v.location },
+          category: request.venueCategory,
+          rank: i + 1,
+          strength: strengthOf(v.affinity),
+          contributions: contributions(v.explainability, seedNames),
+          sharedTags: [],
+          provenance,
+        })),
+      });
+    } catch (error) {
+      if (error instanceof QlooError && FATAL_SENSITIVITY.has(error.code)) throw error;
+      variants.push({ omitted: omitted.label, status: "failed", provenance, candidates: [] });
+    }
+  }
+  const limitations = [
+    "Each variant drops one reference and keeps everything else the same. Differences describe Qloo's ranking for that query, not demand or fit.",
+    "Affinity scores are relative to their own query, so compare positions across variants rather than scores.",
+  ];
+  if (deps.mode === "fixture") limitations.unshift("Fixture mode: every list here is fictional demonstration data. No Qloo request was made.");
+  return { mode: deps.mode, request, variants, callsUsed: deps.transport.callsUsed, limitations };
 }

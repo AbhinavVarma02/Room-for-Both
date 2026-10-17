@@ -77,14 +77,21 @@ export class FixtureTransport implements QlooTransport {
         const label = category.replace(/\b\w/g, (c) => c.toUpperCase());
         const location = str(query["filter.location.query"]).toLowerCase();
         if (location.includes("nowhere")) return { results: { entities: [] } };
+        const tasteOrder = VENUE_STEMS.map((stem, i) => ({ stem, i }));
+        // A fictional dependence, so the reference-sensitivity check can show both outcomes: the list
+        // reorders whenever its first reference is not the alphabetically first one sent. For the
+        // example's references, only leaving out the first one changes the order.
+        const reordered = seeds.length >= 2 && seeds[0] !== [...seeds].sort()[0];
         const ordered =
-          seeds.length > 0
-            ? VENUE_STEMS.map((stem, i) => ({ stem, i }))
-            : [...POPULAR_STEMS.map((stem, j) => ({ stem, i: VENUE_STEMS.length + j })), ...VENUE_STEMS.map((stem, i) => ({ stem, i })).reverse()];
+          seeds.length === 0
+            ? [...POPULAR_STEMS.map((stem, j) => ({ stem, i: VENUE_STEMS.length + j })), ...VENUE_STEMS.map((stem, i) => ({ stem, i })).reverse()]
+            : reordered
+              ? [tasteOrder[2], tasteOrder[3], tasteOrder[0], tasteOrder[1], ...tasteOrder.slice(4)].filter((v) => v !== undefined)
+              : tasteOrder;
         return {
           success: true,
           results: {
-            entities: ordered.slice(0, take).map(({ stem, i }) => ({
+            entities: ordered.slice(0, take).map(({ stem, i }, position) => ({
               entity_id: `fixture-venue-${i + 1}`,
               name: `${stem} ${label} (fictional)`,
               type: "urn:entity",
@@ -96,7 +103,7 @@ export class FixtureTransport implements QlooTransport {
                 type: "fixture:tag",
               })),
               query: {
-                affinity: seeds.length > 0 ? VENUE_SCORES[i] : undefined,
+                affinity: seeds.length > 0 ? VENUE_SCORES[position] : undefined,
                 explainability: Object.fromEntries(seeds.map((id, j) => [id, Math.max(0.1, 0.8 - 0.2 * j - 0.05 * i)])),
               },
             })),

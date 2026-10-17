@@ -220,7 +220,7 @@ describe("selected venue in the brief", () => {
 });
 
 describe("workspace selection state", () => {
-  const empty: WorkspaceState = { guest: EXAMPLE_GUEST, host: EXAMPLE_HOST, research: null, selection: null, baseline: null, hostLink: null, whatIf: null, trace: [], isExample: true, guided: false };
+  const empty: WorkspaceState = { guest: EXAMPLE_GUEST, host: EXAMPLE_HOST, research: null, selection: null, baseline: null, sensitivity: null, hostLink: null, whatIf: null, trace: [], isExample: true, guided: false };
   const r1 = run([candidate("V1", 1), candidate("V2", 2)]);
 
   it("selecting a venue resets terms that belonged to the fictional host", () => {

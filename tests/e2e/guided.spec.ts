@@ -32,6 +32,7 @@ test("guided example: cultural reason, chosen venue, why it fails, one change, a
   await expect(page.getByText("From the guest's references")).toBeVisible();
   await expect(page.getByText(`Hypothetical terms: ${venue} has not stated or agreed to any of them`)).toBeVisible();
   await expect(page.getByText("Hypothetical terms · not from the venue")).toBeVisible();
+  if (mode === "live") await expect(page.getByText("Fictional guest, real venue, hypothetical terms")).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await guide.getByRole("button", { name: "See which arrangements work" }).click();

@@ -36,15 +36,19 @@ Both replaces "this won't work" with "this would work if…", and is honest abou
 | **Decision brief** | A printable draft for both parties: proposed starting point, each side's value hypothesis, the first three questions to ask, cultural evidence with sources, and inputs grouped by provenance. |
 
 <p>
-  <img src="docs/images/discovery.png" alt="Cultural discovery with venue candidates and a cultural bridge" width="49%" />
-  <img src="docs/images/frontier.png" alt="Agreement Frontier trade-off chart and summary" width="49%" />
+  <img src="docs/images/discovery.png" alt="What the taste signal changed: the same venue search with and without the guest's references" width="49%" />
+  <img src="docs/images/host.png" alt="A chosen venue with the guest's side and the venue's own side of the cultural bridge" width="49%" />
+</p>
+<p>
+  <img src="docs/images/frontier.png" alt="Agreement Frontier headline: why the obvious event fails and the closest verified change" width="49%" />
+  <img src="docs/images/reversal.png" alt="Decision Reversal after applying one change, with the before and after status" width="49%" />
 </p>
 
-![Decision Reversal showing why an option is blocked and the what-if controls](docs/images/reversal.png)
+![Decision brief with the hypothetical-terms warning and the activation idea](docs/images/brief.png)
 
-*Screenshots show the fictional example in fixture mode. Both businesses are invented, and fixture cultural
-data is labelled fictional throughout the app. In live mode the same screens show Qloo results labelled
-"Observed in Qloo" with their source request and retrieval time.*
+*Screenshots show the guided example in fixture mode: every business, venue, and cultural result in them is
+fictional and labelled so. In live mode the same screens show Qloo results labelled "Observed in Qloo" with
+their source request and retrieval time, and a real venue's terms are labelled hypothetical.*
 
 ## Principles
 

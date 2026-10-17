@@ -1,6 +1,7 @@
 /**
- * Captures README screenshots from a running local instance (fixture mode, fictional example).
- * Usage: npm run dev (or preview), then: npx tsx scripts/screenshots.ts [baseUrl]
+ * Captures README screenshots from a running local instance in fixture mode (fictional data only, never Qloo
+ * responses), following the guided example.
+ * Usage: npm run dev:fixture, then: npx tsx scripts/screenshots.ts [baseUrl]
  */
 import { mkdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
@@ -9,27 +10,38 @@ const base = process.argv[2] ?? "http://localhost:5173";
 mkdirSync("docs/images", { recursive: true });
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
 await page.setExtraHTTPHeaders({ "cf-connecting-ip": "10.20.30.40" });
+
+const health = (await (await page.request.get(`${base}/api/health`)).json()) as { research: { mode: string } };
+if (health.research.mode !== "fixture") throw new Error("Screenshots must come from fixture mode, so no Qloo data reaches the repository.");
 
 await page.goto(base);
 await page.screenshot({ path: "docs/images/landing.png" });
 
-await page.getByRole("button", { name: /Try the fictional example/ }).click();
-await page.getByRole("button", { name: /Save and continue/ }).click();
-await page.getByRole("button", { name: "Run cultural research" }).click();
-await page.getByRole("heading", { name: "Venue candidates" }).waitFor();
-await page.getByRole("heading", { name: "Cultural bridge" }).scrollIntoViewIfNeeded();
+await page.getByRole("button", { name: /See it in 90 seconds/ }).click();
+await page.getByRole("table", { name: /with the taste signal and with category only/ }).waitFor();
+await page.getByRole("heading", { name: "What the taste signal changed" }).scrollIntoViewIfNeeded();
 await page.screenshot({ path: "docs/images/discovery.png" });
 
-await page.goto(`${base}/workspace/frontier`);
-await page.getByRole("heading", { name: "Trade-offs" }).waitFor();
-await page.getByRole("heading", { name: "Trade-offs" }).scrollIntoViewIfNeeded();
+const guide = page.getByRole("complementary", { name: "Guided example" });
+await guide.getByRole("button", { name: /^Choose / }).click();
+await page.getByText("Where the two sides meet").waitFor();
+await page.getByText("Chosen from cultural research").scrollIntoViewIfNeeded();
+await page.screenshot({ path: "docs/images/host.png" });
+
+await guide.getByRole("button", { name: "See which arrangements work" }).click();
+await page.getByRole("heading", { name: "Agreement Frontier", level: 1 }).waitFor();
 await page.screenshot({ path: "docs/images/frontier.png" });
 
-await page.goto(`${base}/workspace/reversal?option=cohosted_event%3A2`);
-await page.getByRole("heading", { name: "Why is this blocked?" }).scrollIntoViewIfNeeded();
-await page.screenshot({ path: "docs/images/reversal.png", fullPage: false });
+await guide.getByRole("button", { name: "Find the smallest change" }).click();
+await page.getByRole("button", { name: /Apply this change/ }).click();
+await page.getByRole("status").filter({ hasText: "You applied" }).waitFor();
+await page.screenshot({ path: "docs/images/reversal.png" });
+
+await guide.getByRole("button", { name: "Build the decision brief" }).click();
+await page.getByRole("heading", { name: "Activation idea" }).scrollIntoViewIfNeeded();
+await page.screenshot({ path: "docs/images/brief.png" });
 
 await browser.close();
-console.log("Saved docs/images/{landing,discovery,frontier,reversal}.png");
+console.log("Saved docs/images/{landing,discovery,host,frontier,reversal,brief}.png");

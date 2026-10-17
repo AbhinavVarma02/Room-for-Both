@@ -105,12 +105,20 @@ export function Workspace() {
         </Button>
       </div>
 
-      {state.isExample && (
-        <Callout tone="warn" className="no-print mt-5" title="Fictional example">
-          Both businesses and all of their terms are invented to demonstrate the method. Cultural references are real public names the fictional
-          guest identifies with. Edit anything, or start your own scenario from the home page.
-        </Callout>
-      )}
+      {state.isExample &&
+        (state.host?.source === "hypothetical_scenario" && state.selection?.mode === "live" ? (
+          <Callout tone="warn" className="no-print mt-5" title="Fictional guest, real venue, hypothetical terms">
+            The guest business is invented to demonstrate the method. {state.host.venueName} is a real place suggested by Qloo; every term shown for it
+            is a fictional placeholder that it has not seen or agreed to.
+          </Callout>
+        ) : (
+          <Callout tone="warn" className="no-print mt-5" title="Fictional example">
+            {state.host?.source === "fictional_example" || state.selection?.mode === "fixture"
+              ? "Both businesses and all of their terms are invented to demonstrate the method."
+              : "The guest business and its terms are invented to demonstrate the method."}{" "}
+            Cultural references are real public names the fictional guest identifies with. Edit anything, or start your own scenario from the home page.
+          </Callout>
+        ))}
 
       {!gate && <GuideBanner step={step} />}
 

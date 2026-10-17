@@ -47,3 +47,22 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   injected reference label was ignored and the executed action stayed on the allow-list.
 - Totals: unit 114/114, integration 69/69, eval 40/40, invariance 27/27, scan clean.
 - Live calls spent: Qloo 0, Gemini 2.
+
+## #5 Guided demonstration and first 90 seconds (U5)
+
+- Commit 0f8e2bb. Landing: hero names the two-sided problem and Qloo's role; "See it in 90 seconds" loads the
+  fictional guest in guided mode and goes straight to discovery, where research and the category-only comparison
+  start by themselves. A guide banner gives one sentence and one action per step and never changes a result.
+- Frontier: headline card (why the featured co-hosted event fails, the check that blocks most no-go options, the
+  closest verified change with before/after status) and a three-part "cultural opportunity / operational
+  feasibility / commercial success" panel. Reversal: "Apply this change" cue and a before/after status card in a
+  `role="status"` region.
+- Mobile: Discovery overflowed by 35 px at 375 px (an implicit grid column sized to a table's minimum width); fixed
+  with explicit single-column grids. The header wordmark is visually hidden below 360 px to avoid overlap.
+- Accessibility: axe (WCAG 2.0/2.1 A and AA) found 6 colour-contrast failures for faint text (4.23–4.37:1); the
+  faint ink token is now #5f6a74 (≥4.8:1 on every background used). Now 0 serious or critical issues on 8 pages.
+- Added `@axe-core/playwright` 4.13.0 (dev only, MPL-2.0; the newest release was two days old, so the previous one
+  was pinned). Playwright now builds with `--mode fixture` locally unless `E2E_LIVE=1`.
+- Checks: Playwright 32 passed, 2 skipped (summary tests need a model) on desktop and mobile; unit 114, integration
+  69, eval 40/40; scan clean. Live calls spent: none.
+- Next: U6 CPU profiling on a non-production Worker version.

@@ -33,6 +33,10 @@ export function Methodology() {
           host's values come from the host, through a private response link, or when both profiles are clearly marked as fictional examples. If a
           guest types in what they believe the host wants, the analysis says so and treats it as unconfirmed.
         </p>
+        <p className="mt-3">
+          A venue chosen from cultural research starts with every term unknown. To explore before the venue answers, you can attach the fictional
+          example's terms to it. They are labelled hypothetical on every screen and in the brief, and the venue has not seen or agreed to any of them.
+        </p>
       </Section>
 
       <Section title="Arrangement templates">
@@ -123,6 +127,30 @@ export function Methodology() {
           demonstration instead; a run is always entirely live or entirely fictional, and its label follows it into the brief. Qloo results are
           shown to you and kept in your browser, not stored by Room for Both's server.
         </p>
+        <p className="mt-3">
+          <span className="font-medium text-ink">With and without the taste signal.</span> One more call repeats the same venue search with no
+          references, ten venues deep, so you can see which venues the signal added or moved, and when it changed nothing. An optional, consented
+          question to a language model with no Qloo data is shown beside it as a baseline; its venue names are only compared with the Qloo lists.
+        </p>
+        <p className="mt-3">
+          <span className="font-medium text-ink">The venue's side.</span> When you choose a bookstore, record store, or cafe, one call uses the venue's
+          own Qloo entity as the signal, in the same domain as your bridge. Items are matched by Qloo ID and tags by name; the two sides' scores are
+          never combined. The strongest shared or guest-side items become an activation idea for the proposed format, which never enters a check.
+        </p>
+        <p className="mt-3">
+          <span className="font-medium text-ink">Who plans the research.</span> Rules decide by default. With your consent, a language model may
+          propose one action from a fixed list at two points: which domain to build the theme from, and whether to widen an empty search. The server
+          checks every proposal against the list and the run's own facts before acting, and uses the rule's choice otherwise. Each decision shows who
+          made it and why.
+        </p>
+      </Section>
+
+      <Section title="What decides what">
+        <ul className="list-disc space-y-2 pl-5">
+          <li>Cultural opportunity, what might be worth trying: suggested by Qloo data. It picks the venue to approach and the theme to propose.</li>
+          <li>Operational feasibility, what the stated terms permit: decided only by the deterministic checks above.</li>
+          <li>Commercial success, whether it pays off: unknown. Nothing here forecasts revenue, traffic, or demand.</li>
+        </ul>
       </Section>
 
       <Section title="Provenance labels">
@@ -148,11 +176,12 @@ export function Methodology() {
         <p className="mt-3 text-sm text-ink-faint">Labels never upgrade: generated prose cannot turn an assumption into an observation.</p>
       </Section>
 
-      <Section title="Optional language-model summary">
+      <Section title="Optional language-model features">
         <p>
-          If the operator enables it, you can ask for a short plain-language summary drafted by Google's Gemini API. It only ever sees facts the engine
-          already computed, you must agree before anything is sent, and drafts that add numbers, links, or claims of approval are discarded.
-          Summaries are labelled {PROVENANCE_LABELS.llm_interpretation.toLowerCase()}.
+          If the operator enables them, three features use Google's Gemini API, each only after you agree: a short plain-language summary of facts the
+          engine already computed (drafts that add numbers, links, or claims of approval are discarded), the research planner's proposals (validated
+          against a fixed list), and the language-model-only baseline. The planner and baseline see your cultural references, product categories,
+          venue type, and area, never names, budgets, or terms. Model text is labelled {PROVENANCE_LABELS.llm_interpretation.toLowerCase()}.
         </p>
       </Section>
 

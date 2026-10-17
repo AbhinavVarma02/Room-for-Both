@@ -47,7 +47,7 @@
 - The host token travels in the URL fragment, which browsers do not send to servers or in Referer headers.
   `/respond` also sets `Referrer-Policy: no-referrer` and is excluded in `robots.txt`.
 - Links expire after seven days, allow three saves (enforced atomically in SQL), and can be withdrawn,
-  which deletes the host's answers.
+  which deletes the host's answers. Reads, saves, and withdrawals are each throttled per client.
 - Unknown, expired, revoked, and mismatched tokens all return the same `404`.
 - The guest's budget, costs, notes, and priorities are never part of what the host sees.
 
@@ -66,7 +66,10 @@
 - Follow-ups (category-only comparison, venue side): one upstream call each plus at most one retry, twice the
   research limit per client per hour, the same daily ceiling, and identifiers restricted to plain ID characters
   and to the run's mode.
-- Client identity for limits is a daily-rotating hash of the connecting address; raw addresses are never stored.
+- Reference sensitivity: one upstream call per reference (two or three) plus one retry, its own allowance of half
+  the research limit per client per hour, and the whole check reserved against the daily ceiling before any call.
+- Client identity for limits is a daily-rotating hash of the connecting address, grouped by /64 for IPv6 so a
+  client cannot sidestep limits by rotating through its own prefix; raw addresses are never stored.
 - Cross-origin writes are refused. No cookies are used.
 
 ## Logging

@@ -74,6 +74,7 @@ hostRequests.delete("/host-requests/:id", async (c) => {
   const id = c.req.param("id");
   const token = bearerToken(c.req.header("authorization"));
   if (!token || !ID_PATTERN.test(id)) return apiError(c, 404, "not_found", NOT_FOUND);
+  if (!(await throttle(c, "host-link-owner", 120))) return apiError(c, 429, "rate_limited", "Too many requests. Please wait a moment.");
   const ok = await new HostRequestStore(c.env.DB as D1Database).revoke(id, token, Date.now());
   if (!ok) return apiError(c, 404, "not_found", NOT_FOUND);
   c.get("log").info("host_request_revoked", {});

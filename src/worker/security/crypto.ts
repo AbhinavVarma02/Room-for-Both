@@ -33,11 +33,29 @@ export function bearerToken(header: string | undefined | null): string | null {
 }
 
 /**
- * Rate-limit identity: a hash of the connecting address and the UTC day. The salt rotates the
- * value daily, so counters cannot be joined across days and the raw address is never stored.
+ * The part of an address one client controls. An IPv6 subscriber usually holds a whole /64 and can
+ * rotate through it freely, so limits keyed on the full address would be trivial to sidestep.
+ */
+export function limitSubject(address: string | null | undefined): string {
+  if (!address) return "unknown";
+  const a = address.trim().toLowerCase();
+  if (!a.includes(":")) return a;
+  const [head = "", tail = ""] = a.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups = a.includes("::") ? [...left, ...Array<string>(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right] : left;
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ""))
+    .join(":")}::/64`;
+}
+
+/**
+ * Rate-limit identity: a hash of the client's address (its /64 for IPv6) and the UTC day. The salt
+ * rotates the value daily, so counters cannot be joined across days and the raw address is never stored.
  */
 export async function clientKey(address: string | null | undefined, salt: string | undefined, now: number): Promise<string> {
   const day = new Date(now).toISOString().slice(0, 10);
-  const hex = await sha256Hex(`${salt ?? "room-for-both"}|${day}|${address ?? "unknown"}`);
+  const hex = await sha256Hex(`${salt ?? "room-for-both"}|${day}|${limitSubject(address)}`);
   return hex.slice(0, 32);
 }

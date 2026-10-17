@@ -178,17 +178,26 @@ const FOLLOWUP_BUDGET = 2;
  * Shared gate for the single-call follow-ups: same per-visitor limit family as research, the same
  * daily ceiling, and the same fail-closed rule when the counter is unavailable.
  */
-async function followupGate(c: AppContext, demo: boolean, kind: string, budget = FOLLOWUP_BUDGET): Promise<{ ok: false; response: Response } | { ok: true; mode: "live" | "fixture"; transport: QlooTransport; finish: () => Promise<void> }> {
+interface GateLimits {
+  /** Upstream calls this request may make, retries included. */
+  budget: number;
+  /** Rate-limit bucket and its hourly allowance per client. */
+  bucket: string;
+  perHour: number;
+}
+
+async function followupGate(c: AppContext, demo: boolean, kind: string, limits?: Partial<GateLimits>): Promise<{ ok: false; response: Response } | { ok: true; mode: "live" | "fixture"; transport: QlooTransport; finish: () => Promise<void> }> {
   const s = settings(c.env);
   const log = c.get("log");
   const now = Date.now();
   const day = new Date(now).toISOString().slice(0, 10);
   const limiter = limiterFor(c.env.DB);
   const mode = s.qlooConfigured && !demo ? "live" : "fixture";
+  // Two single-call follow-ups per research run (comparison and venue side), so twice the run limit by default.
+  const { budget, bucket, perHour } = { budget: FOLLOWUP_BUDGET, bucket: "followup", perHour: s.runsPerHour * 2, ...limits };
   try {
     const who = await clientKey(clientAddress(c), c.env.CLIENT_KEY_SALT, now);
-    // Three follow-ups per research run at most (comparison, venue side, sensitivity), so three times the run limit.
-    if (!(await limiter.hit(`followup:${who}`, s.runsPerHour * 3, 3600, now)).allowed) {
+    if (!(await limiter.hit(`${bucket}:${who}`, perHour, 3600, now)).allowed) {
       log.warn("followup_throttled", { kind, mode });
       return { ok: false, response: apiError(c, 429, "rate_limited", "You have run several lookups recently. Please wait before starting another.") };
     }
@@ -283,8 +292,10 @@ research.post("/research/sensitivity", async (c) => {
   if (!body.ok) return body.response;
   const ids = body.data.signals.map((x) => x.id);
   if (new Set(ids).size !== ids.length) return apiError(c, 400, "invalid_request", "Each reference may appear only once.");
-  // One call per variant, plus one slot for a single retry after a 429 or 5xx.
-  const gate = await followupGate(c, body.data.demo === true, "sensitivity", ids.length + 1);
+  // One call per variant plus one retry slot. Each check costs up to three calls, so it has its own,
+  // smaller hourly allowance instead of sharing the single-call follow-ups' one.
+  const perHour = Math.max(1, Math.floor(settings(c.env).runsPerHour / 2));
+  const gate = await followupGate(c, body.data.demo === true, "sensitivity", { budget: ids.length + 1, bucket: "sensitivity", perHour });
   if (!gate.ok) return gate.response;
   const fixture = gate.mode === "fixture";
   if (fictionalId(body.data.categoryTagId) !== fixture || ids.some((id) => fictionalId(id) !== fixture)) {

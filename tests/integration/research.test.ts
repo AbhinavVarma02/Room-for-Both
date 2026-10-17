@@ -303,8 +303,8 @@ describe("follow-ups: category-only comparison and venue side", () => {
 
   it("throttles repeated follow-ups from one client", async () => {
     const env = { ...live, RESEARCH_RUNS_PER_HOUR_PER_CLIENT: "1" };
-    // Three follow-ups per allowed run: comparison, venue side, and reference sensitivity.
-    for (let i = 0; i < 3; i += 1) expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
+    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
+    expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(200);
     expect((await h.request("/api/research/baseline", jsonInit("POST", baselineBody), env)).status).toBe(429);
   });
 
@@ -363,6 +363,13 @@ describe("follow-up: reference sensitivity", () => {
     const res = await h.request("/api/research/sensitivity", jsonInit("POST", body), { ...live, QLOO_DAILY_CALL_CEILING: "2" });
     expect(res.status).toBe(503);
     expect(fake.calls).toHaveLength(0);
+  });
+
+  it("has its own smaller hourly allowance, separate from the single-call follow-ups", async () => {
+    const env = { ...live, RESEARCH_RUNS_PER_HOUR_PER_CLIENT: "2" };
+    expect((await h.request("/api/research/sensitivity", jsonInit("POST", body), env)).status).toBe(200);
+    expect((await h.request("/api/research/sensitivity", jsonInit("POST", body), env)).status).toBe(429);
+    expect((await h.request("/api/research/baseline", jsonInit("POST", { categoryTagId: body.categoryTagId, categoryName: "Bookstore", location: "Brooklyn", venueCategory: "bookstore" }), env)).status).toBe(200);
   });
 
   it("reports a failed variant as failed instead of inventing a list", async () => {

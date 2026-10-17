@@ -119,6 +119,13 @@ describe("host response links", () => {
     expect(res.status).toBe(400);
   });
 
+  it("throttles withdrawal attempts like owner reads", async () => {
+    const id = "A".repeat(22);
+    const guess = bearer("B".repeat(43));
+    for (let i = 0; i < 120; i += 1) expect((await h.request(`/api/host-requests/${id}`, { method: "DELETE", headers: guess })).status).toBe(404);
+    expect((await h.request(`/api/host-requests/${id}`, { method: "DELETE", headers: guess })).status).toBe(429);
+  });
+
   it("throttles link creation per client", async () => {
     for (let i = 0; i < 10; i += 1) await create();
     const res = await h.request("/api/host-requests", jsonInit("POST", { summary }));

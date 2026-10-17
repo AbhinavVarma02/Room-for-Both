@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateScenario } from "../../src/shared/domain";
-import { type ConceptInput, mostPromising, proposalConcepts } from "../../src/shared/domain/concepts";
+import { type ConceptInput, type ProposalConcept, mostPromising, proposalConcepts } from "../../src/shared/domain/concepts";
 import { EXAMPLE_GUEST, EXAMPLE_HOST } from "../../src/shared/fixtures/example-scenario";
 import type { CulturalTheme, ThemeItem, VenueBridge } from "../../src/shared/schemas/evidence";
 import { scenario } from "../fixtures/builders";
@@ -51,13 +51,29 @@ describe("proposal concepts", () => {
 
   it("builds each idea from a different slice of evidence, never the same items renamed", () => {
     const concepts = proposalConcepts(input(), e);
-    expect(concepts.map((c) => c.basis)).toEqual(["shared", "venue_side", "guest_side", "taste_tags"]);
+    // Ordered by how directly the evidence links both sides: titles on both, then shared tags, then one side.
+    expect(concepts.map((c) => [c.basis, c.linkage])).toEqual([
+      ["shared", 3],
+      ["venue_side", 2],
+      ["taste_tags", 2],
+      ["guest_side", 1],
+    ]);
     const byBasis = Object.fromEntries(concepts.map((c) => [c.basis, c.items]));
     expect(byBasis.shared).toEqual(["Title B2"]);
     expect(byBasis.venue_side).toEqual(["Title V7", "Title V8"]);
     expect(byBasis.guest_side).toEqual(["Title B1", "Title B3", "Title B4"]);
     expect(byBasis.taste_tags).toEqual(["Nature Writing"]);
     expect(new Set(concepts.map((c) => c.title)).size).toBe(concepts.length);
+  });
+
+  it("never recommends first an idea that nothing ties to the guest", () => {
+    const unlinked: VenueBridge = { ...venueSide, items: [item("V7"), item("V8")] };
+    const concepts = proposalConcepts(input({ venueBridge: unlinked, themes: [cross] }), e);
+    const venueOnly = concepts.find((c) => c.basis === "venue_side");
+    expect(venueOnly?.linkage).toBe(0);
+    expect(concepts[concepts.length - 1]).toBe(venueOnly);
+    expect(mostPromising(concepts)?.basis).not.toBe("venue_side");
+    expect(mostPromising([venueOnly as ProposalConcept])).toBeNull();
   });
 
   it("offers no two-sided idea without the venue's own evidence", () => {

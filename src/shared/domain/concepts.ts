@@ -25,6 +25,11 @@ export interface ConceptFormat {
 
 export interface ProposalConcept {
   basis: ConceptBasis;
+  /**
+   * How directly the evidence connects both parties: 3 titles linked to both, 2 a shared taste tag, 1 one side
+   * only, 0 nothing that ties it to the guest. Ideas are ordered by it; a 0 is never marked to discuss first.
+   */
+  linkage: 0 | 1 | 2 | 3;
   title: string;
   /** The lead format's name for this theme, for example "Reading-list shelf pairing". */
   formatTitle: string;
@@ -133,7 +138,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
   const tagsTheme = input.themes.find((t) => t.basis === "taste_tags");
   const out: ProposalConcept[] = [];
 
-  const add = (basis: ConceptBasis, n: Nouns, items: string[], observed: string[], mightNotSuit: string[], sources: ProvenanceKind[]) => {
+  const add = (basis: ConceptBasis, linkage: ProposalConcept["linkage"], n: Nouns, items: string[], observed: string[], mightNotSuit: string[], sources: ProvenanceKind[]) => {
     const formats = formatsFor(basis, evaluation);
     const lead = [...formats].sort((a, b) => RANK[a.status] - RANK[b.status])[0] ?? null;
     const format = lead?.format ?? FITS[basis][0] ?? "cohosted_event";
@@ -144,6 +149,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     const blocked = formats.length > 0 && formats.every((f) => f.status === "no_go");
     out.push({
       basis,
+      linkage,
       title: titleFor(basis, n, items),
       formatTitle: TITLES[n][format],
       angle: ANGLES[basis],
@@ -168,6 +174,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     const items = bridge.shared.slice(0, 3).map((s) => s.name);
     add(
       "shared",
+      3,
       noun,
       items,
       [`${data} links ${quotedList(items)} both to ${signals} and to ${venue} itself (same kind of request, matched by entity ID).`],
@@ -180,6 +187,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     const items = bridge.venueOnly.slice(0, 3).map((i) => i.name);
     add(
       "venue_side",
+      bridge.sharedTags.length ? 2 : 0,
       noun,
       items,
       [`${data} links ${quotedList(items)} to ${venue} itself.`],
@@ -196,6 +204,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
   if (cross && guestItems.length > 0) {
     add(
       "guest_side",
+      1,
       noun,
       guestItems,
       [`${data} links ${signals} with ${quotedList(guestItems)}.`],
@@ -215,6 +224,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     const twoSided = Boolean(bridge?.sharedTags.length);
     add(
       "taste_tags",
+      twoSided ? 2 : 1,
       "tags",
       tagItems,
       [twoSided ? `Taste tags on titles from both sides: ${quotedList(tagItems)}.` : `${data} links ${signals} with the taste tags ${quotedList(tagItems)}.`],
@@ -227,6 +237,7 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     const hostKind: ProvenanceKind = input.host.source === "fictional_example" || input.host.source === "hypothetical_scenario" ? "synthetic_demo" : "party_supplied";
     add(
       "host_interests",
+      1,
       "tags",
       [input.host.programmingInterests.slice(0, 60)],
       [`${input.host.source === "host_response_link" ? "The venue says" : "The venue's interests, entered on its behalf, say"} it wants programming around “${input.host.programmingInterests}”.`],
@@ -235,10 +246,14 @@ export function proposalConcepts(input: ConceptInput, evaluation: ScenarioEvalua
     );
   }
 
-  return out;
+  // Stable sort: the strongest two-sided link first, construction order within the same strength.
+  return out.map((c, i) => ({ c, i })).sort((a, b) => b.c.linkage - a.c.linkage || a.i - b.i).map(({ c }) => c);
 }
 
-/** The first concept with a workable format, so the screen can say what to discuss first. */
+/**
+ * The first idea with a workable format and some evidence tied to the guest, so the screen can say what to
+ * discuss first. An idea resting only on the venue's own associations is shown but never recommended first.
+ */
 export function mostPromising(concepts: ProposalConcept[]): ProposalConcept | null {
-  return concepts.find((c) => c.lead && c.lead.status !== "no_go") ?? null;
+  return concepts.find((c) => c.linkage > 0 && c.lead && c.lead.status !== "no_go") ?? null;
 }

@@ -103,6 +103,35 @@ test("choosing another venue updates the host, the evidence, and the brief", asy
   await expect(page.getByText(/Venue chosen from research:/)).toContainText(second);
 });
 
+test("reference sensitivity, proposal ideas, and a brief that proposes a change", async ({ page }) => {
+  await useFictionalResearch(page);
+  await startGuided(page);
+  await expect(page.getByRole("heading", { name: "Venue candidates" })).toBeVisible({ timeout: 30_000 });
+
+  // The fixture makes the first reference decisive and the other two inert, so both outcomes show.
+  await page.getByRole("button", { name: /Test each reference/ }).click();
+  const sensitivity = page.locator('[aria-labelledby="sensitivity-heading"]');
+  await expect(sensitivity.getByText("Changes the first choice")).toBeVisible();
+  await expect(sensitivity.getByText("No change").first()).toBeVisible();
+  await expect(sensitivity.getByText(/The first choice depends on “Aesop”/)).toBeVisible();
+
+  const guide = page.getByRole("complementary", { name: "Guided example" });
+  await guide.getByRole("button", { name: /^Choose / }).click();
+  await guide.getByRole("button", { name: "See which arrangements work" }).click();
+  const ideas = page.locator('[aria-labelledby="concepts-title"]');
+  await expect(ideas.getByRole("heading", { name: "A reading list both audiences share" })).toBeVisible();
+  await expect(ideas.getByRole("heading", { name: "Start from the venue's own books" })).toBeVisible();
+  await expect(ideas.getByText("Discuss first")).toHaveCount(1);
+
+  await guide.getByRole("button", { name: "Find the smallest change" }).click();
+  await page.getByRole("button", { name: /Apply this change/ }).click();
+  await page.getByRole("button", { name: "Draft a brief proposing these changes" }).click();
+  await expect(page.getByRole("heading", { name: "Proposed changes to discuss" })).toBeVisible();
+  await expect(page.getByText(/needs confirmation by the (host|guest)/).first()).toBeVisible();
+  await expect(page.getByText(/If the proposed changes listed below are accepted, the suggested starting point/)).toBeVisible();
+  await expect(page.getByText("How much each reference matters")).toBeVisible();
+});
+
 test("no horizontal scrolling from 320 to 414 pixels wide", async ({ page }) => {
   await useFictionalResearch(page);
   await startGuided(page);

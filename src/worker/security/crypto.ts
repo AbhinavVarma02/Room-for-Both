@@ -16,7 +16,6 @@ export function randomToken(bytes = 32): string {
   return base64url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
 
-export const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 export const ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 
 /** Constant-time comparison of two equal-length hex digests. */

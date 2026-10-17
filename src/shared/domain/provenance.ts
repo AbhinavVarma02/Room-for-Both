@@ -1,4 +1,4 @@
-import type { Party, ProvenanceKind } from "../schemas/common";
+import type { ProvenanceKind } from "../schemas/common";
 import type { GuestProfile, HostProfile } from "../schemas/profiles";
 import type { InputUse, ProfileField } from "./types";
 
@@ -20,8 +20,4 @@ export function guestInput<K extends keyof GuestProfile & ProfileField>(guest: G
 export function hostInput<K extends keyof HostProfile & ProfileField>(host: HostProfile, field: K): InputUse {
   const value = host[field];
   return { party: "host", field, value, provenance: hostProvenance(host, value) };
-}
-
-export function partyLabel(party: Party): string {
-  return party === "guest" ? "Guest" : "Host";
 }

@@ -1,7 +1,7 @@
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import { z } from "zod";
 import { BaselineResult, ResearchRun } from "@shared/schemas/evidence";
-import { GuestProfile, HostProfile, type Scenario } from "@shared/schemas/profiles";
+import { GuestProfile, HostProfile } from "@shared/schemas/profiles";
 import { VenueSelection } from "@shared/schemas/selection";
 import { type Action, EMPTY, reducer, type WorkspaceState } from "./workspace-state";
 
@@ -59,8 +59,4 @@ export function useWorkspace() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return ctx;
-}
-
-export function scenarioOf(state: WorkspaceState): Scenario | null {
-  return state.guest && state.host ? { guest: state.guest, host: state.host } : null;
 }

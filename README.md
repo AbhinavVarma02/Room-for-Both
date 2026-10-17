@@ -88,9 +88,10 @@ tags, the venue's own associations, the category-only comparison, and the leave-
 describes aggregate taste associations. It does not observe any particular business's customers, and the app never
 treats affinity as evidence of demand, space, rent, or permission.
 
-In the live evaluation, the taste signal changed which venues a brand would approach in all four scenarios with a
-matched reference (one to four of five venues swapped; once only reordered), and the venue's own side met the
-guest's side through shared taste tags rather than identical titles ([evaluation](docs/evaluation.md)).
+In the live evaluation, the taste signal changed the venue list in all four scenarios with a matched reference:
+one to four of five venues were swapped in three of them, and the same five were reordered in the fourth. The
+venue's own side met the guest's side through shared taste tags rather than identical titles
+([evaluation](docs/evaluation.md)).
 
 **Gemini** is optional and used only after the visitor consents: a plain-language version of the rule-based
 summary, a bounded research planner that may choose among two allow-listed research steps (validated before it

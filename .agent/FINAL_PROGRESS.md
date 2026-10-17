@@ -36,3 +36,23 @@
   unconfirmed), and fixture sensitivity. It caught a real gap: two suggested changes touched inputs the brief never
   listed; fixed. `npm run eval`: 40/40 cases, 73/73 checks. Unit + integration: 219 passed. Playwright (fixture):
   32 passed, 2 skipped (need a model).
+
+## #4 Documentation, ledger, candidate verification (F6, F7, F10 in progress)
+
+- Docs (f2fbbb5): README rewritten in the author's voice; the case study's decision table moved into
+  `docs/architecture.md`; the demo script left the public docs; screenshots regenerated from fixture mode (new
+  `ideas.png`); docs describe ideas, sensitivity, and the counterproposal. First-person cleanup across docs.
+- End-to-end (f91e639): a new test covers sensitivity, ideas, and the counterproposal brief (desktop and mobile).
+- Candidate 1bb2e818 (from f91e639) on the `candidate` alias, production untouched: `/api/health` live; `/respond`
+  now sends a single `Referrer-Policy: no-referrer`; `npm run verify:public` 10/10 including a live research stream.
+  Live walkthrough in a browser: guided research, comparison, sensitivity (without "Patagonia" the first choice
+  changes; without "Aesop" the list changes; without "Braiding Sweetgrass" only the order changes), venue side for a
+  chosen independent venue, ideas, reversal, counterproposal brief, sensitivity findings in the brief.
+- Defect found live and fixed (9c31152): the first idea marked "Discuss first" came only from the venue's own
+  associations; ideas are now ranked by linkage and an unlinked idea is never recommended first. The guide notes in
+  live mode that Qloo does not say whether a venue is independent.
+- Candidate 61619c8f (from 9c31152; later commits are docs, ledger, and scripts only): desktop Playwright against
+  the live candidate 18/18, including the live guided journey and the consented summary. Cloudflare analytics for
+  61619c8f over that traffic: 28 requests, 0 errors, CPU p50 3.5, p90 27.5, p99 54.1 ms, no terminations.
+- Ledger consolidated (1b75b87): superseded task, checklist, and upgrade files archived privately.
+- Live calls spent so far this cycle (approximate): Qloo about 36, Gemini 1.

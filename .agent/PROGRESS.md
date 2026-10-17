@@ -166,3 +166,16 @@ Chronological, factual. Commands and observed outcomes only.
 - Documentation and ledger only; no code, configuration, or deployment change. `npm run check` exit 0 (69 unit,
   49 integration, eval 60/60 checks, build); `npm run scan:secrets` clean (135 tracked files). P10-03 and P10 closed.
 - Pushed b0cde9f; GitHub Actions 38999856845 success. Deployed Worker unchanged (1c4b8f19): no source change.
+
+## #9 Upgrade release (summary; detailed ledger archived privately)
+- Added the selected-venue journey, category-only and language-model comparisons, the two-sided cultural bridge,
+  the bounded model planner with rules as fallback, and the guided demonstration (branch merged to main a97defa).
+- Live evaluation: five fixed scenarios; the taste signal changed the venue list in all four scenarios with a
+  matched reference; venue-side lists met the guest side through shared taste tags, not identical titles; 39/39
+  evidence items observed in Qloo; 0/114 items dropped; 0 unsupported statements.
+- CPU on the candidate (per-route windows): live research p50 20.6 ms, max 44.7 ms; 0 errors and 0 CPU
+  terminations for every version. Splitting research was measured and rejected because cold start dominates.
+- Released as Worker version 2c5d1b4f (source e964395); CI 39037549524 success; `verify:public` 10/10 live;
+  public pages 5/5; public live guided journey 1/1. Rollback target then: 1c4b8f19.
+- Detailed upgrade ledger (tasks, progress entries #1–#11, state) and the original task and release-checklist
+  files were moved to the private archive in the final cycle; they remain in Git history.

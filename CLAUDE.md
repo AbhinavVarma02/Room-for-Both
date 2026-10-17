@@ -6,34 +6,32 @@ Repository slug: `room-for-both`. Never rename the product.
 
 ## Start of every session
 
-1. Read, in order: this file, `.agent/STATE.json`, `.agent/NEXT.md`, `.agent/BLOCKERS.md`,
-   `.agent/TASKS.md`, and the tail of `.agent/PROGRESS.md`.
+1. Read, in order: this file, `.agent/FINAL_NEXT.md`, `.agent/FINAL_STATE.json`, `.agent/NEXT.md`,
+   `.agent/BLOCKERS.md`, `.agent/FINAL_TASKS.md`, and the tails of `.agent/FINAL_PROGRESS.md` and
+   `.agent/PROGRESS.md`.
 2. Run `git status` and `git log --oneline -15`; check remotes. Verify ledger claims against
    the code and test output instead of trusting them.
-3. Pick the highest-priority unblocked task from `.agent/NEXT.md` and keep going.
+3. Pick the highest-priority unblocked task from `.agent/FINAL_NEXT.md` (then `.agent/NEXT.md`) and keep going.
 4. Retry a blocked task only after detecting the missing capability (credential, login,
    network), starting with the smallest safe smoke test.
 
 ## Current state
 
-The application is deployed with live Qloo cultural discovery and the optional Gemini summary, both verified
-locally and on the public URL (`.agent/PROGRESS.md` #7). Live access uses a time-limited Qloo credential on the
-host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Owner confirmations (Cloudflare Free plan,
-the credential email) are recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never
-assumed. Open: the RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`.
+The application is deployed with live Qloo cultural discovery and the optional Gemini features, verified locally
+and on the public URL. Live access uses a time-limited Qloo credential on the host named in its issuing guide;
+when it ends, follow `.agent/NEXT.md`. Owner confirmations (Cloudflare Free plan, the credential email) are
+recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never assumed. Open: the
+RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`.
 
-## Targeted upgrade (complete)
+History: the initial build (`.agent/PROGRESS.md` #1–#8), the upgrade release (#9), and the final improvement
+cycle (`.agent/FINAL_PROGRESS.md`), which added proposal ideas, reference sensitivity, what-if counterproposals,
+security fixes, and the documentation rewrite. Detailed historical plans are archived privately in `.local/`.
 
-A one-time, owner-authorised upgrade added the selected-venue journey, category-only and language-model
-comparisons, a two-sided cultural bridge, a bounded model-assisted planner with the rules as fallback, and a guided
-demonstration. It is verified and deployed (`.agent/UPGRADE_PROGRESS.md` #11; history in `.agent/UPGRADE_*`). Scope
-is frozen again: only monitoring, defect fixes, and the credential transition in `.agent/NEXT.md`.
+## Final improvement cycle
 
-## Final improvement cycle (active)
-
-An owner-authorised final cycle (audit, defect fixes, security review, documentation, one bounded product
-improvement) runs on branch `final/product-excellence`. Recover from `.agent/FINAL_NEXT.md`, `FINAL_STATE.json`,
-`FINAL_TASKS.md`, and `FINAL_PROGRESS.md`, then the real Git and deployment state.
+An owner-authorised final cycle runs on branch `final/product-excellence` until it is released. Its state is in
+`.agent/FINAL_*`. After release, scope is frozen again: only monitoring, defect fixes, and the credential
+transition in `.agent/NEXT.md`.
 
 ## Non-negotiable rules
 

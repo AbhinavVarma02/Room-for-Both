@@ -165,7 +165,7 @@
   "optional_task_ids": [
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Upgrade release from main a97defa (code from e964395). Rollback target: 1c4b8f19 (pre-upgrade, source 1a8d36a). See .agent/UPGRADE_STATE.json.",
+  "deployed_version_note": "Upgrade release from main a97defa (code from e964395). Rollback target: 1c4b8f19 (pre-upgrade, source 1a8d36a). The final cycle's release and rollback are in .agent/FINAL_STATE.json.",
   "freeze": {
     "status": "frozen",
     "scope": "Upgrade complete and deployed. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."
@@ -206,7 +206,7 @@
   },
   "upgrade": {
     "status": "verified_complete",
-    "ledger": ".agent/UPGRADE_PROGRESS.md",
+    "ledger": ".agent/PROGRESS.md #9 (detailed ledger archived privately)",
     "ci": "39037549524 success on a97defa"
   }
 }

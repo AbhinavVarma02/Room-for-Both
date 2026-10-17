@@ -9,7 +9,7 @@ Live Qloo discovery and the optional Gemini summary are verified locally and on 
 Do not add features, redesign the client, add frameworks or paid infrastructure, or recreate Cloudflare resources.
 
 Production: https://room-for-both.room-for-both.workers.dev (upgrade release, version 2c5d1b4f; pre-upgrade
-rollback target 1c4b8f19, see `.agent/UPGRADE_STATE.json`). Worker secrets (names only): `CLIENT_KEY_SALT`,
+rollback target 1c4b8f19; see `.agent/FINAL_STATE.json` for the current release and rollback). Worker secrets (names only): `CLIENT_KEY_SALT`,
 `QLOO_API_KEY`, `QLOO_BASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL`. The deployed Worker version and Git SHA are
 in `STATE.json`.
 
@@ -33,8 +33,8 @@ deactivation moment is still unknown (RISK-CREDENTIAL-END): watch for `auth` err
 
 If the owner reports that server-side use from a public app is not permitted, or that the active period is
 shorter than required: run `npx wrangler secret delete QLOO_API_KEY` (the app switches to the labelled fictional
-demonstration), record the terms in DECISIONS.md, update `docs/data-licensing.md`, and mark the compliance gate
-in RELEASE_CHECKLIST.md as blocked. Do not look for workarounds.
+demonstration), record the terms in DECISIONS.md, update `docs/data-licensing.md`, and record the compliance gate
+as blocked in BLOCKERS.md. Do not look for workarounds.
 
 ## When the Qloo credential ends
 

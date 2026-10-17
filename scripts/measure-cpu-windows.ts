@@ -3,10 +3,11 @@
  * candidate on its preview URL. Each probe kind runs alone inside its own clock minute; Cloudflare's
  * GraphQL analytics, grouped by minute and version, then attribute CPU to each kind.
  * Usage: npm run measure:cpu:windows -- https://<alias>-room-for-both.<subdomain>.workers.dev <version id prefix> [--live] [--planner] [--n 3]
- *        [--only health,evaluate,research,baseline,venue-bridge,research+planner]
+ *        [--only health,evaluate,research,baseline,venue-bridge,sensitivity,research+planner]
  * Without --live every research request is the fictional demonstration and no upstream quota is spent.
  * With --live: n research runs (up to 7 Qloo calls each), n category-only comparisons and n venue-side
- * lookups (1 call each). --planner adds two model-planned runs (up to 2 model calls each).
+ * lookups (1 call each), and n sensitivity checks (one call per matched reference). --planner adds two
+ * model-planned runs (up to 2 model calls each).
  */
 import { execSync } from "node:child_process";
 import { EXAMPLE_SCENARIO } from "../src/shared/fixtures/example-scenario";
@@ -80,6 +81,16 @@ const probes: [string, () => Promise<void>][] = [
       if (lastRun.mode === "live") qloo += 1;
     },
   ],
+  [
+    "sensitivity",
+    async () => {
+      const s = lastRun?.venueSearch;
+      const signals = lastRun?.seeds.filter((x) => x.status === "exact" && x.entity).map((x) => ({ id: x.entity?.id ?? "", label: x.input.label })) ?? [];
+      if (!s || !lastRun || signals.length < 2) return;
+      await post("/api/research/sensitivity", { categoryTagId: s.categoryTagId, categoryName: s.categoryName, location: s.location, venueCategory: "bookstore", signals, take: s.take, ...(lastRun.mode === "fixture" ? { demo: true } : {}) });
+      if (lastRun.mode === "live") qloo += signals.length;
+    },
+  ],
 ];
 if (planner) {
   probes.push([
@@ -96,7 +107,7 @@ const only = args.includes("--only") ? (args[args.indexOf("--only") + 1] ?? "").
 const windows = new Map<string, string>();
 for (const [kind, fn] of probes) {
   if (only && !only.includes(kind)) {
-    if (kind === "research" && only.some((k) => k === "baseline" || k === "venue-bridge")) await fn();
+    if (kind === "research" && only.some((k) => k === "baseline" || k === "venue-bridge" || k === "sensitivity")) await fn();
     continue;
   }
   const minute = await nextMinute();

@@ -1,0 +1,29 @@
+{
+  "upgrade": "selected-venue journey, category-only comparison, two-sided bridge, bounded planner, guided demonstration, CPU",
+  "branch": "upgrade/selected-venue-journey",
+  "base_commit": "a517810",
+  "current_phase": "U1",
+  "phase_status": {
+    "U0": "in_progress",
+    "U1": "pending",
+    "U2": "pending",
+    "U3": "pending",
+    "U4": "pending",
+    "U5": "pending",
+    "U6": "pending",
+    "U7": "pending",
+    "U8": "pending",
+    "U9": "pending",
+    "U10": "pending"
+  },
+  "active_task": "U0-02",
+  "last_command": "git switch -c upgrade/selected-venue-journey",
+  "last_result": "branch created from a517810",
+  "rollback": {
+    "production_version": "1c4b8f19-a82a-402d-abf8-1cacd6bd13e3",
+    "production_source_commit": "1a8d36a",
+    "how": "npx wrangler rollback 1c4b8f19-a82a-402d-abf8-1cacd6bd13e3 (secrets and D1 are unaffected by a rollback)"
+  },
+  "live_calls_spent": { "qloo": 0, "gemini": 0 },
+  "deployed": false
+}

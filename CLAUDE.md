@@ -20,8 +20,15 @@ The application is deployed with live Qloo cultural discovery and the optional G
 locally and on the public URL (`.agent/PROGRESS.md` #7). Live access uses a time-limited Qloo credential on the
 host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Owner confirmations (Cloudflare Free plan,
 the credential email) are recorded (`.agent/PROGRESS.md` #8); the credential's actual end is unknown and is never
-assumed. Open: the RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`. Scope is frozen:
-no new features or architecture changes; only monitoring, defect fixes, and the credential transition.
+assumed. Open: the RISK-CPU and RISK-CREDENTIAL-END watch items in `.agent/BLOCKERS.md`.
+
+## Upgrade in progress (resume here first)
+
+The owner lifted the scope freeze for one targeted upgrade only: the selected-venue journey, a category-only
+comparison, a two-sided cultural bridge, a bounded model-assisted research planner with the deterministic planner
+as fallback, a guided demonstration, and research CPU work. Everything else stays frozen. Resume from
+`.agent/UPGRADE_NEXT.md`, then `UPGRADE_STATE.json`, `UPGRADE_TASKS.md`, `UPGRADE_BLOCKERS.md`, and the tail of
+`UPGRADE_PROGRESS.md`. Production stays on the rollback version in `UPGRADE_STATE.json` until every U8 gate passes.
 
 ## Non-negotiable rules
 

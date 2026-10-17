@@ -66,3 +66,21 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
 - Checks: Playwright 32 passed, 2 skipped (summary tests need a model) on desktop and mobile; unit 114, integration
   69, eval 40/40; scan clean. Live calls spent: none.
 - Next: U6 CPU profiling on a non-production Worker version.
+
+## #6 CPU on Cloudflare: candidate version, measured without moving production traffic (U6-01, U6-03 partial)
+
+- Built from 2e21d0b and ran `wrangler versions upload --preview-alias candidate`: version 72add54d, served at the
+  `candidate-` preview alias. Production stays at 100% on 1c4b8f19 (`wrangler deployments list`).
+- `wrangler tail` (with or without `--version-id`) captured no events for preview-URL traffic, so added
+  `scripts/cpu-analytics.ts` (GraphQL analytics by version) and `scripts/measure-cpu-windows.ts` (each route alone in
+  its own clock minute, then CPU quantiles per minute and version). The Workers Observability query API returned 403
+  for the Wrangler session's token.
+- Demo mode (no upstream calls), CPU ms p50 / max: health 1.8 / 8.1, evaluate 3.0 / 13.1, research 10.8 / 19.4,
+  category-only comparison 2.2 / 3.0, venue-side lookup 3.0 / 5.7.
+- Live (39 Qloo calls, 4 model calls): health 0.8 / 3.7, evaluate 2.9 / 3.0, research 20.6 / 44.7, comparison
+  10.3 / 31.6, venue-side lookup 6.1 / 9.2, research with the model planner 18.9 / 31.1. All requests succeeded.
+- Research is in the same range as the production version's earlier measurements (16–25 ms), so the upgrade did not
+  materially raise it; it is still above the nominal 10 ms. The comparison request fetches 10 places, about 200 KB
+  (place payloads carry ~9.5 KB of descriptive properties each); Node parses and normalises it in under 1 ms, so the
+  Workers figure is not explained by parsing alone.
+- Live calls spent in this entry: Qloo 42 (39 measurement + 3 payload-size probes), Gemini 4.

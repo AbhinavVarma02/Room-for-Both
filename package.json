@@ -2,7 +2,7 @@
   "name": "room-for-both",
   "version": "0.1.0",
   "private": true,
-  "description": "Room for Both — find common ground and build a better deal between two independent businesses.",
+  "description": "Room for Both \u2014 find common ground and build a better deal between two independent businesses.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -27,6 +27,8 @@
     "smoke:gemini": "tsx scripts/smoke-gemini.ts",
     "smoke:planner": "tsx scripts/smoke-planner.ts",
     "measure:cpu": "tsx scripts/measure-cpu.ts",
+    "measure:cpu:windows": "tsx scripts/measure-cpu-windows.ts",
+    "cpu:analytics": "tsx scripts/cpu-analytics.ts",
     "verify:public": "tsx scripts/verify-public.ts",
     "scan:secrets": "tsx scripts/scan-repo.ts"
   },

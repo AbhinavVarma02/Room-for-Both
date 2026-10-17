@@ -1,8 +1,8 @@
 {
   "cases": 40,
   "casesPassed": 40,
-  "checks": 60,
-  "checksPassed": 60,
+  "checks": 73,
+  "checksPassed": 73,
   "unsupportedClaimRate": {
     "flagged": 0,
     "statements": 3157
@@ -38,6 +38,28 @@
     "shared": 2,
     "sharedTags": 4
   },
+  "proposalIdeas": {
+    "briefs": 27,
+    "ideas": 108,
+    "repeatedItems": 0,
+    "formats": 216,
+    "formatsMatchingEngine": 216,
+    "statements": 561,
+    "unsupported": 0
+  },
+  "counterproposals": {
+    "briefs": 13,
+    "changed": 13,
+    "labelledUnconfirmed": 13
+  },
+  "referenceSensitivity": {
+    "mode": "fixture",
+    "effects": [
+      "Aesop: changes_top",
+      "Patagonia: no_change",
+      "Braiding Sweetgrass: no_change"
+    ]
+  },
   "researchCalls": {
     "runs": 9,
     "max": 6,
@@ -45,8 +67,8 @@
   },
   "engineLatencyMs": {
     "samples": 675,
-    "median": 0.061499999999995225,
-    "p95": 0.16300000000001091
+    "median": 0.05699999999995953,
+    "p95": 0.16259999999999764
   },
   "rows": [
     {
@@ -61,8 +83,8 @@
       "id": "E02",
       "category": "agreement",
       "description": "Fictional example: weekday host, weekend guest",
-      "checks": 2,
-      "passed": 2,
+      "checks": 3,
+      "passed": 3,
       "failures": []
     },
     {
@@ -77,16 +99,16 @@
       "id": "E04",
       "category": "schedule",
       "description": "No shared day",
-      "checks": 2,
-      "passed": 2,
+      "checks": 3,
+      "passed": 3,
       "failures": []
     },
     {
       "id": "E05",
       "category": "schedule",
       "description": "Touching windows do not overlap",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
@@ -101,8 +123,8 @@
       "id": "E07",
       "category": "money",
       "description": "Own costs exceed the budget",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
@@ -125,24 +147,24 @@
       "id": "E10",
       "category": "permissions",
       "description": "Host forbids sampling",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
       "id": "E11",
       "category": "capacity",
       "description": "Host can give one staff hour",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
       "id": "E12",
       "category": "capacity",
       "description": "Minimum audience exceeds room capacity",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
@@ -157,8 +179,8 @@
       "id": "E14",
       "category": "categories",
       "description": "Host excludes the guest's category (negotiable)",
-      "checks": 2,
-      "passed": 2,
+      "checks": 3,
+      "passed": 3,
       "failures": []
     },
     {
@@ -173,8 +195,8 @@
       "id": "E16",
       "category": "dealbreakers",
       "description": "Guest rules out alcohol; host serves it",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
@@ -197,8 +219,8 @@
       "id": "E19",
       "category": "reversal",
       "description": "Raising the budget past the threshold flips an option",
-      "checks": 2,
-      "passed": 2,
+      "checks": 3,
+      "passed": 3,
       "failures": []
     },
     {
@@ -229,8 +251,8 @@
       "id": "E23",
       "category": "reversal",
       "description": "Several simultaneous conflicts",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
@@ -253,16 +275,16 @@
       "id": "E26",
       "category": "schedule",
       "description": "Host explicitly has no availability (not unknown)",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {
       "id": "E27",
       "category": "frontier",
       "description": "Equal outlays are ties, not dominance",
-      "checks": 1,
-      "passed": 1,
+      "checks": 2,
+      "passed": 2,
       "failures": []
     },
     {

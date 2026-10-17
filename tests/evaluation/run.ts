@@ -6,22 +6,24 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
-import { evaluateScenario, diffEvaluations } from "../../src/shared/domain";
+import { applyChanges, evaluateScenario, diffEvaluations } from "../../src/shared/domain";
 import { compareBridge, crossDomainTheme } from "../../src/shared/domain/bridge";
 import { buildBrief } from "../../src/shared/domain/brief";
 import { compareDiscovery } from "../../src/shared/domain/comparison";
+import { compareSensitivity } from "../../src/shared/domain/sensitivity";
 import { selectionFrom } from "../../src/shared/domain/selection";
 import type { ScenarioEvaluation } from "../../src/shared/domain/types";
-import type { ResearchRequest, ResearchRun } from "../../src/shared/schemas/evidence";
+import type { ResearchRequest, ResearchRun, SensitivityRequest } from "../../src/shared/schemas/evidence";
 import type { Scenario } from "../../src/shared/schemas/profiles";
 import { checkDraft } from "../../src/worker/integrations/gemini/client";
 import { QlooClient, QlooError, type QlooPath, type QlooTransport, type QueryValue } from "../../src/worker/integrations/qloo/client";
 import { FixtureTransport } from "../../src/worker/integrations/qloo/fixture-transport";
 import { normalizeEntity, normalizeTag, resultItems } from "../../src/worker/integrations/qloo/normalize";
-import { runBaseline, runVenueBridge } from "../../src/worker/orchestration/followups";
+import { runBaseline, runSensitivity, runVenueBridge } from "../../src/worker/orchestration/followups";
 import { runResearch } from "../../src/worker/orchestration/research";
 import type { VenueSelection } from "../../src/shared/schemas/selection";
 import { localVar } from "../../scripts/lib";
+import { EXAMPLE_GUEST } from "../../src/shared/fixtures/example-scenario";
 import { CASES, NARRATIVE_FACTS, type ResearchCase } from "./cases";
 
 class FaultTransport implements QlooTransport {
@@ -119,6 +121,13 @@ const LIVE_SCENARIOS: { id: string; request: ResearchRequest }[] = [
   { id: "L5 no references, Austin, plant shop", request: { seeds: [], city: "Austin", venueCategory: "plant_shop", guestCategories: ["plants"], maxCandidates: 5 } },
 ];
 
+function sensitivityRequest(run: ResearchRun): SensitivityRequest | null {
+  const signals = run.seeds.filter((x) => x.status === "exact" && x.entity).map((x) => ({ id: x.entity?.id ?? "", label: x.input.label.slice(0, 80) }));
+  if (!run.venueSearch || signals.length < 2) return null;
+  const { categoryTagId, categoryName, location, take } = run.venueSearch;
+  return { categoryTagId, categoryName, location, venueCategory: run.request.venueCategory, signals: signals.slice(0, 3), take: Math.min(take, 8) };
+}
+
 async function runLive() {
   const apiKey = localVar("QLOO_API_KEY");
   if (!apiKey) {
@@ -152,7 +161,7 @@ async function runLive() {
       const text = [...run.limitations, ...run.themes.map((t) => t.rationale), ...run.steps.map((x) => x.summary)];
       const bridge = run.steps.find((x) => x.id === "cultural_bridge");
       // Category-only comparison (one call) and venue-side bridge for the first venue (one call).
-      const extra = { compare: "not run", inBoth: 0, onlyWithTaste: 0, topInCategoryOnly: "n/a", venueSideItems: 0, sharedItems: 0, sharedTags: 0 };
+      const extra = { compare: "not run", inBoth: 0, onlyWithTaste: 0, topInCategoryOnly: "n/a", venueSideItems: 0, sharedItems: 0, sharedTags: 0, sensitivity: "not run" };
       const top = run.candidates[0];
       if (run.venueSearch && top && top.strength !== "unscored") {
         const followup = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: 2 });
@@ -173,6 +182,14 @@ async function runLive() {
           // Categories without a cross-domain type have no venue-side lookup.
         }
         extraCalls += vb.callsUsed;
+        // Reference sensitivity: one call per matched reference, only when at least two matched.
+        const sreq = sensitivityRequest(run);
+        if (sreq) {
+          const st = new QlooClient({ apiKey, baseUrl: localVar("QLOO_BASE_URL"), callBudget: sreq.signals.length + 1 });
+          const sens = compareSensitivity(run.candidates, await runSensitivity(sreq, { transport: st, mode: "live" }));
+          extra.sensitivity = sens.references.map((x) => x.effect).join(",");
+          extraCalls += st.callsUsed;
+        }
       }
       results.push({
         id,
@@ -202,7 +219,7 @@ async function runLive() {
   writeFileSync("tests/evaluation/output/live-results.json", `${JSON.stringify(results, null, 2)}
 `);
   console.table(results);
-  console.log(`Follow-up calls (comparison and venue side): ${extraCalls}`);
+  console.log(`Follow-up calls (comparison, venue side, sensitivity): ${extraCalls}`);
   return results;
 }
 
@@ -220,6 +237,8 @@ async function main() {
   let withQloo = { themes: 0, candidates: 0, evidence: 0, activations: 0 };
   let activationStatements = 0;
   let activationUnsupported = 0;
+  const ideas = { briefs: 0, ideas: 0, repeatedItems: 0, formats: 0, formatsMatchingEngine: 0, statements: 0, unsupported: 0 };
+  const proposals = { briefs: 0, changed: 0, labelledUnconfirmed: 0 };
 
   const fixtureRun = await runResearch(CASES.find((c): c is ResearchCase => c.kind === "research")?.request as ResearchRequest, {
     transport: new FixtureTransport(7),
@@ -242,6 +261,12 @@ async function main() {
   );
   const fixtureSelection: VenueSelection = { ...(selectionFrom(fixtureRun, firstVenue.venue.id, new Date(0)) as VenueSelection), venueBridge: fixtureVenueBridge, baseline: fixtureBaseline };
   const fixtureBridge = compareBridge(crossDomainTheme(fixtureRun.themes), fixtureVenueBridge, fixtureRun.bridgeDomain ?? null);
+  // Reference sensitivity needs at least two matched references, so it runs on the fictional example's three.
+  const exampleRun = await runResearch({ ...fixtureRun.request, seeds: EXAMPLE_GUEST.culturalSeeds }, { transport: new FixtureTransport(7), mode: "fixture", callBudget: 7, runId: "eval-example" });
+  const fixtureSensitivityRequest = sensitivityRequest(exampleRun);
+  const fixtureSensitivity = fixtureSensitivityRequest
+    ? compareSensitivity(exampleRun.candidates, await runSensitivity(fixtureSensitivityRequest, { transport: new FixtureTransport(4), mode: "fixture" }))
+    : null;
 
   for (const c of CASES) {
     const failures: string[] = [];
@@ -287,6 +312,40 @@ async function main() {
         evidence: withQloo.evidence + (cultural.cultural?.themes.reduce((s, t) => s + t.items.length, 0) ?? 0),
         activations: withQloo.activations + (cultural.activation ? 1 : 0),
       };
+      // Proposal ideas: each from distinct evidence, every status read from the engine, no outcome claims.
+      const linkedEval = evaluateScenario(linkedScenario);
+      ideas.briefs += 1;
+      ideas.ideas += cultural.concepts.length;
+      const seen = new Set<string>();
+      for (const idea of cultural.concepts) {
+        for (const item of idea.items) {
+          if (seen.has(item)) ideas.repeatedItems += 1;
+          seen.add(item);
+        }
+        for (const f of idea.formats) {
+          ideas.formats += 1;
+          if (linkedEval.options.find((o) => o.id === f.optionId)?.status === f.status) ideas.formatsMatchingEngine += 1;
+        }
+        for (const st of [idea.pitch, ...idea.observed, ...idea.mightNotSuit, ...idea.hostConfirmations]) {
+          ideas.statements += 1;
+          if (UNSUPPORTED.test(st)) {
+            ideas.unsupported += 1;
+            failures.push(`idea statement flagged: ${st.slice(0, 60)}`);
+          }
+        }
+      }
+      // Counterproposal: apply the first verified change and check every edited value reads as unconfirmed.
+      const change = e.reversals.find((r) => r.minimalChange?.verified)?.minimalChange;
+      if (change) {
+        const whatIf = applyChanges(c.scenario, change.changes);
+        const proposal = buildBrief(whatIf, evaluateScenario(whatIf), null, { hypothetical: true, selection: null, now: new Date(0), stated: { scenario: c.scenario, evaluation: e } });
+        const edited = proposal.inputs.filter((i) => i.proposedChange);
+        proposals.briefs += 1;
+        proposals.changed += edited.length;
+        proposals.labelledUnconfirmed += edited.filter((i) => i.provenance === "unknown" && i.proposedChange?.confirmBy === i.party).length;
+        checks += 1;
+        if (!proposal.counterproposal || edited.some((i) => i.provenance !== "unknown")) failures.push("an edited value kept a party's provenance in the what-if brief");
+      }
       const activationText = [cultural.activation?.pitch ?? "", ...(cultural.activation?.why ?? []), ...(cultural.activation?.unverified ?? []), cultural.hostTerms.disclaimer ?? ""];
       for (const st of activationText.filter(Boolean)) {
         activationStatements += 1;
@@ -334,6 +393,9 @@ async function main() {
     culturalLayer: { mode: "fixture", ...withQloo, activationStatements, activationUnsupported },
     categoryOnlyComparison: { mode: "fixture", outcome: fixtureComparison.outcome, inBoth: fixtureComparison.inBoth, onlyWithTaste: fixtureComparison.onlyWithTaste, onlyCategory: fixtureComparison.onlyCategory },
     venueSideBridge: { mode: "fixture", items: fixtureVenueBridge.items.length, shared: fixtureBridge?.shared.length ?? 0, sharedTags: fixtureBridge?.sharedTags.length ?? 0 },
+    proposalIdeas: ideas,
+    counterproposals: proposals,
+    referenceSensitivity: { mode: "fixture", effects: fixtureSensitivity?.references.map((r) => `${r.omitted}: ${r.effect}`) ?? [] },
     researchCalls: { runs: researchCalls.length, max: Math.max(...researchCalls), mean: researchCalls.reduce((a, b) => a + b, 0) / researchCalls.length },
     engineLatencyMs: { samples: latencies.length, median: quantile(latencies, 0.5), p95: quantile(latencies, 0.95) },
     rows,
@@ -353,6 +415,10 @@ async function main() {
     `| Numbers in generated statements traceable to inputs or reported arithmetic | ${numericGrounded} / ${numericTotal} (${pct(numericGrounded, numericTotal)}) |`,
     `| Decisions identical with and without the cultural layer (venue, bridge, and activation idea attached) | ${invariant} / ${invariantTotal} |`,
     `| Activation-idea and disclaimer statements flagged as unsupported claims | ${activationUnsupported} / ${activationStatements} |`,
+    `| Proposal ideas: format statuses identical to the rules engine | ${ideas.formatsMatchingEngine} / ${ideas.formats} |`,
+    `| Proposal ideas: items repeated from another idea in the same brief | ${ideas.repeatedItems} (over ${ideas.ideas} ideas in ${ideas.briefs} briefs) |`,
+    `| Proposal-idea statements flagged as unsupported claims | ${ideas.unsupported} / ${ideas.statements} |`,
+    `| What-if briefs: edited values labelled as unconfirmed proposals | ${proposals.labelledUnconfirmed} / ${proposals.changed} (in ${proposals.briefs} briefs) |`,
     `| Research runs: upstream calls per run (max / mean) | ${results.researchCalls.max} / ${results.researchCalls.mean.toFixed(1)} over ${researchCalls.length} runs |`,
     `| Engine evaluation time, median / p95 (ms, ${latencies.length} samples) | ${results.engineLatencyMs.median.toFixed(2)} / ${results.engineLatencyMs.p95.toFixed(2)} |`,
     "",
@@ -368,6 +434,9 @@ async function main() {
     `The fixture run was compared with a category-only search of the same category and area (outcome: ${fixtureComparison.outcome}).`,
     `${fixtureComparison.inBoth} venues appear in both lists, ${fixtureComparison.onlyWithTaste} only in the taste-informed list, and ${fixtureComparison.onlyCategory} only in the category-only list.`,
     `The venue-side lookup for the first venue returned ${fixtureVenueBridge.items.length} items: ${fixtureBridge?.shared.length ?? 0} also on the guest side, with ${fixtureBridge?.sharedTags.length ?? 0} shared taste tags.`,
+    fixtureSensitivity
+      ? `Reference sensitivity on a fixture run with the fictional example's three references (one fictional search per left-out reference): ${fixtureSensitivity.references.map((r) => `without “${r.omitted}”, ${r.effect.replace(/_/g, " ")}`).join("; ")}. The fixture builds in this dependence on purpose so both outcomes are exercised.`
+      : "Reference sensitivity was not run: the fixture run had fewer than two matched references.",
     "Fixture data is fictional, so these figures check the mechanics only. Live figures are recorded in `docs/evaluation.md`.",
     "",
     "Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and",

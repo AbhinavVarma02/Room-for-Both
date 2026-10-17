@@ -6,13 +6,17 @@ Environment: offline, Node.js, fixture transport for research cases. No Qloo or 
 | Measure | Result |
 |---|---|
 | Cases passing every check | 40 / 40 |
-| Individual checks passing | 60 / 60 (100.0%) |
+| Individual checks passing | 73 / 73 (100.0%) |
 | Generated statements flagged as unsupported claims | 0 / 3157 (0.0%) |
 | Numbers in generated statements traceable to inputs or reported arithmetic | 3019 / 3019 (100.0%) |
 | Decisions identical with and without the cultural layer (venue, bridge, and activation idea attached) | 27 / 27 |
 | Activation-idea and disclaimer statements flagged as unsupported claims | 0 / 188 |
+| Proposal ideas: format statuses identical to the rules engine | 216 / 216 |
+| Proposal ideas: items repeated from another idea in the same brief | 0 (over 108 ideas in 27 briefs) |
+| Proposal-idea statements flagged as unsupported claims | 0 / 561 |
+| What-if briefs: edited values labelled as unconfirmed proposals | 13 / 13 (in 13 briefs) |
 | Research runs: upstream calls per run (max / mean) | 6 / 3.6 over 9 runs |
-| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.20 |
+| Engine evaluation time, median / p95 (ms, 675 samples) | 0.06 / 0.16 |
 
 ## Cultural layer versus no-cultural-layer baseline
 
@@ -26,6 +30,7 @@ invariance (27/27) confirms cultural data never changes a feasibility verdict.
 The fixture run was compared with a category-only search of the same category and area (outcome: different_venues).
 5 venues appear in both lists, 0 only in the taste-informed list, and 3 only in the category-only list.
 The venue-side lookup for the first venue returned 6 items: 2 also on the guest side, with 4 shared taste tags.
+Reference sensitivity on a fixture run with the fictional example's three references (one fictional search per left-out reference): without “Aesop”, changes top; without “Patagonia”, no change; without “Braiding Sweetgrass”, no change. The fixture builds in this dependence on purpose so both outcomes are exercised.
 Fixture data is fictional, so these figures check the mechanics only. Live figures are recorded in `docs/evaluation.md`.
 
 Live Qloo measurements are taken separately with `npm run eval -- --live` (fixed scenarios, aggregate metrics only) and
@@ -36,32 +41,32 @@ recorded with their date in `docs/evaluation.md`; this generated report stays of
 | ID | Category | Description | Checks | Result |
 |---|---|---|---|---|
 | E01 | agreement | Both parties fully compatible | 1/1 | pass |
-| E02 | agreement | Fictional example: weekday host, weekend guest | 2/2 | pass |
+| E02 | agreement | Fictional example: weekday host, weekend guest | 3/3 | pass |
 | E03 | schedule | Shared window exactly as long as the longest pop-up | 1/1 | pass |
-| E04 | schedule | No shared day | 2/2 | pass |
-| E05 | schedule | Touching windows do not overlap | 1/1 | pass |
+| E04 | schedule | No shared day | 3/3 | pass |
+| E05 | schedule | Touching windows do not overlap | 2/2 | pass |
 | E06 | money | Partner fee alone exceeds budget while own costs are unknown | 1/1 | pass |
-| E07 | money | Own costs exceed the budget | 1/1 | pass |
+| E07 | money | Own costs exceed the budget | 2/2 | pass |
 | E08 | unknowns | Host has not said which formats it hosts | 1/1 | pass |
 | E09 | unknowns | Guest wants sampling; host permission unknown | 3/3 | pass |
-| E10 | permissions | Host forbids sampling | 1/1 | pass |
-| E11 | capacity | Host can give one staff hour | 1/1 | pass |
-| E12 | capacity | Minimum audience exceeds room capacity | 1/1 | pass |
+| E10 | permissions | Host forbids sampling | 2/2 | pass |
+| E11 | capacity | Host can give one staff hour | 2/2 | pass |
+| E12 | capacity | Minimum audience exceeds room capacity | 2/2 | pass |
 | E13 | negotiability | Host minimum term marked non-negotiable | 1/1 | pass |
-| E14 | categories | Host excludes the guest's category (negotiable) | 2/2 | pass |
+| E14 | categories | Host excludes the guest's category (negotiable) | 3/3 | pass |
 | E15 | categories | Category exclusion marked non-negotiable | 1/1 | pass |
-| E16 | dealbreakers | Guest rules out alcohol; host serves it | 1/1 | pass |
+| E16 | dealbreakers | Guest rules out alcohol; host serves it | 2/2 | pass |
 | E17 | two-sidedness | Host values typed in by the guest, mostly missing | 2/2 | pass |
 | E18 | unknowns | Guest budget missing | 2/2 | pass |
-| E19 | reversal | Raising the budget past the threshold flips an option | 2/2 | pass |
+| E19 | reversal | Raising the budget past the threshold flips an option | 3/3 | pass |
 | E20 | reversal | Raising an already ample budget changes nothing | 2/2 | pass |
 | E21 | frontier | Opposed priorities: guest wants low outlay, host wants high fee | 1/1 | pass |
 | E22 | frontier | Guest ranks only outlay | 1/1 | pass |
-| E23 | reversal | Several simultaneous conflicts | 1/1 | pass |
+| E23 | reversal | Several simultaneous conflicts | 2/2 | pass |
 | E24 | adversarial | Markup and instructions in free text are carried as inert text | 1/1 | pass |
 | E25 | adversarial | Extreme but valid values | 1/1 | pass |
-| E26 | schedule | Host explicitly has no availability (not unknown) | 1/1 | pass |
-| E27 | frontier | Equal outlays are ties, not dominance | 1/1 | pass |
+| E26 | schedule | Host explicitly has no availability (not unknown) | 2/2 | pass |
+| E27 | frontier | Equal outlays are ties, not dominance | 2/2 | pass |
 | R01 | research | Normal fixture run | 3/3 | pass |
 | R02 | sparse coverage | No cultural references supplied | 3/3 | pass |
 | R03 | sparse coverage | A reference Qloo cannot find | 2/2 | pass |

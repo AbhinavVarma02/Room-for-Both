@@ -1,4 +1,4 @@
-import { DAY_LABELS, FORMAT_LABELS, HOST_GOAL_LABELS, OBJECTIVE_LABELS, PRODUCT_CATEGORY_LABELS } from "../constants/vocabulary";
+import { DAY_LABELS, FORMAT_LABELS, GUEST_DEALBREAKER_LABELS, HOST_GOAL_LABELS, OBJECTIVE_LABELS, PRODUCT_CATEGORY_LABELS } from "../constants/vocabulary";
 import type { CulturalTheme, ResearchRun, SensitivityResult } from "../schemas/evidence";
 import type { NarrativeFacts } from "../schemas/narrative";
 import type { ProvenanceKind } from "../schemas/common";
@@ -120,6 +120,9 @@ function guestInputs(g: GuestProfile): BriefInput[] {
     { party: "guest", label: "Team members", value: fmtNum(g.staffCount, String), provenance: p(g.staffCount) },
     { party: "guest", label: "Product categories", value: g.productCategories.map((c) => PRODUCT_CATEGORY_LABELS[c]).join(", "), provenance: p(g.productCategories) },
     { party: "guest", label: "In-person sampling", value: g.wantsSampling ? "Planned" : "Not planned", provenance: p(g.wantsSampling) },
+    { party: "guest", label: "Formats considered", value: g.acceptableFormats.map((f) => FORMAT_LABELS[f]).join(", ") || "None", provenance: p(g.acceptableFormats) },
+    { party: "guest", label: "Minimum event audience", value: fmtNum(g.minEventAudience, (n) => `${n} people`), provenance: p(g.minEventAudience) },
+    { party: "guest", label: "Dealbreakers", value: g.dealbreakers.map((d) => GUEST_DEALBREAKER_LABELS[d]).join("; ") || "None", provenance: p(g.dealbreakers) },
   ];
 }
 
@@ -145,6 +148,7 @@ function hostInputs(h: HostProfile): BriefInput[] {
     },
     { party: "host", label: "Sampling allowed", value: fmtBool(h.samplingAllowed, "Yes", "No"), provenance: p(h.samplingAllowed) },
     { party: "host", label: "Requires exclusivity", value: fmtBool(h.requiresExclusivity, "Yes", "No"), provenance: p(h.requiresExclusivity) },
+    { party: "host", label: "Alcohol served during activations", value: fmtBool(h.alcoholOnPremises, "Yes", "No"), provenance: p(h.alcoholOnPremises) },
   ];
 }
 
@@ -456,8 +460,28 @@ function withProposals(
     proposedChanges.push({ party: i.party, label: i.label, from: was.value, to: i.value });
     return { ...i, provenance: "unknown" as const, proposedChange: { from: was.value, confirmBy: i.party } };
   });
+  // A safety net: an edited field with no row above still appears as a proposal, never silently.
+  for (const party of ["guest", "host"] as const) {
+    const a = stated.scenario[party] as Record<string, unknown>;
+    const b = scenario[party] as Record<string, unknown>;
+    for (const key of Object.keys({ ...a, ...b })) {
+      if (key in LISTED_FIELDS[party] || JSON.stringify(a[key]) === JSON.stringify(b[key])) continue;
+      const label = key.replace(/([A-Z])/g, " $1").toLowerCase().replace(/^./, (x) => x.toUpperCase());
+      proposedChanges.push({ party, label, from: JSON.stringify(a[key] ?? null), to: JSON.stringify(b[key] ?? null) });
+    }
+  }
   return { inputs, counterproposal: proposedChanges.length ? { changes: proposedChanges, effects } : null };
 }
+
+// Profile fields that already have a row in the inputs, or that never affect a decision.
+const LISTED_FIELDS = {
+  guest: Object.fromEntries(
+    ["maxOutlayUsd", "ownCostPerActivationUsd", "availability", "popupFootprintSqFt", "shelfLinearFt", "staffCount", "productCategories", "wantsSampling", "acceptableFormats", "minEventAudience", "dealbreakers", "fixedFields", "notes", "priorities", "objectives", "businessName", "sector", "culturalSeeds", "market", "origin"].map((k) => [k, true]),
+  ),
+  host: Object.fromEntries(
+    ["allowedFormats", "availability", "popupFeePerDayUsd", "shelfFeePerWeekUsd", "shelfMinWeeks", "eventFeePerHourUsd", "eventMinHours", "guestFloorSqFt", "shelfLinearFt", "eventCapacity", "staffHoursPerActivation", "excludedCategories", "samplingAllowed", "requiresExclusivity", "alcoholOnPremises", "fixedFields", "notes", "priorities", "goals", "venueName", "venueCategory", "source", "programmingInterests", "qlooEntityId"].map((k) => [k, true]),
+  ),
+};
 
 const STATUS_WORDS: Record<OptionStatus, string> = { feasible: "feasible", conditional: "conditional", no_go: "no-go" };
 

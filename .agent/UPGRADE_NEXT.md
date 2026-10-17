@@ -13,15 +13,15 @@
 
 ## Current position
 
-Phase U1 (selected-venue journey). See `UPGRADE_TASKS.md` for the active task.
+U1–U3 core is committed (selected-venue journey, category-only comparison, venue-side bridge). Next: U4 (bounded
+planner), then U5 (guided demonstration), U6 (CPU). See `UPGRADE_TASKS.md`.
 
 ## Rules that apply to every step
 
 - Live Qloo calls are scarce (5/s, 10,000/month, app ceiling 300/day). Offline tests use the synthetic upstream.
   Record every live call count in `UPGRADE_PROGRESS.md`.
-- Local Playwright runs read `.dev.vars` and therefore run in live mode. Run them in fixture mode unless a live
-  check is the point: `QLOO_API_KEY= GEMINI_API_KEY= npx playwright test` does not work because the Vite
-  Cloudflare plugin reads `.dev.vars` directly; use `CLOUDFLARE_ENV` or the fixture-mode procedure recorded in
-  `UPGRADE_PROGRESS.md` once established.
+- Local runs without live quota: `npm run dev:fixture` (Vite `--mode fixture` loads the git-ignored
+  `.dev.vars.fixture`, which holds empty credential entries). Plain `npm run dev` and the default Playwright web
+  server read `.dev.vars` and run live.
 - Never deploy to production before U8 passes. Candidate checks use `wrangler versions upload` (no traffic) where
   preview URLs are available.

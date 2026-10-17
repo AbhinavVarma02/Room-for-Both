@@ -78,20 +78,20 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
 | U8-01 | Full offline suite, eval, secret scan, build | U1–U6 | — | verified_complete | `npm run check`, scan clean | npm run check exit 0; Playwright 32 passed, 2 skipped; scan clean |
-| U8-02 | Playwright desktop and mobile (fixture), then bounded live checks | U8-01 | — | pending | e2e green | — |
-| U8-03 | Merge to main after green CI | U8-02 | — | pending | CI success | — |
-| U8-04 | Deploy, verify publicly in a fresh session, or roll back | U8-03 | — | pending | verify:public, public e2e | — |
+| U8-02 | Playwright desktop and mobile (fixture), then bounded live checks | U8-01 | — | verified_complete | e2e green | fixture 32 passed; live candidate desktop 17/17 and mobile live journeys 2/2 (UPGRADE_PROGRESS #11) |
+| U8-03 | Merge to main after green CI | U8-02 | — | verified_complete | CI success | main a97defa; CI 39037549524 success |
+| U8-04 | Deploy, verify publicly in a fresh session, or roll back | U8-03 | — | verified_complete | verify:public, public e2e | 2c5d1b4f at 100%; verify:public 10/10; public e2e (UPGRADE_PROGRESS #11) |
 
 ## U9 — Documentation and presentation
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
 | U9-01 | README, architecture, evaluation, demo guide, API docs | U8-04 | `docs/`, README | verified_complete | review | README and docs (cc90781 and later) |
-| U9-02 | Private submission text, repository About steps, screenshots | U8-04 | `.local/` | pending | files present | — |
+| U9-02 | Private submission text, repository About steps, screenshots | U8-04 | `.local/` | verified_complete | files present | private drafts in .local (not submitted) |
 
 ## U10 — Re-evaluation and handoff
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U10-01 | Independent re-evaluation (private) | U9 | `.local/` | pending | file present | — |
-| U10-02 | Final trackers and handoff | U10-01 | `.agent/` | pending | — | — |
+| U10-01 | Independent re-evaluation (private) | U9 | `.local/` | verified_complete | file present | private re-evaluation in .local |
+| U10-02 | Final trackers and handoff | U10-01 | `.agent/` | verified_complete | — | trackers and handoff updated |

@@ -145,3 +145,20 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
 - Private: `.local/devpost-description.md` rewritten for the upgraded product; `.local/github-about.md` manual steps
   (no metadata tool available); `.local/qloo-quota-request.md` draft (not sent); `.local/interview-script.md`.
 - Live calls spent (approximate, from the candidate test run): Qloo 9, Gemini 1.
+
+## #11 Release: verified and deployed (U8–U10)
+
+- After the hourly window reset, the five rate-limited tests passed against the candidate (desktop 5/5), and the live
+  guided and complete journeys passed on mobile (2/2). Desktop total on the candidate: 17/17.
+- CI on `main` a97defa: GitHub Actions 39037549524, success.
+- `npx wrangler versions deploy 2c5d1b4f…@100%`: production now serves version 2c5d1b4f (built from e964395; later
+  commits are documentation and ledger only). Rollback: `npx wrangler rollback 1c4b8f19-a82a-402d-abf8-1cacd6bd13e3`.
+- Public checks in fresh sessions: `npm run verify:public` 10/10 (live mode); Playwright pages 5/5; live guided
+  journey 1/1. `/api/health`: research live, narrative enabled, model planner available (2 decisions).
+- Analytics for version 2c5d1b4f over 90 minutes (preview and production): 66 requests, 0 errors, no CPU
+  terminations; CPU p50 4.5, p90 12.7, p99 34.6 ms. RISK-CPU stays an open watch item.
+- Usage today (UTC, app counters): Qloo 172 of the 300 ceiling, Gemini 9. Upgrade total, approximate: Qloo 104
+  calls, Gemini 7.
+- Private (not committed): `.local/judges-audit-after-upgrade.md` re-evaluation; submission text, About steps, quota
+  draft, interview script.
+- Nothing was submitted to any external form. The GitHub About section is still empty (manual step).

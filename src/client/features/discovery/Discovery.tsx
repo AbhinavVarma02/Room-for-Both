@@ -11,6 +11,32 @@ import { Button, Callout, Card, ProvenanceChip, cn } from "../../components/ui/p
 
 type StepState = { id: ResearchStepId; label: string; status: "pending" | ResearchStep["status"]; summary?: string };
 
+/** How a failed live run is presented. Each state says plainly whether live data was involved. */
+type ErrorKind = "unauthorized" | "unavailable" | "throttled" | "other";
+type ResearchError = { message: string; retryable: boolean; kind: ErrorKind };
+
+const UNPLANNED_LABELS: Partial<Record<ResearchStepId, string>> = { broaden_location: "Widening the search area" };
+
+const ERROR_TITLES: Record<ErrorKind, string> = {
+  unauthorized: "Live Qloo access is not authorized right now",
+  unavailable: "Live cultural data is temporarily unavailable",
+  throttled: "Please wait before researching again",
+  other: "Research did not finish",
+};
+
+function streamErrorKind(code: string): ErrorKind {
+  if (code === "auth" || code === "not_configured" || code === "untrusted_base_url") return "unauthorized";
+  if (["rate_limited", "quota_exhausted", "upstream_unavailable", "timeout", "network", "upstream", "malformed"].includes(code)) return "unavailable";
+  return "other";
+}
+
+function httpErrorKind(code: string): ErrorKind {
+  // A 429 before the stream starts is this app's own per-visitor limit, which a demo run shares.
+  if (code === "rate_limited") return "throttled";
+  if (["quota_exhausted", "limiter_unavailable", "research_unavailable"].includes(code)) return "unavailable";
+  return "other";
+}
+
 const STRENGTH: Record<Strength, { label: string; className: string }> = {
   strong: { label: "Very high affinity", className: "bg-common text-white" },
   moderate: { label: "High affinity", className: "bg-common-soft text-common" },
@@ -43,7 +69,7 @@ export function Discovery() {
   const [category, setCategory] = useState<VenueCategory | null>(state.research?.request.venueCategory ?? (state.isExample ? "bookstore" : state.host?.venueCategory ?? null));
   const [steps, setSteps] = useState<StepState[]>([]);
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
+  const [error, setError] = useState<ResearchError | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => () => abort.current?.abort(), []);
@@ -51,7 +77,7 @@ export function Discovery() {
   if (!guest) return null;
   const run = state.research;
 
-  const start = async () => {
+  const start = async (demo = false) => {
     if (!category) return;
     abort.current?.abort();
     const controller = new AbortController();
@@ -68,22 +94,36 @@ export function Discovery() {
           venueCategory: category,
           guestCategories: guest.productCategories,
           maxCandidates: 5,
+          ...(demo ? { demo: true as const } : {}),
         },
         (event) => {
           if (event.type === "plan") setSteps(event.steps.map((s) => ({ ...s, status: "pending" })));
           if (event.type === "step") {
             setSteps((prev) => {
-              const next = prev.some((p) => p.id === event.step.id) ? prev : [...prev, { id: event.step.id, label: event.step.id.replace(/_/g, " "), status: "pending" as const }];
+              let next = prev;
+              if (!prev.some((p) => p.id === event.step.id)) {
+                // Re-planned steps (such as widening the search) are not in the initial plan, so we slot
+                // them in where they ran: before the first step that has not finished yet.
+                const added: StepState = { id: event.step.id, label: UNPLANNED_LABELS[event.step.id] ?? event.step.id.replace(/_/g, " "), status: "pending" };
+                const at = prev.findIndex((p) => p.status === "pending");
+                next = at < 0 ? [...prev, added] : [...prev.slice(0, at), added, ...prev.slice(at)];
+              }
               return next.map((p) => (p.id === event.step.id ? { ...p, status: event.step.status, summary: event.step.summary } : p));
             });
           }
           if (event.type === "result") dispatch({ type: "set_research", research: event.run });
-          if (event.type === "error") setError({ message: event.message, retryable: event.retryable });
+          if (event.type === "error") setError({ message: event.message, retryable: event.retryable, kind: streamErrorKind(event.code) });
         },
         controller.signal,
       );
     } catch (e) {
-      if (!controller.signal.aborted) setError({ message: e instanceof ApiRequestError ? e.message : "Research could not be completed.", retryable: true });
+      if (!controller.signal.aborted) {
+        setError(
+          e instanceof ApiRequestError
+            ? { message: e.message, retryable: e.code !== "rate_limited", kind: httpErrorKind(e.code) }
+            : { message: "Research could not be completed.", retryable: true, kind: "other" },
+        );
+      }
     } finally {
       setRunning(false);
     }
@@ -132,13 +172,19 @@ export function Discovery() {
 
       {mode === "fixture" && (
         <Callout tone="warn" className="mb-6" title="Fixture mode: fictional cultural data">
-          This server has no Qloo credential configured, so research returns clearly labelled fictional results that exercise the same pipeline. No
-          Qloo request is made.
+          Live Qloo access is not configured on this server, so research returns clearly labelled fictional results that exercise the same
+          pipeline. No Qloo request is made.
         </Callout>
       )}
       {mode === "live" && (
-        <Callout tone="info" className="mb-6" title="Live Qloo research">
-          Results come from Qloo's Insights API in real time, within a fixed budget of {config.data?.callBudget} calls per run.
+        <Callout tone="info" className="mb-6" title="Live Qloo cultural intelligence">
+          Results come from Qloo's Insights API in real time, within a fixed budget of {config.data?.callBudget} calls per run. A fictional
+          demonstration is available if live access fails.
+        </Callout>
+      )}
+      {mode === "live" && run?.mode === "fixture" && (
+        <Callout tone="warn" className="mb-6" title="Showing the fictional demonstration">
+          The results below are fictional demonstration data, not a Qloo response. Run research again to try live data.
         </Callout>
       )}
 
@@ -176,7 +222,7 @@ export function Discovery() {
               ))}
             </div>
           </fieldset>
-          <Button className="w-full" disabled={!category || running || !guest.market.city} onClick={start}>
+          <Button className="w-full" disabled={!category || running || !guest.market.city} onClick={() => start()}>
             {running ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
             {running ? "Researching…" : run ? "Run research again" : "Run cultural research"}
           </Button>
@@ -202,12 +248,20 @@ export function Discovery() {
           )}
 
           {error && (
-            <Callout tone="bad" title="Research did not finish">
+            <Callout tone="bad" title={ERROR_TITLES[error.kind]}>
               <p>{error.message}</p>
+              {(error.kind === "unauthorized" || error.kind === "unavailable") && (
+                <p className="mt-1">No live results are shown. You can run the fictional demonstration instead; every result in it is labelled fictional.</p>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
-                {error.retryable && (
-                  <Button size="sm" variant="secondary" onClick={start}>
+                {error.retryable && error.kind !== "unauthorized" && (
+                  <Button size="sm" variant="secondary" onClick={() => start()}>
                     Try again
+                  </Button>
+                )}
+                {(error.kind === "unauthorized" || error.kind === "unavailable") && (
+                  <Button size="sm" variant="secondary" onClick={() => start(true)}>
+                    Run the fictional demonstration
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => navigate(stepHref("host"))}>
@@ -240,7 +294,7 @@ function ResearchResults({ run, onEvaluate, selectedId }: { run: ResearchRun; on
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">Reference matching</h2>
           <span className="text-xs text-ink-faint">
-            {run.callsUsed} of {run.callBudget} calls used · {run.mode === "live" ? "live" : "fixture"} run
+            {run.mode === "live" ? `${run.callsUsed} of ${run.callBudget} Qloo calls used · live run` : "Fictional demonstration · no Qloo calls"}
           </span>
         </div>
         {run.seeds.length === 0 ? (

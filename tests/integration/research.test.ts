@@ -176,6 +176,42 @@ describe("live mode against a synthetic upstream", () => {
     expect(fake.calls).toHaveLength(0);
   });
 
+  it("runs the labelled fictional demonstration on request, without calling Qloo", async () => {
+    const run = result((await h.request("/api/research", jsonInit("POST", { ...request, demo: true }), live)).text);
+    expect(run.mode).toBe("fixture");
+    expect(run.candidates.every((c) => c.provenance.kind === "synthetic_demo")).toBe(true);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("explains a rejected credential without exposing it", async () => {
+    fake = createQlooFake({ statusFor: { "/search": 401 } });
+    const res = await h.request("/api/research", jsonInit("POST", request), live);
+    const error = ndjson(res.text).find((e) => e.type === "error") as { code: string; message: string } | undefined;
+    expect(error?.code).toBe("auth");
+    expect(error?.message).toMatch(/not authorized/);
+    expect(res.text).not.toContain(KEY);
+  });
+
+  it("matches a book's main title and falls back to scoped taste tags when the cross-domain lookup is rejected", async () => {
+    fake = createQlooFake({ subtitledBooks: true, rejectCrossDomain: true });
+    const run = result((await h.request("/api/research", jsonInit("POST", { ...request, neighborhood: undefined }), live)).text);
+    expect(run.seeds.map((s) => s.status)).toEqual(["exact", "exact"]);
+    expect(run.themes.map((t) => t.id)).toEqual(["taste-tags"]);
+    expect(run.limitations.some((l) => /no books linked/.test(l))).toBe(true);
+    const tagCall = fake.calls.find((c) => c.url.searchParams.get("filter.type") === "urn:tag");
+    expect(tagCall?.url.searchParams.get("filter.parents.types")).toBe("urn:entity:brand,urn:entity:book");
+    expect(run.steps.find((s) => s.id === "cultural_bridge")).toMatchObject({ status: "done", tool: "taste_tags", calls: 2 });
+    expect(run.callsUsed).toBeLessThanOrEqual(run.callBudget);
+  });
+
+  it("leaves out venues Qloo marks as closed and says so", async () => {
+    fake = createQlooFake({ closedVenues: 1 });
+    const run = result((await h.request("/api/research", jsonInit("POST", request), live)).text);
+    expect(run.candidates.map((c) => c.venue.id)).not.toContain("SYN-VENUE-1");
+    expect(run.candidates.map((c) => c.rank)).toEqual([1, 2, 3]);
+    expect(run.limitations).toContain("1 venue that Qloo marks as closed was left out.");
+  });
+
   it("reuses the venue-category tag within an isolate", async () => {
     await h.request("/api/research", jsonInit("POST", request), live);
     const first = fake.calls.filter((c) => c.url.pathname === "/v2/tags").length;

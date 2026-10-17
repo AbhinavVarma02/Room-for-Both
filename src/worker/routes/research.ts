@@ -12,10 +12,11 @@ export const research = new Hono<AppEnv>();
 
 const PUBLIC_MESSAGES: Partial<Record<QlooError["code"], string>> = {
   NOT_CONFIGURED: "Live cultural research is not configured on this server.",
-  AUTH: "The cultural data service rejected this server's credentials. The operator has been notified in the logs.",
+  AUTH: "Live access to Qloo is not authorized for this deployment right now: the credential was rejected, for example because it expired or was revoked.",
   RATE_LIMITED: "The cultural data service is busy. Please wait a minute and try again.",
   UPSTREAM_UNAVAILABLE: "The cultural data service is temporarily unavailable. Please try again shortly.",
   BUDGET_EXHAUSTED: "This research run reached its call limit before finishing.",
+  QUOTA_EXHAUSTED: "This deployment's monthly allowance of live Qloo calls is used up.",
   UNTRUSTED_BASE_URL: "Live cultural research is misconfigured on this server.",
 };
 
@@ -30,7 +31,8 @@ research.post("/research", async (c) => {
   const log = c.get("log");
   const now = Date.now();
   const limiter = limiterFor(c.env.DB);
-  const mode = s.qlooConfigured ? "live" : "fixture";
+  // Visitors can always choose the fictional demonstration; it makes no upstream call.
+  const mode = s.qlooConfigured && body.data.demo !== true ? "live" : "fixture";
 
   try {
     const who = await clientKey(clientAddress(c), c.env.CLIENT_KEY_SALT, now);

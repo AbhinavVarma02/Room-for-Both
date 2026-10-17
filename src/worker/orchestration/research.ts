@@ -11,7 +11,7 @@ import type {
   ResolvedSeed,
 } from "../../shared/schemas/evidence";
 import { QlooError, type QlooTransport } from "../integrations/qloo/client";
-import { contributions, normalizeEntities, normalizeName, normalizeTags, strengthOf } from "../integrations/qloo/normalize";
+import { contributions, isThematicTag, normalizeEntities, normalizeName, normalizeTags, resolvedLocality, strengthOf } from "../integrations/qloo/normalize";
 
 /**
  * Bounded research planner. It is a fixed, typed sequence of tool choices with conditional
@@ -46,7 +46,7 @@ const STEP_LABELS: Record<ResearchStepId, string> = {
 
 // Errors that end the run. Reaching the call budget is not among them: we keep what was found
 // and skip the remaining steps, because partial evidence with a stated limit beats none.
-const FATAL: ReadonlySet<QlooError["code"]> = new Set(["NOT_CONFIGURED", "UNTRUSTED_BASE_URL", "AUTH", "RATE_LIMITED", "UPSTREAM_UNAVAILABLE"]);
+const FATAL: ReadonlySet<QlooError["code"]> = new Set(["NOT_CONFIGURED", "UNTRUSTED_BASE_URL", "AUTH", "RATE_LIMITED", "QUOTA_EXHAUSTED", "UPSTREAM_UNAVAILABLE"]);
 const isBudget = (error: unknown) => error instanceof QlooError && error.code === "BUDGET_EXHAUSTED";
 
 // Tag IDs for venue categories are stable, so a short per-isolate cache saves quota without
@@ -67,10 +67,18 @@ export interface ResearchDeps {
 }
 
 const compact = (s: string) => normalizeName(s).replace(/\s+/g, "");
-function sameName(a: string, b: string): boolean {
-  const x = compact(a);
-  const y = compact(b);
-  return x === y || x === `${y}s` || y === `${x}s`;
+/**
+ * `candidate` is Qloo's name, `input` what the visitor typed. Live book titles carry subtitles
+ * ("Braiding Sweetgrass: Indigenous Wisdom, …"), so an exact match on the main title before the
+ * colon also counts, but only when the visitor typed no subtitle of their own.
+ */
+export function sameName(candidate: string, input: string): boolean {
+  const x = compact(candidate);
+  const y = compact(input);
+  if (x === "" || y === "") return false;
+  if (x === y || x === `${y}s` || y === `${x}s`) return true;
+  const colon = candidate.indexOf(":");
+  return colon > 0 && !input.includes(":") && compact(candidate.slice(0, colon)) === y;
 }
 
 export async function runResearch(request: ResearchRequest, deps: ResearchDeps): Promise<ResearchRun> {
@@ -260,7 +268,20 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
             take: request.maxCandidates,
           }),
         );
-        const venues = normalizeEntities(r.value, request.maxCandidates);
+        const returned = normalizeEntities(r.value, request.maxCandidates);
+        const venues = returned.filter((v) => !v.closed);
+        if (venues.length < returned.length) {
+          const n = returned.length - venues.length;
+          limitations.push(`${n} venue${n === 1 ? "" : "s"} that Qloo marks as closed ${n === 1 ? "was" : "were"} left out.`);
+        }
+        const locality = resolvedLocality(r.value);
+        if (venues.length > 0) {
+          limitations.push(
+            locality && normalizeName(locality) !== normalizeName(location)
+              ? `Qloo matched “${location}” to the area “${locality}”. Some venues may sit outside the neighbourhood you had in mind; check each address.`
+              : `Venues are ranked within the area Qloo matched for “${location}”; check each address before reaching out.`,
+          );
+        }
         const prov = provenance("/v2/insights", req);
         candidates = venues.map((venue, idx) => ({
           venue: { id: venue.id, name: venue.name, type: venue.type, popularity: venue.popularity, affinity: venue.affinity, tags: venue.tags, address: venue.address, location: venue.location },
@@ -311,16 +332,23 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
     await skipForBudget("cultural_bridge", "taste_tags");
   } else {
     const cross = CROSS_DOMAIN[request.venueCategory];
-    const tool = cross ? "cross_domain" : "taste_tags";
-    const type = cross?.type ?? "urn:tag";
     const seedList = signalSeeds.map((s) => `“${s.input.label}”`).join(", ");
     // Fixture runs must never describe their invented associations as Qloo's.
     const associates = deps.mode === "live" ? "Qloo associates" : "In this fictional fixture run, the demonstration data associates";
-    try {
-      const r = await timed(() => deps.transport.get("/v2/insights", { "filter.type": type, "signal.interests.entities": signalIds, take: 8 }));
-      const prov = provenance("/v2/insights", cross ? `${cross.noun} with affinity to ${seedList}` : `Taste tags with affinity to ${seedList}`);
-      if (cross) {
-        const items = normalizeEntities(r.value, 8);
+    // Unscoped taste tags mix every domain (payment cards next to TV keywords in live results), so we
+    // scope them to the entity types Qloo itself reported for the matched references.
+    const parentTypes = [...new Set(signalSeeds.map((s) => s.entity?.type ?? "").filter((t) => t.startsWith("urn:entity:")))];
+    const t0 = now();
+    const c0 = deps.transport.callsUsed;
+    let tool: string = cross ? "cross_domain" : "taste_tags";
+    let fellBack = false;
+    let failed = false;
+
+    if (cross) {
+      try {
+        const payload = await deps.transport.get("/v2/insights", { "filter.type": cross.type, "signal.interests.entities": signalIds, take: 8 });
+        const items = normalizeEntities(payload, 8);
+        const prov = provenance("/v2/insights", `${cross.noun} with affinity to ${seedList}`);
         if (items.length) {
           themes.push({
             id: "cross-domain",
@@ -333,7 +361,7 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
           });
           const tagCounts = new Map<string, number>();
           for (const e of items) {
-            for (const t of e.tags) {
+            for (const t of e.tags.filter(isThematicTag)) {
               tagCounts.set(t.name, (tagCounts.get(t.name) ?? 0) + 1);
               bridgeTags.add(normalizeName(t.name));
             }
@@ -350,9 +378,30 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
               interpretation: "derived_rule",
             });
           }
+        } else {
+          fellBack = true;
         }
-      } else {
-        const tags = normalizeTags(r.value, 8);
+      } catch (error) {
+        if (isBudget(error)) budgetReached = true;
+        else if (error instanceof QlooError && FATAL.has(error.code)) throw error;
+        // Qloo answers 400 when none of the references carry signal in the target domain (seen live
+        // for a brand-only reference and books). Taste tags are the documented next-best bridge.
+        else if (error instanceof QlooError && error.code === "BAD_REQUEST") fellBack = true;
+        else failed = true;
+      }
+      if (fellBack) limitations.push(`Qloo returned no ${cross.noun} linked to ${seedList}, so the bridge uses taste tags instead.`);
+    }
+
+    if ((!cross || fellBack) && !budgetReached) {
+      tool = "taste_tags";
+      try {
+        const payload = await deps.transport.get("/v2/insights", {
+          "filter.type": "urn:tag",
+          "signal.interests.entities": signalIds,
+          "filter.parents.types": parentTypes.length ? parentTypes : undefined,
+          take: 8,
+        });
+        const tags = normalizeTags(payload, 8).filter(isThematicTag);
         for (const t of tags) bridgeTags.add(normalizeName(t.name));
         if (tags.length) {
           themes.push({
@@ -361,31 +410,39 @@ export async function runResearch(request: ResearchRequest, deps: ResearchDeps):
             basis: "taste_tags",
             rationale: `${associates} ${seedList} with these taste tags. They suggest a theme for the collaboration; they do not describe either business's actual customers.`,
             items: tags.map((t) => ({ id: t.id, name: t.name, type: t.type ?? "tag", affinity: t.affinity, strength: strengthOf(t.affinity) })),
-            provenance: prov,
+            provenance: provenance("/v2/insights", `Taste tags with affinity to ${seedList}`),
             interpretation: "derived_rule",
           });
         }
+      } catch (error) {
+        if (isBudget(error)) budgetReached = true;
+        else if (error instanceof QlooError && FATAL.has(error.code)) throw error;
+        else failed = true;
       }
-      candidates = candidates.map((c) => ({
-        ...c,
-        sharedTags: c.venue.tags.filter((t) => bridgeTags.has(normalizeName(t.name))).map((t) => t.name).slice(0, 8),
-      }));
+    }
+
+    candidates = candidates.map((c) => ({
+      ...c,
+      sharedTags: c.venue.tags.filter((t) => isThematicTag(t) && bridgeTags.has(normalizeName(t.name))).map((t) => t.name).slice(0, 8),
+    }));
+    const calls = deps.transport.callsUsed - c0;
+    if (themes.length === 0 && budgetReached && calls === 0) {
+      await skipForBudget("cultural_bridge", tool);
+    } else {
       await record({
         id: "cultural_bridge",
         tool,
         status: themes.length ? "done" : "failed",
-        calls: r.calls,
-        summary: themes.length ? `Built ${themes.length} theme${themes.length === 1 ? "" : "s"} from Qloo results.` : "Qloo returned no related results.",
-        durationMs: r.ms,
+        calls,
+        summary: themes.length
+          ? `Built ${themes.length} theme${themes.length === 1 ? "" : "s"} from Qloo results${fellBack ? " (taste tags after an empty cross-domain lookup)" : ""}.`
+          : failed
+            ? "The cultural bridge lookup failed."
+            : budgetReached
+              ? "Stopped: this run's call budget was reached."
+              : "Qloo returned no related results.",
+        durationMs: Math.max(0, now() - t0),
       });
-    } catch (error) {
-      if (isBudget(error)) {
-        budgetReached = true;
-        await skipForBudget("cultural_bridge", tool);
-      } else {
-        if (error instanceof QlooError && FATAL.has(error.code)) throw error;
-        await record({ id: "cultural_bridge", tool, status: "failed", calls: 1, summary: "The cultural bridge lookup failed.", durationMs: 0 });
-      }
     }
   }
 

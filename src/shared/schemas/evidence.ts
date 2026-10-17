@@ -102,6 +102,8 @@ export const ResearchRequest = z.strictObject({
   venueCategory: VenueCategory,
   guestCategories: z.array(ProductCategory).min(1).max(5),
   maxCandidates: z.number().int().min(1).max(8).default(5),
+  /** Run the labelled fictional demonstration even when live access is configured. */
+  demo: z.literal(true).optional(),
 });
 export type ResearchRequest = z.infer<typeof ResearchRequest>;
 

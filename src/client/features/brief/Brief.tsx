@@ -254,6 +254,11 @@ export function Brief() {
         {brief.cultural ? (
           <div className="mt-3 space-y-4">
             {brief.cultural.mode === "fixture" && <Callout tone="warn" title="Fixture data: fictional cultural results, not from Qloo." />}
+            {brief.cultural.mode === "live" && (
+              <Callout tone="info" title="Cultural results retrieved live from Qloo.">
+                They describe aggregate taste associations only, not either business's customers, sales, or terms.
+              </Callout>
+            )}
             {brief.cultural.selectedVenue && (
               <p className="text-sm">
                 Selected venue: <span className="font-medium">{brief.cultural.selectedVenue.name}</span> ({brief.cultural.selectedVenue.strength}

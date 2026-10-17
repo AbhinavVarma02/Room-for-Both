@@ -17,7 +17,8 @@ export type QlooErrorCode =
   | "TIMEOUT"
   | "NETWORK"
   | "MALFORMED"
-  | "BUDGET_EXHAUSTED";
+  | "BUDGET_EXHAUSTED"
+  | "QUOTA_EXHAUSTED";
 
 export class QlooError extends Error {
   constructor(
@@ -47,6 +48,8 @@ export interface QlooClientOptions {
   maxAttempts?: number;
   callBudget: number;
   maxResponseBytes?: number;
+  /** Minimum spacing between calls from this isolate; Qloo enforces a per-second limit per key. */
+  minIntervalMs?: number;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -78,6 +81,18 @@ const BREAKER_COOLDOWN_MS = 60_000;
 export function resetQlooCircuitBreaker(): void {
   breaker.failures = 0;
   breaker.openUntil = 0;
+  pacer.next = 0;
+}
+
+// Qloo reports a per-second limit (x-second-ratelimit-limit, 5 for the issued key). One run makes
+// several quick sequential calls, so we space calls from an isolate instead of bursting into 429s.
+const pacer = { next: 0 };
+const DEFAULT_MIN_INTERVAL_MS = 250;
+
+/** Seconds from Retry-After or Qloo's per-second reset header, as a bounded wait in milliseconds. */
+function rateLimitWait(headers: Headers): number {
+  const seconds = Number(headers.get("retry-after") ?? headers.get("x-second-ratelimit-reset"));
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(Math.max(seconds * 1000, 250), 2000) : 1000;
 }
 
 export class QlooClient implements QlooTransport {
@@ -89,6 +104,7 @@ export class QlooClient implements QlooTransport {
   #maxBytes: number;
   #fetch: typeof fetch;
   #sleep: (ms: number) => Promise<void>;
+  #minInterval: number;
   #calls = 0;
 
   constructor(options: QlooClientOptions) {
@@ -103,6 +119,14 @@ export class QlooClient implements QlooTransport {
     this.#maxBytes = options.maxResponseBytes ?? 2_000_000;
     this.#fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
     this.#sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.#minInterval = Math.max(0, options.minIntervalMs ?? DEFAULT_MIN_INTERVAL_MS);
+  }
+
+  async #pace(): Promise<void> {
+    const now = Date.now();
+    const wait = pacer.next - now;
+    pacer.next = Math.max(now, pacer.next) + this.#minInterval;
+    if (wait > 0) await this.#sleep(wait);
   }
 
   get callsUsed(): number {
@@ -130,6 +154,7 @@ export class QlooClient implements QlooTransport {
         throw new QlooError("BUDGET_EXHAUSTED", `This research run reached its limit of ${this.#budget} Qloo calls.`);
       }
       this.#calls += 1;
+      await this.#pace();
       let response: Response;
       try {
         response = await this.#fetch(url.toString(), {
@@ -157,10 +182,15 @@ export class QlooClient implements QlooTransport {
         await response.body?.cancel();
         return { results: [] };
       }
-      if (RETRYABLE.has(response.status) && attempt < this.#maxAttempts) {
-        const retryAfter = Number(response.headers.get("retry-after"));
+      // A spent monthly allowance will not recover within this request, so we stop instead of retrying.
+      if (response.status === 429 && response.headers.get("x-month-ratelimit-remaining") === "0") {
         await response.body?.cancel();
-        await this.#sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 2000) : this.#backoff(attempt));
+        throw new QlooError("QUOTA_EXHAUSTED", "This deployment's monthly Qloo allowance is used up.", false, 429);
+      }
+      if (RETRYABLE.has(response.status) && attempt < this.#maxAttempts) {
+        const wait = response.status === 429 ? rateLimitWait(response.headers) : this.#backoff(attempt);
+        await response.body?.cancel();
+        await this.#sleep(wait);
         continue;
       }
       await response.body?.cancel();

@@ -11,6 +11,13 @@ export async function freshClient(page: Page) {
   await page.setExtraHTTPHeaders({ "cf-connecting-ip": `10.${octet()}.${octet()}.${octet()}` });
 }
 
+/** The deployment's research mode, so journeys assert the labels that mode must show. */
+export async function researchMode(page: Page): Promise<"live" | "fixture"> {
+  const res = await page.request.get("/api/config");
+  const body = (await res.json()) as { researchMode: "live" | "fixture" };
+  return body.researchMode;
+}
+
 export async function startExample(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: /Try the fictional example/ }).click();

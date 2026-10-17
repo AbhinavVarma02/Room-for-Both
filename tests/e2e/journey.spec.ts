@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll, freshClient, startExample } from "./helpers";
+import { expectNoHorizontalScroll, freshClient, researchMode, startExample } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await freshClient(page);
@@ -14,18 +14,27 @@ test("landing page explains the product and offers the fictional example", async
   await expectNoHorizontalScroll(page);
 });
 
-test("complete fictional journey: discovery, frontier, reversal, and brief", async ({ page }) => {
+test("complete journey: discovery, frontier, reversal, and brief", async ({ page }) => {
+  // The fictional guest and host are the same in both modes; only the cultural layer differs, and
+  // each mode must say which one it is.
+  const mode = await researchMode(page);
   await startExample(page);
   await expect(page.getByText("Fictional example").first()).toBeVisible();
   await expect(page.getByLabel("Business name")).toHaveValue("Fernleaf Botanics (fictional)");
   await page.getByRole("button", { name: /Save and continue/ }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: "Cultural discovery" })).toBeVisible();
-  await expect(page.getByText("Fixture mode: fictional cultural data")).toBeVisible();
+  await expect(page.getByText(mode === "live" ? "Live Qloo cultural intelligence" : "Fixture mode: fictional cultural data")).toBeVisible();
   await page.getByRole("button", { name: "Run cultural research" }).click();
-  await expect(page.getByRole("heading", { name: "Venue candidates" })).toBeVisible();
-  await expect(page.getByText("(fictional)", { exact: false }).first()).toBeVisible();
-  await expect(page.getByText("No Qloo request was made").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Venue candidates" })).toBeVisible({ timeout: 30_000 });
+  if (mode === "live") {
+    await expect(page.getByText(/Qloo calls used · live run/)).toBeVisible();
+    await expect(page.getByText("Observed in Qloo").first()).toBeVisible();
+    await expect(page.getByText("No Qloo request was made")).toHaveCount(0);
+  } else {
+    await expect(page.getByText("(fictional)", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("No Qloo request was made").first()).toBeVisible();
+  }
   await expectNoHorizontalScroll(page);
 
   await page.getByRole("button", { name: /Continue with Larkspur/ }).click();
@@ -59,7 +68,7 @@ test("complete fictional journey: discovery, frontier, reversal, and brief", asy
   await expect(page.getByText("Describes invented businesses for demonstration")).toBeVisible();
   await expect(page.getByRole("heading", { name: "First three questions to ask" })).toBeVisible();
   await expect(page.getByText("Do your partnerships require exclusivity?").first()).toBeVisible();
-  await expect(page.getByText("Fixture data: fictional cultural results, not from Qloo.")).toBeVisible();
+  await expect(page.getByText(mode === "live" ? "Cultural results retrieved live from Qloo." : "Fixture data: fictional cultural results, not from Qloo.")).toBeVisible();
 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download JSON" }).click();
@@ -76,4 +85,27 @@ test("workspace survives a reload and can be cleared", async ({ page }) => {
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Start over" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Find common ground");
+});
+
+test("a rejected live credential falls back to a labelled fictional demonstration", async ({ page }) => {
+  const mode = await researchMode(page);
+  // We simulate the upstream rejection in the browser so the test spends no Qloo quota; the demo
+  // request itself goes to the real server.
+  await page.route("**/api/research", async (route) => {
+    const body = route.request().postDataJSON() as { demo?: boolean };
+    if (body.demo) return route.continue();
+    const message = "Live access to Qloo is not authorized for this deployment right now: the credential was rejected.";
+    return route.fulfill({ status: 200, contentType: "application/x-ndjson", body: `${JSON.stringify({ type: "error", code: "auth", message, retryable: false })}\n` });
+  });
+  await startExample(page);
+  await page.getByRole("button", { name: /Save and continue/ }).click();
+  await page.getByRole("button", { name: "Run cultural research" }).click();
+  await expect(page.getByText("Live Qloo access is not authorized right now")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Run the fictional demonstration" }).click();
+  await expect(page.getByRole("heading", { name: "Venue candidates" })).toBeVisible();
+  await expect(page.getByText("Fictional demonstration · no Qloo calls")).toBeVisible();
+  await expect(page.getByText("(fictional)", { exact: false }).first()).toBeVisible();
+  if (mode === "live") await expect(page.getByText("Showing the fictional demonstration")).toBeVisible();
+  await expect(page.getByText("Observed in Qloo")).toHaveCount(0);
 });

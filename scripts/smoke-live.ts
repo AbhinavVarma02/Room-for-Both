@@ -3,7 +3,8 @@
  *   1. Host probe: one minimal authenticated `/search` call per candidate host (at most three), so we
  *      never assume which host an issued credential is valid on.
  *   2. Response-structure check: field presence in real payloads against what the normaliser reads.
- *   3. One bounded research run (at most 7 calls) through the production planner.
+ *   3. One bounded research run (at most 7 calls) through the production planner, using the product's
+ *      own example scenario (a fictional guest whose cultural references are real public names).
  * Prints statuses, counts, and field names only: never keys, never payload values.
  * Exits 0 with BLOCKED when no credential is present.
  *
@@ -13,6 +14,7 @@
 import { QLOO_DOCUMENTED_BASE_URL, QlooClient, QlooError, type QlooPath, type QlooTransport, type QueryValue } from "../src/worker/integrations/qloo/client";
 import { resultItems } from "../src/worker/integrations/qloo/normalize";
 import { runResearch } from "../src/worker/orchestration/research";
+import { EXAMPLE_GUEST } from "../src/shared/fixtures/example-scenario";
 import { localVar, table } from "./lib";
 
 const apiKey = localVar("QLOO_API_KEY");
@@ -79,24 +81,31 @@ const started = Date.now();
 try {
   const run = await runResearch(
     {
-      seeds: [
-        { label: "Aesop", kind: "brand" },
-        { label: "Braiding Sweetgrass", kind: "book" },
-      ],
-      city: "Brooklyn",
+      seeds: EXAMPLE_GUEST.culturalSeeds,
+      city: EXAMPLE_GUEST.market.city,
+      ...(EXAMPLE_GUEST.market.neighborhood ? { neighborhood: EXAMPLE_GUEST.market.neighborhood } : {}),
       venueCategory: "bookstore",
-      guestCategories: ["skincare"],
+      guestCategories: EXAMPLE_GUEST.productCategories,
       maxCandidates: 5,
     },
     { transport, mode: "live", callBudget: 7, runId: "smoke" },
   );
   console.log("Stage 2: response structure (items carrying each field)");
   for (const s of shapes) console.log(`  ${s.path} ${s.type}: ${s.items} items ${JSON.stringify(s.fields)}`);
-  const venueShape = shapes.find((s) => s.type === "urn:entity:place");
+  // A widened search records an empty first venue response, so we inspect the one that returned venues.
+  const venueShapes = shapes.filter((s) => s.type === "urn:entity:place");
+  const venueShape = venueShapes.find((s) => s.items > 0) ?? venueShapes[0];
+  console.log("\nSteps");
+  for (const s of run.steps) console.log(`  ${s.id} [${s.tool}] ${s.status}, ${s.calls} calls, ${s.durationMs} ms: ${s.summary}`);
+  console.log(`Candidates: ${run.candidates.map((c) => `#${c.rank} ${c.strength}${c.contributions.length ? " (explained)" : ""}`).join(", ") || "none"}`);
+  console.log(`Themes: ${run.themes.map((t) => `${t.title} (${t.items.length} items)`).join(", ") || "none"}`);
+  console.log("Limitations:");
+  for (const l of run.limitations) console.log(`  - ${l}`);
   console.log("\nStage 3: bounded research run");
   const ok = table([
     ["authenticated research run completed", run.callsUsed > 0, `${run.callsUsed} calls`],
     ["at least one reference matched exactly", run.seeds.some((s) => s.status === "exact"), run.seeds.map((s) => `${s.input.label}: ${s.status}`).join(", ")],
+    ["no venue explanation left unparsed", run.candidates.every((c) => c.strength === "unscored" || c.contributions.length > 0), ""],
     ["venue category resolved to a Qloo tag", run.categoryTag !== null, run.categoryTag?.name ?? "none"],
     ["venue candidates returned", run.candidates.length > 0, `${run.candidates.length} candidates`],
     ["venue payload has IDs and names", !!venueShape && (venueShape.fields.entity_id ?? venueShape.fields.id ?? 0) > 0 && (venueShape.fields.name ?? 0) > 0, ""],

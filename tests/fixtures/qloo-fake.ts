@@ -17,6 +17,12 @@ export interface FakeOptions {
   noCategoryTag?: boolean;
   emptyVenuesFor?: string[];
   unknownLocations?: string[];
+  /** Book titles come back with a subtitle, as observed live. */
+  subtitledBooks?: boolean;
+  /** Answer cross-domain entity insights with 400 "all signals invalid", as observed live. */
+  rejectCrossDomain?: boolean;
+  /** Mark this many venues as closed. */
+  closedVenues?: number;
 }
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -41,7 +47,12 @@ export function createQlooFake(options: FakeOptions = {}) {
     if (url.pathname === "/search") {
       const q = url.searchParams.get("query") ?? "";
       if (options.searchMisses?.includes(q)) return json({ results: [] });
-      const name = options.fuzzySearch?.includes(q) ? `${q} Collected Edition` : q;
+      const types = url.searchParams.get("types") ?? "urn:entity:brand";
+      const name = options.fuzzySearch?.includes(q)
+        ? `${q} Collected Edition`
+        : options.subtitledBooks && types === "urn:entity:book"
+          ? `${q}: A Synthetic Subtitle`
+          : q;
       return json({
         results: [
           { entity_id: `SYN-${q.toUpperCase().replace(/\W+/g, "")}-1`, name, types: [url.searchParams.get("types") ?? "urn:entity:brand"], popularity: 0.7 },
@@ -80,7 +91,7 @@ export function createQlooFake(options: FakeOptions = {}) {
               type: "urn:entity",
               subtype: "urn:entity:place",
               popularity: 0.5,
-              properties: { address: `${100 + i} Synthetic Street` },
+              properties: { address: `${100 + i} Synthetic Street`, is_closed: i < (options.closedVenues ?? 0) },
               location: { lat: 40.7 + i / 100, lon: -73.95 },
               tags: [
                 { id: "urn:tag:synthetic:keyword:nature_writing", name: "Nature Writing", type: "urn:tag:synthetic:keyword" },
@@ -88,14 +99,20 @@ export function createQlooFake(options: FakeOptions = {}) {
               ],
               query: {
                 affinity: signals.length ? 0.9 - i * 0.15 : undefined,
-                explainability: signals.length ? { [signals[0] ?? ""]: 0.7, [signals[1] ?? "none"]: 0.3 } : undefined,
+                explainability: signals.length
+                  ? { "signal.interests.entities": signals.map((id, n) => ({ entity_id: id, score: n === 0 ? 0.7 : 0.3 / Math.max(1, signals.length - 1) })) }
+                  : undefined,
               },
             })),
           },
+          query: { localities: { filter: [{ entity_id: "SYN-LOC", name: loc, subtype: "urn:entity:locality" }] } },
         });
       }
       if (type === "urn:tag") {
         return json({ success: true, results: { tags: [{ tag_id: "urn:tag:synthetic:keyword:nature_writing", name: "Nature Writing", query: { affinity: 0.82 } }] } });
+      }
+      if (type?.startsWith("urn:entity:") && options.rejectCrossDomain) {
+        return json({ errors: [{ message: "All of the provided signal.interests.entities were invalid.", path: "signal.interests.entities" }] }, 400);
       }
       if (type?.startsWith("urn:entity:")) {
         return json({

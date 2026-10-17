@@ -131,3 +131,17 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
 - Polish: subtitles trimmed in activation sentences; the guide says any other venue can be chosen (the live #1 was a
   national chain); name matches are worded as name matches.
 - Live calls spent: Qloo 9, Gemini 1.
+
+## #10 Release validation (U8, in progress)
+
+- Local: `npm run check` exit 0 (unit 117, integration 73, eval 40/40, build); Playwright (fixture) 32 passed,
+  2 skipped (summary tests need a model); secret scan clean (169 files).
+- Release candidate version 2c5d1b4f uploaded to the `candidate` alias from e964395 (later commits are docs only).
+- `E2E_BASE_URL=<candidate> npx playwright test --project=desktop` (live): 12 passed; 5 failed on "Please wait
+  before researching again", the app's own 12-runs-per-visitor-per-hour limit, exhausted by earlier live checks from
+  the same address in the same UTC hour (the limiter is shared by production and candidate). The guided live journey
+  passed. Rerun after the window resets.
+- Merged `upgrade/selected-venue-journey` into `main` by fast-forward (a97defa) and pushed; CI pending.
+- Private: `.local/devpost-description.md` rewritten for the upgraded product; `.local/github-about.md` manual steps
+  (no metadata tool available); `.local/qloo-quota-request.md` draft (not sent); `.local/interview-script.md`.
+- Live calls spent (approximate, from the candidate test run): Qloo 9, Gemini 1.

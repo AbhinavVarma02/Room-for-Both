@@ -6,6 +6,7 @@ import type { ResearchRun } from "@shared/schemas/evidence";
 import { ApiRequestError, runBaseline } from "../../app/api";
 import { useWorkspace } from "../../app/store";
 import { Button, Callout, Card, ProvenanceChip, cn } from "../../components/ui/primitives";
+import { LlmComparison } from "./LlmComparison";
 
 /**
  * What the taste signal changed: the same category and area searched with and without the guest's
@@ -129,6 +130,7 @@ export function DiscoveryComparisonPanel({ run, auto = false }: { run: ResearchR
           </ul>
         </div>
       )}
+      <LlmComparison run={run} baseline={baseline} />
     </Card>
   );
 }

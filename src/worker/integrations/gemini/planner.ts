@@ -49,7 +49,7 @@ export function responseSchema(actions: readonly string[], domains: readonly str
 export async function proposeAction(
   prompt: string,
   schema: object,
-  opts: { apiKey: string | undefined; model: string | undefined; timeoutMs: number; fetchImpl?: typeof fetch },
+  opts: { apiKey: string | undefined; model: string | undefined; timeoutMs: number; fetchImpl?: typeof fetch; system?: string; maxOutputTokens?: number },
 ): Promise<unknown> {
   const model = opts.model?.trim() ?? "";
   if (!opts.apiKey || !MODEL_PATTERN.test(model)) throw new PlannerCallError("not_configured", "The model planner is not configured.");
@@ -60,9 +60,9 @@ export async function proposeAction(
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": opts.apiKey },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: PLANNER_SYSTEM }] },
+        systemInstruction: { parts: [{ text: opts.system ?? PLANNER_SYSTEM }] },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 200, responseMimeType: "application/json", responseSchema: schema },
+        generationConfig: { temperature: 0, maxOutputTokens: opts.maxOutputTokens ?? 200, responseMimeType: "application/json", responseSchema: schema },
       }),
       signal: AbortSignal.timeout(opts.timeoutMs),
     });

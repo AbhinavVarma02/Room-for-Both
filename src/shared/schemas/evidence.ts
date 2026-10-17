@@ -166,6 +166,29 @@ export const BaselineResult = z.object({
 });
 export type BaselineResult = z.infer<typeof BaselineResult>;
 
+/**
+ * The same question asked of a language model with no Qloo data, as a baseline. Explicit consent is
+ * required because the references and area go to the model provider.
+ */
+export const LlmBaselineRequest = z.strictObject({
+  seeds: z.array(CulturalSeed).max(3),
+  city: ShortText,
+  neighborhood: z.string().trim().max(60).optional(),
+  venueCategory: VenueCategory,
+  guestCategories: z.array(ProductCategory).min(1).max(5),
+  consent: z.literal(true),
+});
+export type LlmBaselineRequest = z.infer<typeof LlmBaselineRequest>;
+
+export const LlmBaselineResult = z.object({
+  model: z.string(),
+  venues: z.array(z.object({ name: z.string().max(80), reason: z.string().max(160) })).max(5),
+  discarded: z.number().int(),
+  provenance: z.literal("llm_interpretation"),
+  limitations: z.array(z.string()),
+});
+export type LlmBaselineResult = z.infer<typeof LlmBaselineResult>;
+
 /** Venue-side evidence: what Qloo associates with the selected venue itself, in the bridge's domain. */
 export const VenueBridgeRequest = z.strictObject({
   venueId: EntityId,

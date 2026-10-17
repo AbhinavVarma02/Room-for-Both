@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import { CROSS_DOMAIN_BY_VENUE } from "../../shared/constants/vocabulary";
-import { BaselineRequest, ResearchRequest, VenueBridgeRequest, type ResearchEvent } from "../../shared/schemas/evidence";
+import { BaselineRequest, LlmBaselineRequest, ResearchRequest, VenueBridgeRequest, type ResearchEvent } from "../../shared/schemas/evidence";
 import { settings } from "../env";
 import { type AppContext, type AppEnv, apiError, clientAddress, readJson } from "../http";
 import { QlooClient, QlooError, type QlooTransport } from "../integrations/qloo/client";
 import { FixtureTransport } from "../integrations/qloo/fixture-transport";
 import { runBaseline, runVenueBridge } from "../orchestration/followups";
-import { proposeAction } from "../integrations/gemini/planner";
+import { PlannerCallError, proposeAction } from "../integrations/gemini/planner";
+import { LLM_BASELINE_SCHEMA, LLM_BASELINE_SYSTEM, interpretLlmBaseline, llmBaselinePrompt } from "../orchestration/llm-baseline";
 import { DETERMINISTIC_ONLY, type PlannerSetup } from "../orchestration/planner";
 import { runResearch } from "../orchestration/research";
 import { limiterFor } from "../persistence/limits";
@@ -274,5 +275,46 @@ research.post("/research/venue-bridge", async (c) => {
     return upstreamFailure(c, error);
   } finally {
     await gate.finish();
+  }
+});
+
+research.post("/research/llm-baseline", async (c) => {
+  const s = settings(c.env);
+  if (!s.geminiConfigured) return apiError(c, 501, "not_configured", "No language model is configured on this server.");
+  const body = await readJson(c, LlmBaselineRequest);
+  if (!body.ok) return body.response;
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const limiter = limiterFor(c.env.DB);
+  try {
+    const who = await clientKey(clientAddress(c), c.env.CLIENT_KEY_SALT, now);
+    if (!(await limiter.hit(`llm-baseline:${who}`, 6, 3600, now)).allowed) {
+      return apiError(c, 429, "rate_limited", "You have asked the language model several times recently. Please wait before asking again.");
+    }
+    if ((await limiter.usage(day, "gemini_calls")) >= s.geminiDailyCeiling) {
+      return apiError(c, 503, "quota_exhausted", "Today's language-model allowance is used up. Everything else keeps working.");
+    }
+    await limiter.addUsage(day, "gemini_calls", 1);
+  } catch {
+    return apiError(c, 503, "limiter_unavailable", "The language-model comparison is temporarily unavailable.");
+  }
+  const fetchImpl = c.get("upstreamFetch");
+  const model = (c.env.GEMINI_MODEL ?? "").trim();
+  try {
+    const raw = await proposeAction(llmBaselinePrompt(body.data), LLM_BASELINE_SCHEMA, {
+      apiKey: c.env.GEMINI_API_KEY,
+      model,
+      timeoutMs: 10_000,
+      system: LLM_BASELINE_SYSTEM,
+      maxOutputTokens: 600,
+      ...(fetchImpl ? { fetchImpl } : {}),
+    });
+    const result = interpretLlmBaseline(raw, model);
+    c.get("log").info("llm_baseline_complete", { venues: result.venues.length, discarded: result.discarded });
+    return c.json(result);
+  } catch (error) {
+    const code = error instanceof PlannerCallError ? error.code : "malformed";
+    c.get("log").warn("llm_baseline_failed", { errorClass: code });
+    return apiError(c, 502, "llm_unavailable", "The language model could not answer just now. The Qloo results are unaffected.");
   }
 });

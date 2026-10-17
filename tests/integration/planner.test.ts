@@ -133,3 +133,47 @@ describe("model-assisted research planner", () => {
     expect(run.callsUsed).toBeLessThanOrEqual(run.callBudget);
   });
 });
+
+describe("language-model-only baseline", () => {
+  const body = { seeds: request.seeds, city: "Brooklyn", neighborhood: "Greenpoint", venueCategory: "bookstore", guestCategories: ["skincare"], consent: true };
+
+  it("asks the model once, discards unsafe suggestions, and labels the answer as a model interpretation", async () => {
+    answers = [
+      {
+        venues: [
+          { name: "Synthetic Venue A", reason: "Known for nature writing events." },
+          { name: "Link Shop", reason: "See https://evil.example for details." },
+          { name: "Unverified Corner", reason: "A quiet neighbourhood shop." },
+        ],
+      },
+    ];
+    const res = await h.request("/api/research/llm-baseline", jsonInit("POST", body), env);
+    expect(res.status).toBe(200);
+    const out = res.json() as { venues: { name: string }[]; discarded: number; provenance: string; limitations: string[] };
+    expect(out.venues.map((v) => v.name)).toEqual(["Synthetic Venue A", "Unverified Corner"]);
+    expect(out.discarded).toBe(1);
+    expect(out.provenance).toBe("llm_interpretation");
+    expect(out.limitations[0]).toMatch(/no Qloo data/);
+    expect(qloo.calls).toHaveLength(0);
+    expect(geminiBodies[0]).toContain("Greenpoint");
+    expect(geminiBodies[0]).not.toMatch(/budget|Fernleaf/);
+  });
+
+  it("requires consent", async () => {
+    const res = await h.request("/api/research/llm-baseline", jsonInit("POST", { ...body, consent: undefined }), env);
+    expect(res.status).toBe(400);
+    expect(geminiBodies).toHaveLength(0);
+  });
+
+  it("is unavailable without a configured model, and within the daily allowance", async () => {
+    expect((await h.request("/api/research/llm-baseline", jsonInit("POST", body), { QLOO_API_KEY: QLOO_KEY })).status).toBe(501);
+    expect((await h.request("/api/research/llm-baseline", jsonInit("POST", body), { ...env, GEMINI_DAILY_CALL_CEILING: "0" })).status).toBe(503);
+    expect(geminiBodies).toHaveLength(0);
+  });
+
+  it("reports a malformed answer without failing anything else", async () => {
+    answers = [{ unexpected: true }];
+    const res = await h.request("/api/research/llm-baseline", jsonInit("POST", body), env);
+    expect(res.status).toBe(502);
+  });
+});

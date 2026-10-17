@@ -19,7 +19,7 @@ import { localVar, table } from "./lib";
 
 const apiKey = localVar("QLOO_API_KEY");
 if (!apiKey) {
-  console.log("BLOCKED: QLOO_API_KEY is not set in the environment or .dev.vars (blocker EXT-QLOO-KEY). No request was made.");
+  console.log("BLOCKED: QLOO_API_KEY is not set in the environment or .dev.vars. No request was made.");
   process.exit(0);
 }
 

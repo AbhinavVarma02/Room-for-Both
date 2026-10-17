@@ -42,10 +42,10 @@ Nothing is `verified_complete` until its gate has passed and the evidence is in 
 
 | ID | Task | Needs | Files | State | Gate | Evidence |
 |----|------|-------|-------|-------|------|----------|
-| U4-01 | Allow-listed planner actions, schema, validator | U0-02 | `src/shared/schemas/planner.ts`, `orchestration/planner.ts` | pending | unit | — |
-| U4-02 | Gemini planning adapter (structured output, timeout, quota) | U4-01 | `integrations/gemini/planner.ts` | pending | unit | — |
-| U4-03 | Integrate with deterministic fallback, consent, decision cap, visible trace | U4-02 | research orchestration, Discovery | pending | integration | — |
-| U4-04 | Failure tests: malformed, unsupported, injection, quota, timeout, no consent, contradiction, budget, fallback | U4-03 | tests | pending | integration | — |
+| U4-01 | Allow-listed planner actions, schema, validator | U0-02 | `src/shared/schemas/planner.ts`, `orchestration/planner.ts` | verified_complete | unit | unit 23/23 (5013eae) |
+| U4-02 | Gemini planning adapter (structured output, timeout, quota) | U4-01 | `integrations/gemini/planner.ts` | verified_complete | unit | smoke:planner 2 live calls, UPGRADE_PROGRESS #4 |
+| U4-03 | Integrate with deterministic fallback, consent, decision cap, visible trace | U4-02 | research orchestration, Discovery | in_progress | integration | integration 9/9; UI trace added; browser check pending |
+| U4-04 | Failure tests: malformed, unsupported, injection, quota, timeout, no consent, contradiction, budget, fallback | U4-03 | tests | verified_complete | integration | unit + integration cover all nine failure modes (5013eae) |
 
 ## U5 — First 90 seconds
 

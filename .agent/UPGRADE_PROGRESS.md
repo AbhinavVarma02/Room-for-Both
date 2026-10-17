@@ -28,3 +28,22 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   so response parsing is not where production research CPU goes; the earlier demo-mode measurement (5–15 ms with no
   upstream calls) points at per-request application work. Follow-up in U6-01.
 - Live calls spent: Qloo 3, Gemini 0.
+
+## #4 Bounded model-assisted planner (U4)
+
+- Commit 5013eae. Planner: `src/worker/orchestration/planner.ts`; adapter `src/worker/integrations/gemini/planner.ts`;
+  schemas `src/shared/schemas/planner.ts`. Decision points: `bridge` (cross-domain domain from an allow-list of
+  books, music artists, podcasts; taste tags; clarify an approximate reference; stop only when no reference matched)
+  and `widen` (only after an empty neighbourhood search). At most `PLANNER_MAX_DECISIONS` (default 2) model calls per
+  run, each reserved against the shared daily model allowance (`GEMINI_DAILY_CALL_CEILING`, default 300).
+- Consent: the request must carry `planner: "model"` and `plannerConsent: true`; otherwise no model call and the
+  trace says why. The prompt carries references, product categories, venue type, and (for widening) the area names.
+- Tests: unit 23 (all nine failure modes: malformed, unsupported action and domain, injection via rationale link or
+  markup, outcome claim, contradictory stop or clarify, timeout, quota, invalid JSON, allowance used up, decision
+  budget, no consent, deterministic default); integration 9 (accepted podcast choice changes the bridge request;
+  second decision only after an empty search; provider 429 fallback; no consent; ceiling 0; no model configured;
+  default deterministic; injected proposal rejected).
+- `npm run smoke:planner` (2 live Gemini calls, no Qloo calls): both answers parsed and validated in ~1.3 s; the
+  injected reference label was ignored and the executed action stayed on the allow-list.
+- Totals: unit 114/114, integration 69/69, eval 40/40, invariance 27/27, scan clean.
+- Live calls spent: Qloo 0, Gemini 2.

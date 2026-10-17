@@ -20,3 +20,19 @@
 - Feature: proposal ideas from distinct slices of evidence (shared titles, venue side, guest side, taste tags,
   stated interests), each with the engine's status per suited format, host confirmations, unverified points, and
   reasons it might not suit (b0a31c8, a6aa698). Tests in `tests/unit/concepts.test.ts`. Unit tests: 129 passed.
+
+## #3 Reference sensitivity, security fixes, evaluation (F3–F5)
+
+- Feature: opt-in reference sensitivity (`POST /api/research/sensitivity`, `SensitivityPanel`): one call per matched
+  reference, each repeating the taste-informed search without it; findings read off the lists (first choice
+  changes, list changes, reorder only, no change, not measured), a tie note under 0.02 affinity, and a note when
+  Qloo's explanation disagrees with the removal test (1fc3443).
+- Security (05c3061): IPv6 clients grouped by /64 for every per-client limit (`limitSubject`); host-link withdrawal
+  throttled; sensitivity has its own bucket (half the research limit) and reserves its budget against the daily
+  ceiling; single `no-referrer` header on `/respond`. `npm audit`: 0 vulnerabilities; copyleft licences are dev-only.
+  Private review in `.local/`.
+- Evaluation (6f782c2): offline eval now measures proposal ideas (216/216 format statuses identical to the engine,
+  0 repeated items over 108 ideas, 0/561 statements flagged), what-if provenance (13/13 edited values labelled as
+  unconfirmed), and fixture sensitivity. It caught a real gap: two suggested changes touched inputs the brief never
+  listed; fixed. `npm run eval`: 40/40 cases, 73/73 checks. Unit + integration: 219 passed. Playwright (fixture):
+  32 passed, 2 skipped (need a model).

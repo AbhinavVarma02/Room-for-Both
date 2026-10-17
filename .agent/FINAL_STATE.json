@@ -1,0 +1,29 @@
+{
+  "cycle": "final product improvement",
+  "branch": "final/product-excellence",
+  "base_commit": "7186634",
+  "production_at_start": {
+    "version": "2c5d1b4f-e2a3-4ceb-a772-36a290746d40",
+    "health": "research live, narrative enabled, planner available",
+    "ci": "GitHub Actions 39039183890 on 7186634: success"
+  },
+  "rollback": "npx wrangler rollback 2c5d1b4f-e2a3-4ceb-a772-36a290746d40 (pre-cycle production); older: 1c4b8f19-a82a-402d-abf8-1cacd6bd13e3",
+  "current_phase": "F1",
+  "phase_status": {
+    "F0": "verified_complete",
+    "F1": "in_progress",
+    "F2": "pending",
+    "F3": "pending",
+    "F4": "pending",
+    "F5": "pending",
+    "F6": "pending",
+    "F7": "pending",
+    "F8": "pending",
+    "F9": "pending",
+    "F10": "pending",
+    "F11": "pending"
+  },
+  "baseline": "npm run check exit 0: unit 117, integration 73, eval 60/60, build",
+  "live_calls_spent": { "qloo": 0, "gemini": 0 },
+  "deployed_from_this_cycle": false
+}

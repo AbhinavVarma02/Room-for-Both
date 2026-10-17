@@ -29,6 +29,12 @@ comparisons, a two-sided cultural bridge, a bounded model-assisted planner with 
 demonstration. It is verified and deployed (`.agent/UPGRADE_PROGRESS.md` #11; history in `.agent/UPGRADE_*`). Scope
 is frozen again: only monitoring, defect fixes, and the credential transition in `.agent/NEXT.md`.
 
+## Final improvement cycle (active)
+
+An owner-authorised final cycle (audit, defect fixes, security review, documentation, one bounded product
+improvement) runs on branch `final/product-excellence`. Recover from `.agent/FINAL_NEXT.md`, `FINAL_STATE.json`,
+`FINAL_TASKS.md`, and `FINAL_PROGRESS.md`, then the real Git and deployment state.
+
 ## Non-negotiable rules
 
 - **Truthful status.** Status vocabulary: `pending`, `in_progress`, `implemented_unverified`,

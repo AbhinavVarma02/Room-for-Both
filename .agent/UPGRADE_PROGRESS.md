@@ -142,7 +142,7 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   the same address in the same UTC hour (the limiter is shared by production and candidate). The guided live journey
   passed. Rerun after the window resets.
 - Merged `upgrade/selected-venue-journey` into `main` by fast-forward (a97defa) and pushed; CI pending.
-- Private: `.local/devpost-description.md` rewritten for the upgraded product; `.local/github-about.md` manual steps
+- Private: the private submission text in `.local/` rewritten for the upgraded product; `.local/github-about.md` manual steps
   (no metadata tool available); `.local/qloo-quota-request.md` draft (not sent); `.local/interview-script.md`.
 - Live calls spent (approximate, from the candidate test run): Qloo 9, Gemini 1.
 

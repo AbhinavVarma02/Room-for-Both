@@ -12,7 +12,7 @@ The upgrade is complete, verified, and deployed (UPGRADE_PROGRESS #11). There is
 
 ## Owner actions (not engineering)
 
-- Submit the external entry form yourself; the draft is `.local/devpost-description.md`.
+- Send the external application yourself; the private draft is in `.local/`.
 - Fill the repository's About section; steps in `.local/github-about.md`.
 - Optional: send `.local/qloo-quota-request.md` through the documented support channel.
 

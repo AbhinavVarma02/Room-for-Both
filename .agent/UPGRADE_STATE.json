@@ -38,7 +38,7 @@
   "deployed": true,
   "open_watch_items": ["RISK-CPU", "RISK-QLOO-QUOTA", "RISK-CREDENTIAL-END"],
   "owner_actions": [
-    "Submit the external entry form yourself (draft: .local/devpost-description.md)",
+    "Send the external application yourself (private draft in .local/)",
     "Fill the GitHub About section (steps: .local/github-about.md)",
     "Optional: send the quota request (.local/qloo-quota-request.md)"
   ]

@@ -6,7 +6,8 @@ Room for Both is designed to need as little data as possible and to keep most of
 
 Your workspace (guest profile, host terms, the latest research run, and any host-link tokens you created) is
 kept in your browser's local storage so you can return to it. It is never uploaded as a whole. "Start over"
-clears it.
+clears it. A host-link token lets anyone using the same browser profile read the host's answers until the link
+expires, so start over on a shared computer.
 
 ## What is sent to the server, and why
 
@@ -16,6 +17,7 @@ clears it.
 | Cultural research | Up to three cultural references, city, neighbourhood, venue category, product categories (product categories stay on our server and are not sent to Qloo) | No. Counts only, for rate limits |
 | Create a host link | Only the summary you choose to share: business name, product categories, proposed formats, the venue's public name, optional theme and message | Yes, until expiry (7 days) or withdrawal |
 | Host answers | The host's terms | Yes, until expiry or withdrawal |
+| Reference sensitivity check (optional) | The run's matched reference IDs and names, category, and area, to repeat the venue search without each reference | No. Counts only |
 | Optional language-model summary | Computed facts: names, option labels, statuses, amounts, question texts | No |
 | Optional model planner | Cultural references, product categories, venue type, and (only after an empty search) the area names | No. Counts only |
 | Optional language-model baseline | Cultural references, product categories, venue type, and area | No. Counts only |

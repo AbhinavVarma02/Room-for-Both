@@ -148,7 +148,7 @@ fictional research):
 Cloudflare's analytics for the Worker (17 October 2026, all traffic since deployment, including the runs above):
 183 requests, all successful, 0 errors, 0 terminated for CPU; CPU p50 4.1 ms, p90 13.6 ms, p99 57.7 ms.
 
-**Upgrade candidate (17 October 2026).** The upgraded code was uploaded as a separate Worker version and
+**Release candidate with the selected-venue journey (17 October 2026).** The code was uploaded as a separate Worker version and
 measured on its preview URL without moving production traffic. `wrangler tail` does not see preview traffic, so
 `npm run measure:cpu:windows` runs each route alone in its own clock minute and reads CPU quantiles per minute
 and version from Cloudflare's analytics (n = 3–5 per route, so treat these as indicative):
@@ -162,9 +162,9 @@ and version from Cloudflare's analytics (n = 3–5 per route, so treat these as 
 | `POST /api/research/baseline` | 2.2 / 3.0 | 10.3 / 31.6 |
 | `POST /api/research/venue-bridge` | 3.0 / 5.7 | 6.1 / 9.2 |
 
-**Final-cycle candidate (17 October 2026, version 61619c8f, fictional demonstration, n = 2–5 per route).** Health
+**Release candidate with proposal ideas and sensitivity (17 October 2026, version 61619c8f, fictional demonstration, n = 2–5 per route).** Health
 p50 2.3 ms, evaluate 4.0, research 25.4, category-only comparison 2.9, venue side 2.2, and the new sensitivity check
-6.1 (max 12.8). The fictional research median is higher than the upgrade candidate's 10.8 ms although no code on
+6.1 (max 12.8). The fictional research median is higher than the previous candidate's 10.8 ms although no code on
 that path changed materially; with three samples on fresh isolates this is within the cold-start spread seen before,
 but it is recorded as measured. Every request succeeded; there were no CPU terminations.
 

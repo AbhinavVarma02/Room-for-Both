@@ -99,3 +99,16 @@ Append-only. Each entry: what ran, what was observed, live calls spent, next act
   one request handles; splitting would add requests and complexity without bringing the tail under 10 ms. The model
   planner did not raise research CPU (p50 18.9 vs 20.6 ms). RISK-CPU stays an open watch item.
 - Live calls spent: none (demo mode).
+
+## #8 Live evaluation with follow-ups (U2-04)
+
+- `npm run eval -- --live`: five fixed scenarios, 22 research calls plus 8 follow-up calls (category-only comparison
+  and venue-side lookup for the first venue). Aggregates only; no names or payloads stored.
+- Category-only comparison, four scenarios with a taste signal: all four `different_venues`. Venues in both top
+  lists: 4, 1, 4, 5 of 5; venues only the taste signal surfaced (absent from the category-only top 10): 1, 4, 1, 0.
+  The taste-ranked first venue sat at #3, outside the top 10, #2, and #1 of the category-only list.
+- Venue-side lookup: 8 items in each of the four scenarios; 0 items matched the guest-side list by entity ID in any
+  scenario; shared taste tags 4, 1, 0 (taste-tag bridge, not comparable), and 8. So in live data the two directions
+  meet through shared themes, not identical titles, and the activation idea says so.
+- All evidence `qloo_observed` (39/39), 0/114 items dropped by the normaliser, 0 unsupported statements.
+- Live calls spent: Qloo 30.

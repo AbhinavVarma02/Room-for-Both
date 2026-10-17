@@ -18,7 +18,7 @@ flowchart LR
     API[Hono API /api/*]
     ENG2[Decision engine<br/>same module]
     PLAN[Bounded research planner]
-    QC[Qloo client<br/>timeout · retry · budget · breaker]
+    QC[Qloo client<br/>pacing · timeout · retry · budget · breaker]
     FX[Fixture transport<br/>labelled fictional data]
     GEM[Gemini adapter<br/>optional, opt-in]
     LIM[Rate limits &amp; quota ceilings]
@@ -64,7 +64,7 @@ Referer headers) and is forwarded only as a bearer header. The server sets the a
 | Boundary | Controls |
 |----------|----------|
 | Browser → Worker | Zod strict schemas on every body, 32 KB body limit, JSON content type required, cross-origin writes refused, no cookies, bearer tokens for private routes |
-| Worker → Qloo | Key only in Worker secrets; base URL must be `https` on a `qloo.com` host; per-call timeout; at most one retry on 429/5xx/timeouts; per-run call budget; per-isolate circuit breaker; response size cap; every payload re-validated |
+| Worker → Qloo | Key only in Worker secrets; base URL must be `https` on a `qloo.com` host; calls paced below the per-second limit; per-call timeout; at most one retry on 429/5xx/timeouts (a 429 waits for the reported reset; an exhausted monthly allowance is not retried); per-run call budget; daily ceiling; per-isolate circuit breaker; response size cap; every payload re-validated field by field |
 | Worker → Gemini | Disabled unless configured; visitor consent required per request; structured facts only (no prompt field); output schema, number, link, and claim checks |
 | Worker → D1 | Parameterised statements only; no raw IPs, budgets, or plaintext tokens stored; daily cleanup by cron |
 | Static assets | `_headers` sets CSP (`default-src 'self'`), `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies; no source maps shipped |
@@ -85,7 +85,9 @@ See `.agent/DECISIONS.md` for the full records. In short:
 | Failure | Behaviour |
 |---------|-----------|
 | No Qloo credential | Labelled fixture mode; banner on discovery; brief marks cultural evidence as fictional |
-| Qloo rate limit, auth error, or outage | Research stops with a plain-language error; "Continue without cultural evidence" keeps the decision tools usable |
+| Qloo credential rejected (expired, revoked, wrong host) | "Live Qloo access is not authorized right now"; the visitor can run the labelled fictional demonstration or continue without cultural evidence |
+| Qloo rate limit, monthly allowance used up, timeout, or outage | "Live cultural data is temporarily unavailable", with retry where useful, the fictional demonstration, or continuing without cultural evidence |
+| Cross-domain lookup rejected or empty | The bridge falls back to taste tags scoped to the references' own entity types, and says so |
 | Reference or category not matched exactly | Disclosed, not used as a signal; venue search skipped rather than guessed |
 | No venues in a neighbourhood | Search widens to the city once, then reports none |
 | Per-run call budget reached | Remaining steps are skipped; results found so far are kept and marked partial |

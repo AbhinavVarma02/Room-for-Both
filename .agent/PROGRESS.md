@@ -107,3 +107,43 @@ Chronological, factual. Commands and observed outcomes only.
 - Trackers reconciled: stale SHAs, CI run, CPU range (2–21 ms, not ≤9 ms), and public-URL notes corrected; P1, P9, P10-01 closed;
   release-critical vs optional work separated; scope freeze recorded in CLAUDE.md, NEXT.md, STATE.json.
 - Not done (external): live Qloo smoke, host and field validation, live research, evaluation, CPU; access confirmation; plan check.
+
+## #7 Live Qloo and Gemini integration, deployment, and evaluation
+- Start: HEAD == origin/main == 55215aa, clean tree. `.dev.vars` holds QLOO_API_KEY, QLOO_BASE_URL, GEMINI_API_KEY,
+  GEMINI_MODEL (presence and length checked; values never printed). All env files git-ignored.
+- Terms reviewed: Qloo's developer guide for the credential (single valid host; rejected on production and staging;
+  direct HTTPS with `X-Api-Key`; keys active through the end of the programme's review period, then deactivated;
+  private server-side caching allowed; no response data in public repositories); Qloo Terms of Use (input-signal
+  licence, no redistribution); the programme's rules (working app available free for testing through the review
+  period; third-party use must follow its terms). The credential email was not available (no match in the connected
+  mailbox) → EXT-QLOO-EMAIL for the owner. EXT-QLOO-KEY, EXT-QLOO-HOST, EXT-QLOO-ACCESS resolved (ADR-010).
+- `npm run smoke:live`: host accepted on the first probe; first bounded run passed except the cultural bridge
+  (0 themes). Diagnosis with single calls: book titles carry subtitles; names HTML-escaped; brand-only signals are
+  rejected for book insights (400 "all signal.interests.entities were invalid"); unscoped taste tags mix domains;
+  `filter.parents.types` scoping fixes that; explainability is a per-reference list; tags mix themes with formats and
+  age brackets; places carry `is_closed`; response headers report 5 calls/s and 10,000/month. A later smoke run hit
+  HTTP 429 from the per-second limit (five quick calls then a sixth); fixed with pacing and reset-aware retry.
+- Gemini: key lists `gemini-3.5-flash-lite`; it belongs to an AI Studio project with billing disabled, restricted to
+  the Generative Language API; free-tier quota 15/min, 500/day. `npm run smoke:gemini` 2/2 (≈245 in / 100 out tokens,
+  ~1.1 s); injection not followed. One draft misattributed a change; the system instruction now defines each field.
+- Fixes (5bf47ef): entity decoding, main-title matching, null-tolerant fields, pacing + 429 handling + monthly stop,
+  daily ceiling 300, bridge fallback to scoped taste tags, thematic tag filter, closed venues, locality note,
+  `demo: true` fictional demonstration with named error states, live brief label, mode-aware e2e, secret scan of
+  exact local values. CI 38995913094 success.
+- Deployment: `npm run deploy` → a601eb3f (code, still fixture); `wrangler secret bulk` from stdin (four secrets,
+  CLIENT_KEY_SALT kept) → 701c21ef live. `verify:public` 10/10; public e2e 24/24; public `/api/narrative` 200.
+- CPU (wrangler tail): live research 18/32/57 ms. Local replay of one captured run (private, ignored folder):
+  normalisation 0.61 ms warm, full run ~9 ms cold. Replaced per-item schema parsing (0e17b50): 0.07 ms warm, ~4 ms
+  cold; deployed research 16/24/25 ms; demo research 5/13/15 ms; evaluate 2–25 ms. Cloudflare GraphQL analytics:
+  183 requests, all success, 0 errors, 0 CPU terminations; p50 4.1, p90 13.6, p99 57.7 ms → RISK-CPU watch item.
+  Removed orphaned `wrangler tail` processes (two from the previous session); the CPU script now kills the tree.
+- Venue categories (9 tag searches): 7 match exactly; "Clothing boutique" → "Clothing store", "Plant shop" →
+  "Plant nursery" proxies with disclosure; plain place category preferred over restaurant/hotel genres (0e17b50).
+- Live evaluation (`npm run eval -- --live`, 22 calls): 5/5 scenarios found venues; 6/7 references exact (the 7th a
+  fictional business name, kept approximate); 20/20 signal-backed venues explained; 39/39 evidence qloo_observed;
+  0/114 items dropped; 0 unsupported statements; 2–7 calls per run; 0.4–4.3 s.
+- Checks on 0e17b50: `npm run check` exit 0 (69 unit, 49 integration, eval 40/40, build); local Playwright 24/24
+  (live mode); public Playwright 24/24 and summary test 2/2; scan clean. CI 38997070624 success. Deployed a69d147b.
+- Docs: new docs/data-licensing.md; README, api, deployment (secrets, rotation, rollback), security, privacy,
+  limitations, evaluation, architecture, demo guide, Methodology page updated.
+- Production usage on the day: Qloo calls counted by the app's own ceiling; see `usage_counters` in D1.

@@ -2,29 +2,30 @@
 
 No secret values or login details are ever written here.
 
-## Release-critical dependencies, in order
+## Open (owner actions; no engineering work waits on them)
 
-1. EXT-QLOO-KEY: Qloo approves and issues the API credential.
-2. EXT-QLOO-HOST: the accepted host is found and real response fields match the normaliser (`npm run smoke:live`).
-3. EXT-QLOO-ACCESS: Qloo confirms direct server-side HTTPS calls are permitted for the credential.
-4. Live research, evaluation, and Worker CPU measurements (P4-06, P7-05, P7-08 live, P8-06 live), which need 1–3.
-5. EXT-CF-PLAN: the owner confirms the Cloudflare Free plan in the dashboard (independent of 1–4).
+| ID | Affects | Why open | Needs | Safe continuation | Unblocking action | Status |
+|----|---------|----------|-------|-------------------|-------------------|--------|
+| EXT-CF-PLAN | infrastructure gate, P10-03 | The account's billing plan cannot be read with Wrangler's sign-in (subscriptions API returns 403 without billing scope). Usage is designed for Workers Free and D1 Free, and no billing setting has been touched | Repository owner | Nothing paid is configured: bindings are D1, one cron, observability; no paid products | Check Workers & Pages → Plans (or Manage account → Billing → Subscriptions) in the dashboard and confirm "Free" | open |
+| EXT-QLOO-EMAIL | compliance gate, P10-03 | The Qloo credential's terms were taken from Qloo's developer guide for the credential programme and Qloo's Terms of Use. The credential email itself was not available to the agent (no matching message in the connected mailbox) | Repository owner | Live use follows the guide: documented host, direct HTTPS with `X-Api-Key`, documented routes, server-side only, paced under the reported limits | Read the email that delivered the key and confirm it adds no restriction beyond the guide, in particular on (a) server-side calls from a public web app and (b) the active period covering the full external review period. If it does, follow `.agent/NEXT.md` "If the credential's terms differ" | open |
 
-Optional, never release-critical: EXT-GEMINI-KEY (P4-05) and the map view (P6-09).
+## Watch items (not blockers)
 
-## Open
+| ID | Item | Evidence | Trigger | Planned response |
+|----|------|----------|---------|------------------|
+| RISK-CPU | Live research uses 16–25 ms CPU against the Free plan's nominal 10 ms | PROGRESS #7: `measure:cpu`; Cloudflare analytics show 0 CPU terminations in 183 requests | Any `exceededCpu` outcome or Error 1102 in the dashboard or `wrangler tail` | Split `/api/research` into two bounded requests (references and category; venues and bridge). Never upgrade the plan |
+| RISK-QLOO-QUOTA | Credential allows 10,000 calls a month and 5 per second | Response headers (PROGRESS #7) | `quota_exhausted` events in logs | Daily ceiling is 300 calls; visitors get the fictional demonstration when it is reached |
+| RISK-CREDENTIAL-END | The Qloo credential is time-limited | Qloo's developer guide for the credential | Live research returns `auth` errors | Follow `.agent/NEXT.md` "When the Qloo credential ends" |
 
-| ID | Affects | Why blocked | Needs | Safe continuation | Unblocking action | Status |
-|----|---------|-------------|-------|-------------------|-------------------|--------|
-| EXT-QLOO-KEY | P2-05, P4-06, P7-05, P7-08 (live), P8-05, release | The owner has requested Qloo API access; approval is pending and may take several business days. No key is available | Repository owner | The deployed app runs in labelled fixture mode; adapter verified against a synthetic upstream; live smoke test, host probe, live evaluation and CPU script are ready and report BLOCKED without a key | Follow `.agent/NEXT.md` "When the Qloo credential arrives" | open |
-| EXT-QLOO-ACCESS | release | Qloo's starter kit lists its CLI/MCP harness as the supported access surfaces for issued credentials and says serverless functions are not a supported route for its MCP server. It does not say whether direct HTTPS calls to the documented API from a server are permitted | Repository owner, to confirm with Qloo | All requests use documented routes, server-side only, within a per-run budget and daily ceiling | Ask Qloo support (or the credential issuer) to confirm direct server-side HTTPS access for the credential; record the answer in DECISIONS.md | open |
-| EXT-QLOO-HOST | live verification | Qloo's public docs and official client name `api.qloo.com` (production) and `staging.api.qloo.com`. Issued credentials may be scoped to another `qloo.com` host. All candidate hosts exist and reject unauthenticated calls, so only a real key can show which one accepts it | Credential | The client accepts any `https` host on `qloo.com`; `npm run smoke:live` probes candidates with one call each, then checks the fields the normaliser reads | Resolved by the host probe and field check once the key exists; set `QLOO_BASE_URL` to the accepted host and fix any normaliser mismatch | open (depends on EXT-QLOO-KEY) |
-| EXT-CF-PLAN | infrastructure gate | The account's billing plan cannot be read with Wrangler's sign-in (subscriptions API returns 403 without billing scope) | Repository owner | Usage is designed for Workers Free and D1 Free limits; no billing setting has been touched | Check Workers & Pages → Plans (or Manage account → Billing → Subscriptions) in the dashboard and confirm "Free" | open |
-| EXT-GEMINI-KEY | P4-05 live check | Optional feature; no key | Repository owner, only if a no-cost model is available | Deterministic summaries are the default | Set `GEMINI_API_KEY` and `GEMINI_MODEL` as Worker secrets | optional |
+Optional, never release-critical: P6-09 (map view).
 
 ## Resolved
 
 | ID | Resolution |
 |----|------------|
-| EXT-GH-CLI | The owner created the public repository; pushes work through Git Credential Manager. The GitHub CLI install was cancelled at the elevation prompt and is not required. |
+| EXT-QLOO-KEY | The owner obtained a Qloo credential and placed it in the local `.dev.vars`. Authenticated calls succeed (PROGRESS #7). |
+| EXT-QLOO-HOST | Qloo's developer guide for the credential names one valid host and states the key is rejected on the production and staging hosts. The configured `QLOO_BASE_URL` is that host; it accepted the key on the first probe. Only that host is used; no other environment was probed. |
+| EXT-QLOO-ACCESS | The same guide documents direct HTTPS calls to the documented routes with the `X-Api-Key` header (its own curl and Python examples), which is what the Worker does. The earlier "serverless is not supported" note concerns Qloo's MCP server, which this app does not use. Recorded in DECISIONS ADR-010. |
+| EXT-GEMINI-KEY | The owner created a Google AI Studio key. It belongs to a project with billing disabled (read-only `gcloud billing projects describe`), is restricted to the Generative Language API, and lists `gemini-3.5-flash-lite`. Free-tier quota for the project: 15 requests per minute, 500 per day. Live checks pass (PROGRESS #7). |
+| EXT-GH-CLI | The owner created the public repository; pushes work through Git Credential Manager. The GitHub CLI is not required. |
 | EXT-CF-AUTH | `wrangler login` completed; D1 created and migrated; Worker deployed. |

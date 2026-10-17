@@ -118,6 +118,11 @@ export function Methodology() {
           as weaker. They describe aggregate taste associations. They are not foot traffic, sales, rent, permission, or proof that a venue wants to
           partner. Without a credential, the app runs in a clearly labelled fixture mode with fictional data.
         </p>
+        <p className="mt-3">
+          Live access uses a time-limited Qloo credential. If Qloo rejects it or is unavailable, the app says so and offers the fictional
+          demonstration instead; a run is always entirely live or entirely fictional, and its label follows it into the brief. Qloo results are
+          shown to you and kept in your browser, not stored by Room for Both's server.
+        </p>
       </Section>
 
       <Section title="Provenance labels">

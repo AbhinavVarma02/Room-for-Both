@@ -16,10 +16,11 @@ Repository slug: `room-for-both`. Never rename the product.
 
 ## Current state
 
-The application is deployed, tested, and frozen in labelled fixture mode. The remaining work is the live Qloo
-integration (credential, host and response validation, access confirmation, live research, evaluation, and CPU
-measurements) and the owner's Cloudflare Free plan confirmation. The exact steps are in `.agent/NEXT.md`; the
-dependency order is in `.agent/BLOCKERS.md`. Do not add features or change the architecture while frozen.
+The application is deployed with live Qloo cultural discovery and the optional Gemini summary, both verified
+locally and on the public URL (`.agent/PROGRESS.md` #7). Live access uses a time-limited Qloo credential on the
+host named in its issuing guide; when it ends, follow `.agent/NEXT.md`. Open items are owner confirmations
+(Cloudflare Free plan, the credential email) and the RISK-CPU watch item in `.agent/BLOCKERS.md`. Scope is frozen:
+no new features or architecture changes; only monitoring, defect fixes, and the credential transition.
 
 ## Non-negotiable rules
 
@@ -39,7 +40,9 @@ dependency order is in `.agent/BLOCKERS.md`. Do not add features or change the a
   already-computed facts. No revenue, footfall, or probability forecasts.
 - **Verified integrations only.** Qloo routes, headers, and response fields come from official docs
   or authenticated observation, and the API base URL and key live only in secrets
-  (`QLOO_BASE_URL`, `QLOO_API_KEY`). Never commit raw upstream responses.
+  (`QLOO_BASE_URL`, `QLOO_API_KEY`). Never commit raw upstream responses, and never commit the
+  credential's host name (it carries programme wording). Spend live quota sparingly: the key allows
+  5 calls per second and 10,000 per month.
 - **$0 additional spend.** Workers Free, D1 Free, free public GitHub Actions runners, open-source
   packages. Never upgrade a plan, add billing, or provision paid resources.
 - **Repository hygiene.** No secrets, `.dev.vars`, `.env`, personal data, or raw API payloads in Git.

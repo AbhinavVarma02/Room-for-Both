@@ -7,8 +7,9 @@ collaboration that works for both of them. It suggests culturally aligned partne
 taste intelligence. It then checks every pop-up, shelf placement, and co-hosted event against both sides'
 actual terms, and shows the smallest negotiable change that would turn a no into a maybe.
 
-**Live app:** https://room-for-both.room-for-both.workers.dev (currently in labelled fixture mode while Qloo API
-access is pending)
+**Live app:** https://room-for-both.room-for-both.workers.dev, with live Qloo cultural discovery under a
+time-limited Qloo developer credential. When that credential ends, the app switches to a clearly labelled
+fictional demonstration; see [data sources and licensing](docs/data-licensing.md).
 
 ![Room for Both home page](docs/images/landing.png)
 
@@ -36,7 +37,8 @@ Both replaces "this won't work" with "this would work if…", and is honest abou
 ![Decision Reversal showing why an option is blocked and the what-if controls](docs/images/reversal.png)
 
 *Screenshots show the fictional example in fixture mode. Both businesses are invented, and fixture cultural
-data is labelled fictional throughout the app.*
+data is labelled fictional throughout the app. In live mode the same screens show Qloo results labelled
+"Observed in Qloo" with their source request and retrieval time.*
 
 ## Principles
 
@@ -80,8 +82,11 @@ npm run dev
 ```
 
 Without a Qloo credential the app runs in a clearly labelled **fixture mode** with fictional cultural data, so
-every feature works offline. Add `QLOO_API_KEY` to `.dev.vars` (never commit it) for live research, and check
-it with `npm run smoke:live`.
+every feature works offline. For live research, put `QLOO_API_KEY` and `QLOO_BASE_URL` (the host named in your
+credential's instructions) in `.dev.vars`, which is git-ignored, then run `npm run smoke:live`: one probe call,
+a field check of real responses, and one bounded research run. For the optional summary, add `GEMINI_API_KEY`
+(a Google AI Studio key) and `GEMINI_MODEL`, then run `npm run smoke:gemini` (two calls). Keys stay
+server-side; nothing is exposed to the browser bundle.
 
 ## Quality
 
@@ -90,13 +95,14 @@ it with `npm run smoke:live`.
 | `npm run typecheck` | Strict TypeScript for client, Worker, tests, and tooling |
 | `npm run lint` | ESLint |
 | `npm test` | Unit tests for every constraint, frontier rule, reversal property, and schema bound |
-| `npm run test:integration` | The real API against a local D1, with a synthetic Qloo upstream |
+| `npm run test:integration` | The real API against a local D1, with a synthetic Qloo upstream shaped like real responses |
 | `npm run test:e2e` | Playwright journeys on desktop and mobile against the production build |
-| `npm run eval` | 40-case evaluation; results in [docs/evaluation-results.md](docs/evaluation-results.md) |
-| `npm run scan:secrets` | Tracked-file scan for secrets and private files |
+| `npm run eval` | 40-case offline evaluation; results in [docs/evaluation-results.md](docs/evaluation-results.md) |
+| `npm run eval -- --live` | Five fixed live Qloo scenarios, aggregate metrics only (needs a credential) |
+| `npm run scan:secrets` | Tracked-file scan for secrets, private files, and the exact local secret values |
 | `npm run check` | Everything offline, as CI runs it |
 
-See [evaluation](docs/evaluation.md) for what is and is not measured.
+See [evaluation](docs/evaluation.md) for what is and is not measured, including the live Qloo results.
 
 ## Deploy
 
@@ -109,6 +115,7 @@ including secrets, migrations, and `npm run verify:public` to check a live URL f
 - [Decision method](docs/decision-method.md)
 - [Architecture](docs/architecture.md)
 - [API and Qloo routes](docs/api.md)
+- [Data sources, licensing, and operating modes](docs/data-licensing.md)
 - [Security](docs/security.md)
 - [Privacy and data use](docs/privacy.md)
 - [Limitations](docs/limitations.md)
@@ -119,7 +126,9 @@ including secrets, migrations, and `npm run verify:public` to check a live URL f
 ## Data and attribution
 
 Cultural data, when live, comes from the [Qloo Insights API](https://docs.qloo.com/) and is shown with its
-source and limits. Fonts are Inter and Fraunces (SIL Open Font License) via Fontsource. Icons are from Lucide
+source and limits. It is used under Qloo's terms for the current credential, is not stored beyond what
+[data sources and licensing](docs/data-licensing.md) lists, and is never included in this repository.
+Optional summaries are drafted with Google's Gemini API after visitor consent. Fonts are Inter and Fraunces (SIL Open Font License) via Fontsource. Icons are from Lucide
 (ISC).
 
 ## Licence

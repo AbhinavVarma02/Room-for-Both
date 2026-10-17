@@ -5,13 +5,13 @@
   "phase_status": {
     "P0": "verified_complete",
     "P1": "verified_complete",
-    "P2": "blocked_external",
+    "P2": "verified_complete",
     "P3": "verified_complete",
-    "P4": "blocked_external",
+    "P4": "verified_complete",
     "P5": "verified_complete",
     "P6": "verified_complete",
-    "P7": "blocked_external",
-    "P8": "implemented_unverified",
+    "P7": "implemented_unverified",
+    "P8": "verified_complete",
     "P9": "verified_complete",
     "P10": "blocked_external"
   },
@@ -26,12 +26,17 @@
     "P1-04",
     "P1-05",
     "P1-06",
+    "P1-07",
     "P1-08",
     "P1-09",
+    "P10-01",
+    "P10-02",
     "P2-01",
     "P2-02",
     "P2-03",
     "P2-04",
+    "P2-05",
+    "P2-06",
     "P3-01",
     "P3-02",
     "P3-03",
@@ -42,6 +47,9 @@
     "P4-02",
     "P4-03",
     "P4-04",
+    "P4-05",
+    "P4-06",
+    "P4-07",
     "P5-01",
     "P5-02",
     "P5-03",
@@ -60,49 +68,49 @@
     "P7-02",
     "P7-03",
     "P7-04",
+    "P7-05",
     "P7-06",
     "P7-07",
-    "P9-01",
-    "P9-02",
-    "P9-03",
-    "P10-02",
     "P8-02",
     "P8-03",
     "P8-04",
-    "P8-06-fixture",
-    "P7-08-fixture",
-    "P1-07",
-    "P10-01",
-    "P9-04"
+    "P8-05",
+    "P8-06",
+    "P9-01",
+    "P9-02",
+    "P9-03",
+    "P9-04",
+    "P9-05"
   ],
   "implemented_unverified_task_ids": [
-    "P4-05"
+    "P7-08"
   ],
   "failed_checks": [],
   "blocker_ids": [
-    "EXT-QLOO-KEY",
-    "EXT-QLOO-ACCESS",
-    "EXT-QLOO-HOST",
-    "EXT-CF-PLAN"
+    "EXT-CF-PLAN",
+    "EXT-QLOO-EMAIL"
   ],
   "last_successful_verifications": [
-    "GitHub Actions run 38855382520 on 27a2ad6: success",
-    "npm run check: exit 0 (57 unit, 44 integration, eval 40/40 cases 60/60 checks, build)",
-    "npm run scan:secrets: clean (131 tracked files)",
-    "npx playwright test (local workerd preview): 22/22",
-    "Playwright against public URL: 22/22",
-    "npm run verify:public: 9/10 (only live Qloo mode fails, expected)",
-    "Remote D1: tables present, no pending migrations"
+    "npm run smoke:live: host accepted on first probe; bounded run passes",
+    "npm run smoke:gemini: 2/2 (gemini-3.5-flash-lite, free tier)",
+    "npm run eval -- --live: 5/5 scenarios, 39/39 evidence qloo_observed, 0/114 dropped, 0 unsupported",
+    "npm run check on 0e17b50: exit 0 (69 unit, 49 integration, eval 40/40, build)",
+    "npx playwright test (local, live mode): 24/24",
+    "E2E_BASE_URL=<public url> npx playwright test: 24/24; summary test 2/2",
+    "npm run verify:public: 10/10 including live mode",
+    "npm run scan:secrets: clean (exact local secret values compared)",
+    "GitHub Actions 38995913094 (5bf47ef) and 38997070624 (0e17b50): success",
+    "Cloudflare analytics: 183 requests, 0 errors, 0 CPU terminations"
   ],
   "last_commit_sha": "27a2ad6",
   "last_remote_sha": "27a2ad6",
   "github_remote_url": "https://github.com/AbhinavVarma02/Room-for-Both",
   "deployed_url": "https://room-for-both.room-for-both.workers.dev",
-  "verified_live_qloo": false,
-  "verified_live_gemini": false,
+  "verified_live_qloo": true,
+  "verified_live_gemini": true,
   "verified_public_anonymous_flow": true,
   "verified_free_tier": false,
-  "release_status": "ready_except_external_dependencies",
+  "release_status": "live_release_verified_pending_owner_confirmations",
   "tooling": {
     "node": "v24.14.0",
     "npm": "11.9.0",
@@ -116,49 +124,70 @@
     "Owner confirms Free plan in dashboard (EXT-CF-PLAN)"
   ],
   "phase_notes": {
-    "P2": "adapter verified against synthetic upstream; live smoke blocked (EXT-QLOO-KEY)",
-    "P4": "offline pipeline verified; live run blocked; optional Gemini narrative untested live",
+    "P2": "live contract validated; normaliser and planner aligned with authenticated responses",
+    "P4": "live research and optional Gemini summary verified locally and publicly; fictional fallback verified",
     "P6": "optional map not shipped",
-    "P7": "Worker CPU measured in fixture mode; live comparison pending",
-    "P8": "deployed and verified anonymously in fixture mode; live Qloo gate pending",
-    "P9": "docs and README include the public URL; private handoff packet in .local/",
-    "P10": "offline health check complete; release waits on external dependencies only"
+    "P7": "live evaluation done; CPU above nominal Free limit on live research with 0 terminations (RISK-CPU)",
+    "P8": "deployed with live secrets; verify:public 10/10; public e2e 24/24",
+    "P9": "docs updated incl. data-licensing.md; private packet updated",
+    "P10": "waits on owner confirmations EXT-CF-PLAN and EXT-QLOO-EMAIL"
   },
   "blocked_task_ids": [
-    "P2-05",
-    "P4-06",
-    "P7-05",
-    "P8-05",
     "P10-03"
   ],
   "pending_task_ids": [
     "P6-09"
   ],
-  "qloo_access": "requested by owner; approval pending",
+  "qloo_access": "credential active; host and method per Qloo's developer guide for the credential; email check open (EXT-QLOO-EMAIL)",
   "deployed_version": "2de0ba6b-aad3-4496-9c2c-db128c0c428f",
-  "free_tier_note": "Limits re-verified from Cloudflare docs; account plan not readable via wrangler token (subscriptions API 403); owner to confirm in dashboard",
   "resolved_blocker_ids": [
     "EXT-GH-CLI",
-    "EXT-CF-AUTH"
+    "EXT-CF-AUTH",
+    "EXT-QLOO-KEY",
+    "EXT-QLOO-HOST",
+    "EXT-QLOO-ACCESS",
+    "EXT-GEMINI-KEY"
   ],
-  "qloo_host_audit": "Official docs and harness 0.1.26 name api.qloo.com (production) and staging.api.qloo.com; three candidate qloo.com hosts resolve and return 401 without a key; host chosen by authenticated probe in smoke:live",
+  "qloo_host_audit": "Valid host is the one named in Qloo's developer guide for the credential (kept in QLOO_BASE_URL, not in Git); key is rejected on production and staging hosts per the guide",
   "cpu_measurements": {
-    "evaluate_ms": "2-21 (first request on fresh isolate highest; warm 4-5)",
-    "research_fixture_ms": "3-18",
-    "health_ms": "0-2",
-    "all_outcomes": "ok",
-    "node_warm_ms": {
-      "research_median": 0.63,
-      "evaluate_median": 0.68
-    }
+    "research_live_ms_before": "18, 32, 57",
+    "research_live_ms_after": "16, 24, 25",
+    "research_demo_ms": "5, 13, 15",
+    "evaluate_ms": "2-25 (25 first request after deploy)",
+    "health_ms": "0-1",
+    "cloudflare_analytics": "183 requests, all success, 0 CPU terminations; p50 4.1, p90 13.6, p99 57.7 ms",
+    "node_replay": "full run ~1 ms warm, ~4 ms cold; normalisation 0.07 ms warm"
   },
   "optional_task_ids": [
-    "P4-05 (Gemini narrative, live check)",
     "P6-09 (map view)"
   ],
-  "deployed_version_note": "Active version comes from the CLIENT_KEY_SALT secret change on top of upload 8b056190; Worker source (src/, wrangler bindings) is unchanged since, so no redeploy is needed",
+  "deployed_version_note": "Set after the final deploy of this session",
   "freeze": {
     "status": "frozen",
-    "scope": "Architecture and feature scope frozen. Only the live Qloo integration steps in .agent/NEXT.md and defect fixes are in scope."
-  }
+    "scope": "Live integration complete. Only monitoring, defect fixes, and the credential transition in .agent/NEXT.md are in scope."
+  },
+  "watch_item_ids": [
+    "RISK-CPU",
+    "RISK-QLOO-QUOTA",
+    "RISK-CREDENTIAL-END"
+  ],
+  "qloo_limits": {
+    "per_second": 5,
+    "per_month": 10000,
+    "app_daily_ceiling": 300,
+    "calls_per_run": 7
+  },
+  "gemini": {
+    "model": "gemini-3.5-flash-lite",
+    "project_billing_enabled": false,
+    "free_tier_quota": {
+      "rpm": 15,
+      "rpd": 500
+    },
+    "app_limits": {
+      "per_client_per_hour": 20,
+      "per_day": 300
+    }
+  },
+  "free_tier_note": "Workers/D1 usage designed for Free; plan not readable via wrangler token (EXT-CF-PLAN). Gemini project billing disabled (verified read-only)."
 }

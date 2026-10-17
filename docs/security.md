@@ -7,15 +7,21 @@
 - The Qloo client refuses to send the key anywhere except an `https` URL on a `qloo.com` host, so a mistyped
   `QLOO_BASE_URL` cannot leak it.
 - Production builds ship no source maps.
-- `npm run scan:secrets` checks tracked files for key patterns and private files; CI runs it on every push.
+- `npm run scan:secrets` checks tracked files for key patterns, private files, and (when run locally) the exact
+  values of the local secrets, because provider key formats change. CI runs it on every push.
+- Upstream URLs are built from a validated base URL; the key is sent only in a request header, never in a URL
+  or a response, and error messages shown to visitors name the failure class only.
+- Gemini requests go only to Google's fixed `generativelanguage.googleapis.com` endpoint; the model name is
+  validated against a strict pattern before it is placed in the URL.
 
 ## Untrusted input
 
 - Every request body is parsed with strict Zod schemas (unknown fields rejected, lengths and ranges bounded,
   vocabularies enumerated) and capped at 32 KB.
 - Validation errors name field paths but never echo submitted values.
-- Upstream Qloo and Gemini payloads are treated as untrusted: validated item by item, string lengths and list
-  sizes capped, malformed items dropped.
+- Upstream Qloo and Gemini payloads are treated as untrusted: size-capped (2 MB and 100 KB), read field by
+  field with type checks, string lengths and list sizes capped, HTML entities decoded only for display text,
+  malformed items dropped.
 - React escapes all rendered text; the app sets no HTML from data. The CSP is `default-src 'self'` with no
   inline scripts.
 
@@ -40,10 +46,14 @@
 
 ## Abuse and cost controls
 
-- Research: per-client hourly limit (default 12 runs), per-run call budget (default 7), daily upstream ceiling
-  (default 1,500 calls). If the counter store is unavailable, live research fails closed.
+- Research: per-client hourly limit (default 12 runs), per-run call budget (default 7, retries included), daily
+  upstream ceiling (default 300 calls, sized to the credential's monthly allowance), call pacing below Qloo's
+  per-second limit, one bounded retry that waits for Qloo's reported reset, and a per-isolate circuit breaker
+  after repeated upstream failures. If the counter store is unavailable, live research fails closed.
+- The fictional demonstration makes no upstream calls but still counts towards the per-client hourly limit.
 - Host link creation: 10 per client per hour; reads and writes are throttled separately.
-- Narrative drafts: 20 per client per hour and 300 per day.
+- Narrative drafts: 20 per client per hour and 300 per day, below the model's free-tier quota (15 per minute,
+  500 per day for the deployed project). There is no unrestricted anonymous model access.
 - Client identity for limits is a daily-rotating hash of the connecting address; raw addresses are never stored.
 - Cross-origin writes are refused. No cookies are used.
 

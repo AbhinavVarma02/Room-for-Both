@@ -13,8 +13,8 @@ clears it.
 | Action | Data sent | Kept on the server? |
 |--------|-----------|---------------------|
 | Evaluate (API use only; the app evaluates locally) | The scenario | No |
-| Cultural research | Up to three cultural references, city, neighbourhood, venue category, product categories | No. Counts only, for rate limits |
-| Create a host link | Only the summary you choose to share: business name, product categories, proposed formats, optional theme and message | Yes, until expiry (7 days) or withdrawal |
+| Cultural research | Up to three cultural references, city, neighbourhood, venue category, product categories (product categories stay on our server and are not sent to Qloo) | No. Counts only, for rate limits |
+| Create a host link | Only the summary you choose to share: business name, product categories, proposed formats, the venue's public name, optional theme and message | Yes, until expiry (7 days) or withdrawal |
 | Host answers | The host's terms | Yes, until expiry or withdrawal |
 | Optional language-model summary | Computed facts: names, option labels, statuses, amounts, question texts | No |
 
@@ -23,7 +23,10 @@ Your budget, own costs, notes, and priorities are never shared with a host and n
 ## Third parties
 
 - **Qloo** receives the cultural references, location, and venue category from research requests, sent by our
-  server. Qloo describes its data as aggregate and free of personal information. We send no personal data.
+  server. Under Qloo's Terms of Use, Qloo may use anonymised input signals to improve its service, so we send
+  nothing else: no business names, terms, budgets, notes, or contact details. Qloo describes its data as
+  aggregate and free of personal information. Qloo results are shown to you and kept in your browser; the
+  server does not retain them (see [data sources and licensing](data-licensing.md)).
 - **Google Gemini API** (only if the operator enables it and you consent each time) receives the computed
   facts listed above. Google's free tier states that submitted content may be used to improve Google's
   products, which is why consent is required.

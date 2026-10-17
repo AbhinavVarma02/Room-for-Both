@@ -11,7 +11,8 @@ QLOO_BASE_URL=
 QLOO_CANDIDATE_BASE_URLS=
 
 # Optional plain-language summaries via the Gemini Developer API. Both must be set to enable.
-# Choose a model your account can use at no cost; check Google's current pricing page first.
+# Use a Google AI Studio key from a project without billing, so only the free tier applies, and a model that
+# is free for your account (check Google's pricing page). `npm run smoke:gemini` checks both with two calls.
 GEMINI_API_KEY=
 GEMINI_MODEL=
 

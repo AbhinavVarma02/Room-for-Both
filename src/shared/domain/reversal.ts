@@ -261,7 +261,17 @@ export function reverseOption(scenario: Scenario, option: ArrangementOption): Op
 
   let minimalChange: OptionReversal["minimalChange"] = null;
   if (failing.length > 0 && nonNegotiableBlockers.length === 0) {
-    const chosen = candidates.map((c) => c.changes.find((ch) => ch.negotiable)).filter((c): c is Change => c !== undefined);
+    // Each change replaces its field's whole value, so two picks on one field (both guest dealbreakers,
+    // say) would undo each other. We prefer the next negotiable change on a field not yet changed.
+    const touched = new Set<string>();
+    const chosen: Change[] = [];
+    for (const c of candidates) {
+      const negotiable = c.changes.filter((ch) => ch.negotiable);
+      const pick = negotiable.find((ch) => !touched.has(`${ch.party}.${ch.field}`)) ?? negotiable[0];
+      if (!pick) continue;
+      touched.add(`${pick.party}.${pick.field}`);
+      chosen.push(pick);
+    }
     const after = buildOption(applyChanges(scenario, chosen), templateFor(option.format), option.variant);
     minimalChange = { changes: chosen, statusAfter: after.status, verified: after.status !== "no_go" };
   }

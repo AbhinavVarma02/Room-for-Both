@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ResearchRequest, ResolvedSeed } from "../../src/shared/schemas/evidence";
+import { PlannerTrace } from "../../src/shared/schemas/planner";
 import { PlannerCallError } from "../../src/worker/integrations/gemini/planner";
 import { DETERMINISTIC_ONLY, type ModelPort, PlannerSession, rationaleProblem } from "../../src/worker/orchestration/planner";
 
@@ -43,6 +44,14 @@ describe("model planner: accepted proposals", () => {
     const r = await s.decideBridge(request, [seed("Alpha", "exact"), seed("Gamma", "uncertain")]);
     expect(r.choice).toEqual({ kind: "cross_domain", domain: "urn:entity:book" });
     expect(s.trace.clarification).toContain("“Gamma Collected” for “Gamma”");
+  });
+
+  it("keeps a clarification about a long Qloo name within the trace's limits", async () => {
+    const long: ResolvedSeed = { ...seed("G".repeat(80), "uncertain"), entity: { id: "ID-long", name: "N".repeat(200), type: "urn:entity:book" } };
+    const s = session(port([{ action: "clarify", referenceIndex: 1, rationale: "The second reference matched only approximately." }]));
+    await s.decideBridge(request, [seed("Alpha", "exact"), long]);
+    expect(s.trace.clarification).toContain("N…");
+    expect(PlannerTrace.safeParse(s.trace).success).toBe(true);
   });
 
   it("may stop a run that has no exactly matched reference", async () => {

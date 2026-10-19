@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { resetQlooCircuitBreaker } from "../../src/worker/integrations/qloo/client";
 import { clearCategoryCache } from "../../src/worker/orchestration/research";
-import type { ResearchRun } from "../../src/shared/schemas/evidence";
+import { ResearchEvent, type ResearchRun } from "../../src/shared/schemas/evidence";
 import { createQlooFake } from "../fixtures/qloo-fake";
 import { type Harness, jsonInit, ndjson, startHarness } from "./harness";
 
@@ -58,6 +58,15 @@ describe("fixture mode (no credentials)", () => {
       expect(c.venue.location).toBeNull();
     }
     expect(fake.calls).toHaveLength(0);
+  });
+
+  it("keeps a run with long references within the result schema, and never credits Qloo in its steps", async () => {
+    const seeds = ["a", "b", "c"].map((c) => ({ label: `${c} `.repeat(40).trim(), kind: "book" }));
+    const res = await h.request("/api/research", jsonInit("POST", { ...request, seeds }));
+    const run = result(res.text);
+    expect(run.candidates.length).toBeGreaterThan(0);
+    expect(ResearchEvent.safeParse({ type: "result", run }).success).toBe(true);
+    for (const step of run.steps) expect(step.summary).not.toMatch(/Qloo/);
   });
 
   it("throttles repeated runs from the same client", async () => {

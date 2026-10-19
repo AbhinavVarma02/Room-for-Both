@@ -15,7 +15,7 @@ const obj = (v: unknown): Obj | null => (typeof v === "object" && v !== null && 
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
 
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+export const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 // Live names arrive HTML-escaped (for example "Motorcycles &amp; Sweetgrass"). We decode the few
 // entities we have seen plus numeric ones; React escapes the result again when it renders.

@@ -1,7 +1,8 @@
 import { BRIDGE_DOMAINS, BRIDGE_DOMAIN_TYPES, CROSS_DOMAIN_BY_VENUE, PRODUCT_CATEGORY_LABELS, SEED_KIND_LABELS, VENUE_CATEGORY_LABELS, type BridgeDomain } from "../../shared/constants/vocabulary";
 import type { ResearchRequest, ResolvedSeed } from "../../shared/schemas/evidence";
-import { BridgeProposal, WidenProposal, type DecisionPoint, type PlannerDecision, type PlannerTrace } from "../../shared/schemas/planner";
+import { BridgeProposal, WidenProposal, type PlannerDecision, type PlannerTrace } from "../../shared/schemas/planner";
 import { PlannerCallError, responseSchema } from "../integrations/gemini/planner";
+import { clip } from "../integrations/qloo/normalize";
 
 /**
  * Bounded planning. The deterministic planner is always available and is the fallback for every
@@ -72,7 +73,7 @@ export class PlannerSession {
   }
 
   /** Asks the model when allowed; returns its raw answer or the reason it could not be asked. */
-  async #ask(point: DecisionPoint, prompt: string, schema: object): Promise<{ raw: unknown } | { skipped: string }> {
+  async #ask(prompt: string, schema: object): Promise<{ raw: unknown } | { skipped: string }> {
     const port = this.#setup.port;
     if (this.#setup.requested !== "model" || !port) return { skipped: this.#setup.availability };
     if (this.trace.modelCalls >= this.#setup.maxDecisions) return { skipped: `The run's limit of ${this.#setup.maxDecisions} model decisions was reached.` };
@@ -89,7 +90,6 @@ export class PlannerSession {
         not_configured: "The model planner is not configured.",
         upstream: "The model service returned an error.",
       };
-      void point;
       return { skipped: why[code] ?? why.upstream ?? "The model could not be asked." };
     }
   }
@@ -131,7 +131,7 @@ export class PlannerSession {
       `Facts (JSON data): ${JSON.stringify(facts)}`,
     ].join("\n");
 
-    const asked = await this.#ask("bridge", prompt, responseSchema(actions, exact.length ? BRIDGE_DOMAIN_TYPES : []));
+    const asked = await this.#ask(prompt, responseSchema(actions, exact.length ? BRIDGE_DOMAIN_TYPES : []));
     if ("skipped" in asked) {
       return {
         choice: deterministic,
@@ -151,7 +151,8 @@ export class PlannerSession {
     if (p.action === "clarify") {
       const target = seeds[p.referenceIndex];
       if (!target || target.status !== "uncertain" || !target.entity) return reject(describe(p), "that reference did not match approximately.");
-      this.trace.clarification = `Did you mean “${target.entity.name}” for “${target.input.label}”? It matched only approximately, so it was not used. Edit the reference to include it.`;
+      // Qloo names run to 200 characters; we shorten long ones so the text stays within the trace's 300-character field.
+      this.trace.clarification = `Did you mean “${clip(target.entity.name, 110)}” for “${target.input.label}”? It matched only approximately, so it was not used. Edit the reference to include it.`;
       return {
         choice: deterministic,
         decision: this.#record(
@@ -179,7 +180,7 @@ export class PlannerSession {
       "If unsure, choose widen.",
       `Facts (JSON data): ${JSON.stringify({ searched: from, wider: to, venueCategory: VENUE_CATEGORY_LABELS[request.venueCategory] })}`,
     ].join("\n");
-    const asked = await this.#ask("widen", prompt, responseSchema(["widen", "stop"], []));
+    const asked = await this.#ask(prompt, responseSchema(["widen", "stop"], []));
     if ("skipped" in asked) {
       return { widen: true, decision: this.#record({ point: "widen", planner: "deterministic", proposed: null, accepted: false, reason: asked.skipped, executed: "Widen the venue search to the city", rationale: null, fallback: this.#setup.requested === "model" }, t0) };
     }

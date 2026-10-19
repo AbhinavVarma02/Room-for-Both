@@ -100,6 +100,15 @@ describe("Decision Reversal", () => {
     expect(r.minimalChange?.changes[0]?.to).toBe(60);
   });
 
+  it("never combines two changes to the same field, so both guest dealbreakers can be resolved together", () => {
+    const s = scenario({ dealbreakers: ["alcohol_on_premises", "exclusivity_required"] }, { alcoholOnPremises: true, requiresExclusivity: true });
+    const r = reverseOption(s, byId(evaluateScenario(s).options, "shelf:2"));
+    const fields = r.minimalChange?.changes.map((c) => `${c.party}.${c.field}`) ?? [];
+    expect(fields).toHaveLength(2);
+    expect(new Set(fields).size).toBe(2);
+    expect(r.minimalChange?.verified).toBe(true);
+  });
+
   it("extends a partial overlap instead of inventing a new day when that is smaller", () => {
     const s = scenario({ availability: [{ day: "wed", start: 10, end: 14 }] }, { availability: [{ day: "wed", start: 12, end: 18 }] });
     const r = reverseOption(s, byId(evaluateScenario(s).options, "cohosted_event:3"));

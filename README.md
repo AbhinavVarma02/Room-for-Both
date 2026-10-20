@@ -99,6 +99,12 @@ whether to widen an empty neighbourhood search), proposes one action from an all
 with the rule's choice as the fallback; and a language-model-only baseline shown beside the Qloo results. A model
 never decides feasibility, fees, or schedules.
 
+To see each one: in Discovery, choose **Let a language model choose research steps** under Research planner, give
+consent, and select **Run research again**; the planner trace marks accepted decisions "model, validated". For a
+bookstore the rules already bridge from books, so the model usually proposes the same step. The baseline is the
+**Ask without Qloo data** button in the "What the taste signal changed" card, and the summary is **Draft a summary**
+in the Brief.
+
 ## Architecture
 
 One Cloudflare Worker serves the React app and a Hono API on the Workers Free plan, with a D1 database for private

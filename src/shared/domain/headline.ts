@@ -22,21 +22,16 @@ export function blockerSummary(e: ScenarioEvaluation, limit = 2): BlockerSummary
 }
 
 /**
- * The arrangement a first conversation would usually start from: a co-hosted event, the format a
- * cultural theme suits best, choosing the length that fails the fewest checks. Used only to explain
- * results, never to rank them.
+ * The blocked option with the cheapest verified change, which the engine already ranks first. We prefer
+ * one whose format has nothing feasible or conditional yet: unblocking a variant of a format that already
+ * works only lands where that format already is, so it opens no new ground.
  */
-export function featuredOption(e: ScenarioEvaluation): ArrangementOption | null {
-  const fails = (o: ArrangementOption) => o.constraints.filter((c) => c.status === "fail").length;
-  const events = e.options.filter((o) => o.format === "cohosted_event").sort((a, b) => fails(a) - fails(b) || a.variant - b.variant);
-  return events.find((o) => o.status === "no_go") ?? events[0] ?? e.options[0] ?? null;
-}
-
-/** The blocked option with the cheapest verified change, which the engine already ranks first. */
 export function closestToWorking(e: ScenarioEvaluation): { option: ArrangementOption; changes: string[]; statusAfter: string } | null {
-  for (const r of e.reversals) {
+  const open = new Set(e.options.filter((o) => o.status !== "no_go").map((o) => o.format));
+  const verified = e.reversals.flatMap((r) => {
     const option = e.options.find((o) => o.id === r.optionId);
-    if (option && r.minimalChange?.verified) return { option, changes: r.minimalChange.changes.map((c) => c.description), statusAfter: r.minimalChange.statusAfter };
-  }
-  return null;
+    return option && r.minimalChange?.verified ? [{ option, minimal: r.minimalChange }] : [];
+  });
+  const pick = verified.find((v) => !open.has(v.option.format)) ?? verified[0];
+  return pick ? { option: pick.option, changes: pick.minimal.changes.map((c) => c.description), statusAfter: pick.minimal.statusAfter } : null;
 }

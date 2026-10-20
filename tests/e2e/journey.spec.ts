@@ -51,7 +51,8 @@ test("complete journey: discovery, frontier, reversal, and brief", async ({ page
   await expect(counts.getByRole("button", { name: /^7 no-go/ })).toBeVisible();
   const closest = page.locator('[aria-labelledby="closest-title"]');
   await expect(closest.getByText("Closest to agreement")).toBeVisible();
-  await expect(closest.getByText("Not agreed: the host has not confirmed this.")).toBeVisible();
+  await expect(closest.getByRole("heading", { name: "Co-hosted event · 2 hours" })).toBeVisible();
+  await expect(closest.getByText("Not agreed: the guest has not confirmed this.")).toBeVisible();
   await expect(closest.getByRole("button", { name: /Explore the change/ })).toBeVisible();
 
   // Every arrangement stays available: a status filter, a compact list, and one focused detail.

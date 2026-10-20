@@ -33,9 +33,10 @@ Your budget, own costs, notes, and priorities are never shared with a host and n
   aggregate and free of personal information. Qloo results are shown to you and kept in your browser; the
   server does not retain them (see [data sources and licensing](data-licensing.md)).
 - **Google Gemini API** (only if the operator enables it and you consent each time) receives only what the table
-  above lists for the feature you chose; never business names for the planner or baseline, and never budgets,
-  costs, notes, contact details, or host-link data. Google's free tier states that submitted content may be used
-  to improve Google's products, which is why consent is required each time.
+  above lists for the feature you chose. The summary sends the computed facts shown on the page, which can include
+  outlay, fee, and budget amounts. The planner and baseline never receive business names, budgets, or terms. No
+  feature sends notes, contact details, or host-link data. Google's free tier states that submitted content may be
+  used to improve Google's products, which is why consent is required each time.
 - **Cloudflare** hosts the app and database.
 
 ## Server records

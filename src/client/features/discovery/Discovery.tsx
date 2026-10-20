@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { SEED_KIND_LABELS, VENUE_CATEGORIES, VENUE_CATEGORY_LABELS, type VenueCategory } from "@shared/constants/vocabulary";
 import { STRENGTH_LABELS, affinityText, influenceText } from "@shared/domain/affinity";
-import type { PartnershipCandidate, ResearchRun, ResearchStep, ResearchStepId, Strength } from "@shared/schemas/evidence";
+import type { CulturalTheme, PartnershipCandidate, ResearchRun, ResearchStep, ResearchStepId, Strength } from "@shared/schemas/evidence";
 import type { PlannerDecision } from "@shared/schemas/planner";
 import { ApiRequestError, getConfig, streamResearch } from "../../app/api";
 import { useWorkspace } from "../../app/store";
@@ -349,7 +349,10 @@ export function Discovery() {
 /** Qloo's part in one line of three steps: what went in, what it found, and what it can't say. */
 function QlooStrip({ run }: { run: ResearchRun }) {
   const exact = run.seeds.filter((s) => s.status === "exact").length;
-  const bridged = run.themes.reduce((n, t) => n + t.items.length, 0);
+  // Only the cross-domain theme holds titles; the recurring and shared taste-signal themes hold tags.
+  const countOf = (basis: CulturalTheme["basis"]) => run.themes.filter((t) => t.basis === basis).reduce((n, t) => n + t.items.length, 0);
+  const titles = countOf("cross_domain");
+  const linked = titles > 0 ? { n: titles, one: "title", many: "titles" } : { n: countOf("taste_tags"), one: "taste tag", many: "taste tags" };
   const steps = [
     {
       Icon: Tags,
@@ -363,8 +366,8 @@ function QlooStrip({ run }: { run: ResearchRun }) {
     },
     {
       Icon: Sparkles,
-      value: String(bridged),
-      label: bridged === 1 ? "title linked to them" : "titles linked to them",
+      value: String(linked.n),
+      label: `${linked.n === 1 ? linked.one : linked.many} linked to them`,
       detail: run.themes[0]?.title ?? "no theme",
     },
     {
